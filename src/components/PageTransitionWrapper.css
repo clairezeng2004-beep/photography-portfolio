@@ -1,0 +1,110 @@
+/* ============================================
+   Page Transition Wrapper
+   ============================================ */
+
+.page-transition {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ---- fade ---- */
+.page-transition-fade {
+  transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.page-transition-fade.page-transition-enter {
+  opacity: 0;
+}
+.page-transition-fade.page-transition-active {
+  opacity: 1;
+}
+.page-transition-fade.page-transition-exit {
+  opacity: 0;
+}
+
+/* ---- slide-up ---- */
+.page-transition-slide-up {
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.page-transition-slide-up.page-transition-enter {
+  opacity: 0;
+  transform: translateY(24px);
+}
+.page-transition-slide-up.page-transition-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+.page-transition-slide-up.page-transition-exit {
+  opacity: 0;
+  transform: translateY(-16px);
+}
+
+/* ---- slide-left ---- */
+.page-transition-slide-left {
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.page-transition-slide-left.page-transition-enter {
+  opacity: 0;
+  transform: translateX(32px);
+}
+.page-transition-slide-left.page-transition-active {
+  opacity: 1;
+  transform: translateX(0);
+}
+.page-transition-slide-left.page-transition-exit {
+  opacity: 0;
+  transform: translateX(-32px);
+}
+
+/* ---- zoom-fade ---- */
+.page-transition-zoom-fade {
+  transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.page-transition-zoom-fade.page-transition-enter {
+  opacity: 0;
+  transform: scale(0.97);
+}
+.page-transition-zoom-fade.page-transition-active {
+  opacity: 1;
+  transform: scale(1);
+}
+.page-transition-zoom-fade.page-transition-exit {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
+/* ---- blur-fade ---- */
+.page-transition-blur-fade {
+  transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1), filter 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.page-transition-blur-fade.page-transition-enter {
+  opacity: 0;
+  filter: blur(6px);
+}
+.page-transition-blur-fade.page-transition-active {
+  opacity: 1;
+  filter: blur(0);
+}
+.page-transition-blur-fade.page-transition-exit {
+  opacity: 0;
+  filter: blur(6px);
+}
+
+/* ---- scroll-reveal (同页面滚动揭示) ---- */
+.page-transition-scroll-reveal {
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), clip-path 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.page-transition-scroll-reveal.page-transition-enter {
+  opacity: 0;
+  transform: translateY(40px);
+  clip-path: inset(8% 0 0 0);
+}
+.page-transition-scroll-reveal.page-transition-active {
+  opacity: 1;
+  transform: translateY(0);
+  clip-path: inset(0 0 0 0);
+}
+.page-transition-scroll-reveal.page-transition-exit {
+  opacity: 0;
+  transform: translateY(-30px);
+  clip-path: inset(0 0 8% 0);
+}

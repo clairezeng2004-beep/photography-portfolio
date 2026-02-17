@@ -1,0 +1,179 @@
+.subscribe-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0);
+  transition: background 0.25s ease, backdrop-filter 0.25s ease;
+}
+
+.subscribe-overlay.show {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+.subscribe-modal {
+  background: #faf9f7;
+  width: 400px;
+  max-width: 90vw;
+  padding: 48px 40px;
+  position: relative;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.subscribe-modal.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.subscribe-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #bbb;
+  padding: 4px;
+  transition: color 0.2s ease;
+}
+
+.subscribe-close:hover {
+  color: #2a2a2a;
+}
+
+.subscribe-icon {
+  color: #999;
+  margin-bottom: 20px;
+}
+
+.subscribe-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: #2a2a2a;
+  margin-bottom: 12px;
+}
+
+.subscribe-desc {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: #888;
+  line-height: 1.8;
+  margin-bottom: 28px;
+}
+
+.subscribe-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.subscribe-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e0ddd8;
+  background: #fff;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: #2a2a2a;
+  letter-spacing: 0.02em;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.subscribe-input:focus {
+  border-color: #bbb;
+}
+
+.subscribe-input.error {
+  border-color: #d4a0a0;
+}
+
+.subscribe-input::placeholder {
+  color: #ccc;
+  font-style: italic;
+}
+
+.subscribe-error {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #c17c7c;
+  text-align: left;
+  margin-top: -4px;
+}
+
+.subscribe-btn {
+  width: 100%;
+  padding: 14px;
+  background: #2a2a2a;
+  color: #faf9f7;
+  border: none;
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-style: italic;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.subscribe-btn:hover {
+  background: #444;
+}
+
+.subscribe-note {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 11px;
+  font-weight: 300;
+  color: #bbb;
+  margin-top: 16px;
+  letter-spacing: 0.02em;
+}
+
+/* Success state */
+.subscribe-success {
+  padding: 20px 0;
+}
+
+.subscribe-success-icon {
+  color: #7a9e7e;
+  margin-bottom: 20px;
+}
+
+.subscribe-success h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: #2a2a2a;
+  margin-bottom: 12px;
+}
+
+.subscribe-success p {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: #888;
+  line-height: 1.8;
+}
+
+@media (max-width: 768px) {
+  .subscribe-modal {
+    padding: 40px 28px;
+  }
+}

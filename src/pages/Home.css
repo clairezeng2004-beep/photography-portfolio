@@ -1,0 +1,843 @@
+/* ============================================
+   HOME PAGE — 小冰块 Photography
+   ============================================ */
+
+/* ============ HERO SLIDER ============ */
+.hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  background: #1a1a1a;
+}
+
+.hero:active {
+  cursor: grabbing;
+}
+
+/* Slide mode */
+.hero-slider {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-slide {
+  min-width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.hero-slide-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* Stack mode (fade / zoom / kenburns / blur) */
+.hero-stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-stack-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.hero-fade-img {
+  transition: opacity 1s ease;
+}
+
+.hero-zoom-img {
+  transition: opacity 0.8s ease, transform 1.2s ease;
+}
+
+.hero-kb-img {
+  transition: opacity 1s ease;
+  transform: scale(1);
+}
+
+.hero-kb-img.active {
+  animation: heroKenBurns 5s ease forwards;
+}
+
+@keyframes heroKenBurns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.1) translate(-1%, -0.5%); }
+}
+
+.hero-blur-img {
+  transition: opacity 0.6s ease, filter 0.8s ease;
+}
+
+/* Overlay */
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 120px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%);
+  opacity: 0;
+  transition: opacity 1.5s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.hero-overlay.loaded {
+  opacity: 1;
+}
+
+.hero-overlay {
+  cursor: pointer;
+}
+
+.hero-view-gallery {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+  margin-top: 12px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s ease, color 0.3s ease;
+}
+
+.hero-overlay:hover .hero-view-gallery {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero-overlay:hover .hero-view-gallery:hover {
+  color: #fff;
+}
+
+.hero-info-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-location {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.4;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+.hero-sep {
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1;
+}
+
+.hero-title-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+  line-height: 1;
+}
+
+/* Hero Edge Hover Zones */
+.hero-edge-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.hero-edge-left {
+  left: 0;
+  justify-content: flex-start;
+  padding-left: 24px;
+}
+
+.hero-edge-right {
+  right: 0;
+  justify-content: flex-end;
+  padding-right: 24px;
+}
+
+.hero-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  opacity: 0;
+  padding: 0;
+  transition: opacity 0.4s ease, color 0.3s ease;
+}
+
+.hero-edge-zone:hover .hero-arrow {
+  opacity: 1;
+}
+
+.hero-arrow:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Slide indicator dots */
+.hero-dots {
+  position: absolute;
+  bottom: 86px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 20;
+}
+
+.hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+
+.hero-dot.active {
+  background: #fff;
+  border-color: #fff;
+}
+
+.hero-dot:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Scroll hint arrow */
+.hero-scroll-hint {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.scroll-arrow {
+  color: rgba(255, 255, 255, 0.5);
+  animation: bounceDown 2s ease-in-out infinite;
+}
+
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(-3px); opacity: 0.4; }
+  50% { transform: translateY(3px); opacity: 1; }
+}
+
+/* ============ INTRO SECTION ============ */
+.intro-section {
+  padding: 140px 60px 48px;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  background: #faf9f7;
+}
+
+.intro-content {
+  max-width: 640px;
+}
+
+.intro-greeting {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 36px;
+  font-weight: 400;
+  color: #2a2a2a;
+  margin-bottom: 32px;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+}
+
+.intro-text {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 2.2;
+  color: #666;
+  letter-spacing: 0.02em;
+}
+
+.intro-links {
+  margin-top: 48px;
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.text-link {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  color: #2a2a2a;
+  text-decoration: none;
+  position: relative;
+  padding-bottom: 4px;
+  font-style: italic;
+}
+
+.text-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: #2a2a2a;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s ease;
+}
+
+.text-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* ============ INTRO ANIMATIONS ============ */
+
+/* fade-up */
+.intro-anim.intro-anim-fade-up {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.intro-anim.intro-anim-fade-up.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* fade-in */
+.intro-anim.intro-anim-fade-in {
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.intro-anim.intro-anim-fade-in.show {
+  opacity: 1;
+}
+
+/* typewriter */
+.intro-anim.intro-anim-typewriter {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.intro-anim.intro-anim-typewriter.show {
+  opacity: 1;
+}
+
+.typewriter-cursor {
+  display: inline-block;
+  animation: blink 0.8s step-end infinite;
+  font-weight: 300;
+  color: #999;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* split-rise */
+.intro-anim.intro-anim-split-rise .split-line {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.intro-anim.intro-anim-split-rise.show .split-line-1 {
+  opacity: 1; transform: translateY(0); transition-delay: 0.1s;
+}
+.intro-anim.intro-anim-split-rise.show .split-line-2 {
+  opacity: 1; transform: translateY(0); transition-delay: 0.3s;
+}
+.intro-anim.intro-anim-split-rise.show .split-line-3 {
+  opacity: 1; transform: translateY(0); transition-delay: 0.5s;
+}
+.intro-anim.intro-anim-split-rise.show .split-line-4 {
+  opacity: 1; transform: translateY(0); transition-delay: 0.7s;
+}
+
+/* blur-in */
+.intro-anim.intro-anim-blur-in {
+  opacity: 0;
+  filter: blur(10px);
+  transition: opacity 1s ease, filter 1s ease;
+}
+.intro-anim.intro-anim-blur-in.show {
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* ============ CARDS SECTION ============ */
+.cards-section {
+  padding: 0 60px 120px;
+  background: #faf9f7;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ============ CARD ANIMATIONS ============ */
+
+/* --- Flip card (default) --- */
+.card.card-anim-flip {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.card.card-anim-flip:nth-child(3n+1) { transition-delay: 0s; }
+.card.card-anim-flip:nth-child(3n+2) { transition-delay: 0.35s; }
+.card.card-anim-flip:nth-child(3n+3) { transition-delay: 0s; }
+.card.card-anim-flip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Float + Overlay card (慢速上浮 + 悬停半透明卡片) --- */
+.card.card-anim-float-flip {
+  opacity: 0;
+  transform: translateY(60px);
+  transition: opacity 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.card.card-anim-float-flip:nth-child(3n+1) { transition-delay: 0s; }
+.card.card-anim-float-flip:nth-child(3n+2) { transition-delay: 0.4s; }
+.card.card-anim-float-flip:nth-child(3n+3) { transition-delay: 0s; }
+.card.card-anim-float-flip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Overlay card — hover shows semi-transparent info card */
+.overlay-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.overlay-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+}
+
+.overlay-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.overlay-card-link:hover .overlay-card-image {
+  transform: scale(1.03);
+}
+
+.overlay-card-hover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.overlay-card-link:hover .overlay-card-hover {
+  opacity: 1;
+}
+
+.overlay-card-border {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.88);
+  border: none;
+  padding: 24px;
+  text-align: center;
+}
+
+.overlay-card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: #2a2a2a;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.overlay-card-readmore {
+  display: inline-block;
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: #fff;
+  text-transform: uppercase;
+  background: rgba(140, 135, 128, 0.75);
+  padding: 10px 28px;
+  transition: background 0.3s ease;
+}
+
+.overlay-card-readmore:hover {
+  background: rgba(100, 96, 90, 0.85);
+}
+
+.overlay-card-location {
+  font-family: 'Playfair Display', serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #888;
+  letter-spacing: 0.1em;
+  font-style: italic;
+  margin: 0 0 12px;
+}
+
+.flip-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  perspective: 1000px;
+}
+
+.flip-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-style: preserve-3d;
+}
+
+.flip-card-link:hover .flip-card {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.flip-card-front { z-index: 2; }
+
+.flip-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.flip-card-front-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 32px 24px 20px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+}
+
+.flip-card-front-info .card-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+.flip-card-front-info .card-location {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.08em;
+  font-style: italic;
+  margin: 0;
+}
+
+.flip-card-back { transform: rotateY(180deg); }
+
+.flip-card-back-image {
+  filter: blur(2px) brightness(0.6);
+}
+
+.flip-card-back-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.flip-card-read-more {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  color: #fff;
+  font-style: italic;
+  position: relative;
+  padding-bottom: 6px;
+}
+
+.flip-card-read-more::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.flip-card-hover-loc {
+  font-family: 'Playfair Display', serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.1em;
+  font-style: italic;
+  margin: 0 0 16px;
+}
+
+/* --- Simple card (for non-flip animations) --- */
+.simple-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.simple-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+}
+
+.simple-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.simple-card-link:hover .simple-card-image {
+  transform: scale(1.03);
+}
+
+.simple-card-hover-loc {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 2px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none;
+}
+
+.simple-card-hover-loc span {
+  font-family: 'Playfair Display', serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: #2a2a2a;
+  letter-spacing: 0.08em;
+  font-style: italic;
+}
+
+.simple-card-link:hover .simple-card-hover-loc {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.simple-card-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 32px 24px 20px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+}
+
+.simple-card-info .card-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+.simple-card-info .card-location {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.08em;
+  font-style: italic;
+  margin: 0;
+}
+
+/* --- fade-up --- */
+.card.card-anim-fade-up {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 0.7s ease, transform 0.7s ease, box-shadow 0.3s ease;
+}
+.card.card-anim-fade-up:nth-child(3n+1) { transition-delay: 0s; }
+.card.card-anim-fade-up:nth-child(3n+2) { transition-delay: 0.35s; }
+.card.card-anim-fade-up:nth-child(3n+3) { transition-delay: 0s; }
+.card.card-anim-fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.card.card-anim-fade-up:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+
+/* --- scale-up --- */
+.card.card-anim-scale-up {
+  opacity: 0;
+  transform: scale(0.88);
+  transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.3s ease;
+}
+.card.card-anim-scale-up:nth-child(3n+1) { transition-delay: 0s; }
+.card.card-anim-scale-up:nth-child(3n+2) { transition-delay: 0.35s; }
+.card.card-anim-scale-up:nth-child(3n+3) { transition-delay: 0s; }
+.card.card-anim-scale-up.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+.card.card-anim-scale-up:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+
+/* --- slide-in --- */
+.card.card-anim-slide-in {
+  opacity: 0;
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.card.card-anim-slide-in:nth-child(odd) {
+  transform: translateX(-60px);
+}
+.card.card-anim-slide-in:nth-child(even) {
+  transform: translateX(60px);
+}
+.card.card-anim-slide-in.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* --- tilt-reveal --- */
+.card.card-anim-tilt-reveal {
+  opacity: 0;
+  transform: perspective(800px) rotateX(6deg) translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease, box-shadow 0.3s ease;
+}
+.card.card-anim-tilt-reveal:nth-child(3n+1) { transition-delay: 0s; }
+.card.card-anim-tilt-reveal:nth-child(3n+2) { transition-delay: 0.35s; }
+.card.card-anim-tilt-reveal:nth-child(3n+3) { transition-delay: 0s; }
+.card.card-anim-tilt-reveal.visible {
+  opacity: 1;
+  transform: perspective(800px) rotateX(0) translateY(0);
+}
+.card.card-anim-tilt-reveal:hover {
+  transform: perspective(800px) rotateX(-2deg) translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-location {
+    font-size: 16px;
+  }
+
+  .hero-dots { bottom: 44px; }
+
+  .hero-edge-zone { width: 60px; }
+  .hero-edge-left { padding-left: 12px; }
+  .hero-edge-right { padding-right: 12px; }
+
+  .hero-edge-zone .hero-arrow { opacity: 0.6; }
+  .hero-edge-zone:hover .hero-arrow { opacity: 0.8; }
+
+  .intro-section { padding: 80px 24px 70px; }
+  .intro-greeting { font-size: 26px; }
+  .intro-text { font-size: 15px; line-height: 2; }
+
+  .cards-section { padding: 0 24px 80px; }
+  .cards-grid { grid-template-columns: 1fr; gap: 24px; }
+}
+
+@media (max-width: 480px) {
+  .hero-location { font-size: 15px; }
+  .intro-greeting { font-size: 22px; }
+
+  .flip-card-front-info .card-title,
+  .simple-card-info .card-title { font-size: 19px; }
+
+  .hero-arrow svg { width: 24px; height: 24px; }
+}

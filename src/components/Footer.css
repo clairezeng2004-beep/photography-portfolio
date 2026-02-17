@@ -1,0 +1,161 @@
+.footer {
+  background: #f4f3f0;
+  padding: 0 60px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Back to top */
+.footer-back-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 40px 0 28px;
+  transition: color 0.2s ease;
+}
+
+.footer-back-top:hover {
+  color: #2a2a2a;
+}
+
+.footer-back-top svg {
+  transition: transform 0.2s ease;
+}
+
+.footer-back-top:hover svg {
+  transform: translateY(-3px);
+}
+
+.back-top-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+/* Divider */
+.footer-divider {
+  width: 40px;
+  height: 1px;
+  background: #d5d2cc;
+  margin-bottom: 32px;
+}
+
+/* Subscribe section */
+.footer-subscribe-section {
+  text-align: center;
+  margin-bottom: 36px;
+  max-width: 360px;
+  width: 100%;
+}
+
+.footer-subscribe-heading {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: #2a2a2a;
+  font-style: italic;
+  margin: 0 0 8px;
+}
+
+.footer-subscribe-desc {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #aaa;
+  margin: 0 0 18px;
+  font-style: italic;
+}
+
+.footer-subscribe-form {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #d5d2cc;
+  background: #fff;
+}
+
+.footer-email-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'Playfair Display', serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #2a2a2a;
+  padding: 10px 14px;
+}
+
+.footer-email-input::placeholder {
+  color: #bbb;
+  font-style: italic;
+}
+
+.footer-email-input.has-error {
+  color: #c0392b;
+}
+
+.footer-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-left: 1px solid #d5d2cc;
+  padding: 0 14px;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s ease;
+}
+
+.footer-submit-btn:hover {
+  color: #2a2a2a;
+}
+
+.footer-error {
+  font-size: 11px;
+  color: #c0392b;
+  margin-top: 6px;
+  display: block;
+}
+
+.footer-subscribed {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 300;
+  color: #888;
+  font-style: italic;
+  margin: 0;
+}
+
+/* Bottom copyright */
+.footer-bottom {
+  padding-top: 8px;
+}
+
+.footer-copyright {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 11px;
+  color: #ccc;
+  letter-spacing: 0.05em;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .footer {
+    padding: 0 24px 24px;
+  }
+
+  .footer-subscribe-section {
+    max-width: 300px;
+  }
+}

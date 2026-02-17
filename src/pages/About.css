@@ -1,0 +1,153 @@
+.about-page {
+  padding-top: 72px;
+  background: #faf9f7;
+}
+
+/* ============ HERO IMAGE ============ */
+.about-hero-image {
+  width: 100%;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.about-hero-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ============ BODY ============ */
+.about-body {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 80px 40px 100px;
+}
+
+.about-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  margin-bottom: 48px;
+  color: #2a2a2a;
+}
+
+.about-text p {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 2.2;
+  color: #555;
+  margin-bottom: 24px;
+  letter-spacing: 0.02em;
+}
+
+.about-text p strong {
+  font-weight: 500;
+  color: #2a2a2a;
+}
+
+.about-section {
+  margin-top: 48px;
+  padding-top: 48px;
+  border-top: 1px solid #e8e6e2;
+}
+
+/* ============ CONTACT ============ */
+.about-contact {
+  margin-top: 64px;
+  padding-top: 48px;
+  border-top: 1px solid #e8e6e2;
+}
+
+.about-subtitle {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  font-style: italic;
+  margin-bottom: 24px;
+  color: #2a2a2a;
+}
+
+.contact-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contact-link-item {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 15px;
+  font-weight: 300;
+  color: #777;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  letter-spacing: 0.02em;
+}
+
+.contact-link-item:hover {
+  color: #2a2a2a;
+}
+
+/* ============ DETAILS ============ */
+.about-details {
+  margin-top: 64px;
+  padding-top: 48px;
+  border-top: 1px solid #e8e6e2;
+  display: flex;
+  gap: 60px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-label {
+  font-family: 'Playfair Display', serif;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #aaa;
+  font-style: italic;
+}
+
+.detail-value {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 18px;
+  font-weight: 300;
+  color: #2a2a2a;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+  .about-page {
+    padding-top: 60px;
+  }
+
+  .about-hero-image {
+    max-height: 50vh;
+  }
+
+  .about-body {
+    padding: 50px 24px 80px;
+  }
+
+  .about-title {
+    font-size: 26px;
+    margin-bottom: 36px;
+  }
+
+  .about-text p {
+    font-size: 15px;
+  }
+
+  .about-details {
+    flex-direction: column;
+    gap: 28px;
+  }
+}
