@@ -413,6 +413,15 @@ const FloatFlipDualPreview: React.FC<{ playing: boolean }> = ({ playing }) => {
 };
 
 /* ============================================================
+   Page list for preview
+   ============================================================ */
+const PREVIEW_PAGES = [
+  { title: 'Home', color: '#2a2a2a', icon: '🏠' },
+  { title: 'Gallery', color: '#5a4a3a', icon: '📷' },
+  { title: 'About', color: '#3a4a5a', icon: '👤' },
+];
+
+/* ============================================================
    Main Playground Component
    ============================================================ */
 const PageTransitionPreview: React.FC<{ transition: PageTransition; playing: boolean }> = ({
@@ -421,11 +430,6 @@ const PageTransitionPreview: React.FC<{ transition: PageTransition; playing: boo
 }) => {
   const [page, setPage] = useState(0);
   const [stage, setStage] = useState<'active' | 'exit' | 'enter'>('active');
-  const pages = [
-    { title: 'Home', color: '#2a2a2a', icon: '🏠' },
-    { title: 'Gallery', color: '#5a4a3a', icon: '📷' },
-    { title: 'About', color: '#3a4a5a', icon: '👤' },
-  ];
 
   useEffect(() => {
     if (!playing) return;
@@ -434,7 +438,7 @@ const PageTransitionPreview: React.FC<{ transition: PageTransition; playing: boo
     const timer = setInterval(() => {
       setStage('exit');
       setTimeout(() => {
-        setPage(p => (p + 1) % pages.length);
+        setPage(p => (p + 1) % PREVIEW_PAGES.length);
         setStage('enter');
         requestAnimationFrame(() => {
           requestAnimationFrame(() => setStage('active'));
@@ -447,7 +451,7 @@ const PageTransitionPreview: React.FC<{ transition: PageTransition; playing: boo
   const cls = transition === 'none'
     ? 'page-preview-content'
     : `page-preview-content page-preview-${transition} page-preview-${stage}`;
-  const current = pages[page];
+  const current = PREVIEW_PAGES[page];
 
   return (
     <div className="page-preview-container">
