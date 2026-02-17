@@ -472,7 +472,7 @@ const PageTransitionPreview: React.FC<{ transition: PageTransition; playing: boo
         </div>
       </div>
       <div className="page-preview-dots">
-        {pages.map((p, i) => (
+        {PREVIEW_PAGES.map((p, i) => (
           <span key={i} className={`page-preview-dot ${i === page ? 'active' : ''}`}>{p.title}</span>
         ))}
       </div>
