@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Plus, Edit, Trash2, Save, X, Eye, EyeOff,
-  Layout, User, Image as ImageIcon, Settings, LogOut,
+  Plus, Edit, Trash2, Save, X,
+  User, Image as ImageIcon, Settings, LogOut,
   Folder, Camera, MapPin, Calendar, Globe, Map,
   ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download
 } from 'lucide-react';

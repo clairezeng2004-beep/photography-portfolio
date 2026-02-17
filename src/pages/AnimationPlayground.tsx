@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Check, RotateCcw, Eye } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Check, RotateCcw } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import {
   HeroTransition,
