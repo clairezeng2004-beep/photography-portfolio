@@ -2,7 +2,7 @@
   "name": "photography-portfolio",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://clairezeng2004-beep.github.io/photography-portfolio/",
+  "homepage": ".",
   "dependencies": {
     "@react-leaflet/core": "^2.1.0",
     "@types/leaflet": "^1.9.21",
