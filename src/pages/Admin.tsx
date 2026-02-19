@@ -436,7 +436,7 @@ const Admin: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'admin123') {
+    if (password === 'Zzy201108061@') {
       setIsAuthenticated(true);
       localStorage.setItem('admin_authenticated', 'true');
     } else {
