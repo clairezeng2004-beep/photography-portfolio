@@ -7,17 +7,17 @@ const About: React.FC = () => {
 
   return (
     <div className="about-page">
-      {/* Hero Image */}
-      <div className="about-hero-image">
-        <img
-          src={aboutInfo.avatar}
-          alt={aboutInfo.name}
-        />
-      </div>
-
       {/* Main Content */}
       <div className="about-body">
         <h1 className="about-title">About</h1>
+
+        {/* Avatar Card */}
+        <div className="about-avatar-card">
+          <img
+            src={aboutInfo.avatar}
+            alt={aboutInfo.name}
+          />
+        </div>
 
         <div className="about-text">
           {aboutInfo.bio.map((paragraph, index) => (
@@ -48,27 +48,6 @@ const About: React.FC = () => {
                 Instagram
               </a>
             )}
-            {aboutInfo.contact.weibo && (
-              <a href={aboutInfo.contact.weibo} className="contact-link-item" target="_blank" rel="noopener noreferrer">
-                微博
-              </a>
-            )}
-          </div>
-        </div>
-
-        {/* Location & Stats */}
-        <div className="about-details">
-          <div className="detail-item">
-            <span className="detail-label">Based in</span>
-            <span className="detail-value">{aboutInfo.location}</span>
-          </div>
-          <div className="detail-item">
-            <span className="detail-label">Cities</span>
-            <span className="detail-value">{aboutInfo.stats.cities}+</span>
-          </div>
-          <div className="detail-item">
-            <span className="detail-label">Experience</span>
-            <span className="detail-value">{aboutInfo.stats.experience} years</span>
           </div>
         </div>
       </div>

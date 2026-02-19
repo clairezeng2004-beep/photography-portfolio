@@ -3,20 +3,6 @@
   background: #faf9f7;
 }
 
-/* ============ HERO IMAGE ============ */
-.about-hero-image {
-  width: 100%;
-  max-height: 70vh;
-  overflow: hidden;
-}
-
-.about-hero-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
 /* ============ BODY ============ */
 .about-body {
   max-width: 680px;
@@ -31,6 +17,23 @@
   letter-spacing: 0.06em;
   margin-bottom: 48px;
   color: #2a2a2a;
+}
+
+/* ============ AVATAR CARD ============ */
+.about-avatar-card {
+  width: 280px;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: 4px;
+  margin-bottom: 40px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.about-avatar-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .about-text p {
@@ -91,46 +94,14 @@
   color: #2a2a2a;
 }
 
-/* ============ DETAILS ============ */
-.about-details {
-  margin-top: 64px;
-  padding-top: 48px;
-  border-top: 1px solid #e8e6e2;
-  display: flex;
-  gap: 60px;
-}
-
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.detail-label {
-  font-family: 'Playfair Display', serif;
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: #aaa;
-  font-style: italic;
-}
-
-.detail-value {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 18px;
-  font-weight: 300;
-  color: #2a2a2a;
-}
-
 /* ============ RESPONSIVE ============ */
 @media (max-width: 768px) {
   .about-page {
     padding-top: 60px;
   }
 
-  .about-hero-image {
-    max-height: 50vh;
+  .about-avatar-card {
+    width: 220px;
   }
 
   .about-body {
@@ -144,10 +115,5 @@
 
   .about-text p {
     font-size: 15px;
-  }
-
-  .about-details {
-    flex-direction: column;
-    gap: 28px;
   }
 }
