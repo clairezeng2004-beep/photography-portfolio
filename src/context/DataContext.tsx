@@ -227,6 +227,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateCollections = useCallback((newCollections: PhotoCollection[]) => {
