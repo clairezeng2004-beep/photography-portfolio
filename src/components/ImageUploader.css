@@ -135,3 +135,152 @@
   background: #ef4444;
   transform: none;
 }
+
+.upload-area.disabled {
+  cursor: not-allowed;
+  background: #f6f5f3;
+  border-color: #e2e1dd;
+}
+
+.upload-area.disabled:hover {
+  border-color: #e2e1dd;
+  background: #f6f5f3;
+}
+
+.upload-empty-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #d4d2ce;
+  display: inline-block;
+}
+
+.crop-image-btn {
+  background: rgba(255, 255, 255, 0.92);
+  color: #374151;
+  backdrop-filter: blur(4px);
+}
+
+.crop-image-btn:hover {
+  background: #fff;
+  color: #8b5cf6;
+}
+
+.crop-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.crop-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: min(900px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.crop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.crop-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.crop-body {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 20px;
+  padding: 20px;
+}
+
+.crop-preview {
+  position: relative;
+  background: #f8f7f4;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+}
+
+.crop-preview img {
+  max-width: 100%;
+  max-height: 380px;
+  border-radius: 10px;
+  display: block;
+}
+
+.crop-preview-mask {
+  position: absolute;
+  inset: 12px;
+  border: 2px dashed rgba(139, 92, 246, 0.6);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.crop-controls .form-group {
+  margin-bottom: 16px;
+}
+
+.crop-ratio-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ratio-btn {
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ratio-btn.active,
+.ratio-btn:hover {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+  background: #f5f3ff;
+}
+
+.crop-size-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+.crop-note {
+  font-size: 12px;
+  color: #b0b0b0;
+}
+
+.crop-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid #eee;
+}
+
+@media (max-width: 900px) {
+  .crop-body {
+    grid-template-columns: 1fr;
+  }
+}

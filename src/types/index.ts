@@ -1,3 +1,5 @@
+export type PhotoLayout = 'full' | 'half';
+
 export interface Photo {
   id: string;
   url: string;
@@ -5,6 +7,9 @@ export interface Photo {
   alt: string;
   width: number;
   height: number;
+  caption?: string;
+  footnote?: string;
+  layout?: PhotoLayout;
 }
 
 export interface GeoInfo {
@@ -23,11 +28,13 @@ export interface PhotoCollection {
   year: number;
   description: string;
   coverImage: string;
+  cardCoverImage?: string;
   coverTitle?: string;
   hoverLocation?: string;
   photos: Photo[];
   createdAt: string;
   geo?: GeoInfo;
+  order?: number;
 }
 
 export interface AboutInfo {

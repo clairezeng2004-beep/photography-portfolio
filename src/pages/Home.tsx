@@ -313,6 +313,7 @@ const Home: React.FC = () => {
   const renderCard = (collection: typeof collections[0]) => {
     const isVisible = visibleCards.has(collection.id);
     const displayTitle = collection.title;
+    const cardImage = collection.cardCoverImage || collection.coverImage;
 
     if (cardAnimation === 'float-flip') {
       return (
@@ -324,7 +325,7 @@ const Home: React.FC = () => {
         >
           <Link to={`/gallery/${collection.id}`} className="overlay-card-link">
             <div className="overlay-card">
-              <img src={collection.coverImage} alt={collection.title} className="overlay-card-image" loading="lazy" draggable={false} />
+              <img src={cardImage} alt={collection.title} className="overlay-card-image" loading="lazy" draggable={false} />
               <div className="overlay-card-hover">
                 <div className="overlay-card-border">
                   <h3 className="overlay-card-title">{displayTitle}</h3>
@@ -349,14 +350,14 @@ const Home: React.FC = () => {
           <Link to={`/gallery/${collection.id}`} className="flip-card-link">
             <div className="flip-card">
               <div className="flip-card-front">
-                <img src={collection.coverImage} alt={collection.title} className="flip-card-image" loading="lazy" draggable={false} />
+                <img src={cardImage} alt={collection.title} className="flip-card-image" loading="lazy" draggable={false} />
                 <div className="flip-card-front-info">
                   <h3 className="card-title">{displayTitle}</h3>
                   <p className="card-location">{collection.location} · {collection.year}</p>
                 </div>
               </div>
               <div className="flip-card-back">
-                <img src={collection.coverImage} alt={collection.title} className="flip-card-image flip-card-back-image" loading="lazy" draggable={false} />
+                <img src={cardImage} alt={collection.title} className="flip-card-image flip-card-back-image" loading="lazy" draggable={false} />
                 <div className="flip-card-back-overlay">
                   <h3 className="flip-card-back-title">{displayTitle}</h3>
                   <p className="flip-card-hover-loc">{collection.location} · {collection.year}</p>
@@ -378,9 +379,9 @@ const Home: React.FC = () => {
         data-id={collection.id}
         ref={cardRef}
       >
-        <Link to={`/gallery/${collection.id}`} className="simple-card-link">
+          <Link to={`/gallery/${collection.id}`} className="simple-card-link">
           <div className="simple-card">
-            <img src={collection.coverImage} alt={collection.title} className="simple-card-image" loading="lazy" draggable={false} />
+            <img src={cardImage} alt={collection.title} className="simple-card-image" loading="lazy" draggable={false} />
             <div className="simple-card-info">
               <h3 className="card-title">{displayTitle}</h3>
               <p className="card-location">{collection.location} · {collection.year}</p>

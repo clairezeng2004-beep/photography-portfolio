@@ -11,6 +11,16 @@ import './Footprints.css';
 type Continent = 'all' | 'asia' | 'europe';
 
 /* ============================================================
+   City group: aggregate collections by city
+   ============================================================ */
+interface CityGroup {
+  key: string;
+  geo: GeoInfo;
+  collections: PhotoCollection[];
+  totalPhotos: number;
+}
+
+/* ============================================================
    Extract GeoJSON features from TopoJSON
    ============================================================ */
 const worldTopo = worldData as any;
@@ -40,7 +50,8 @@ const VIEW_CONFIGS: Record<Continent, ViewConfig> = {
 const Footprints: React.FC = () => {
   const { collections, litCities } = useData();
   const [activeContinent, setActiveContinent] = useState<Continent>('all');
-  const [selectedCity, setSelectedCity] = useState<PhotoCollection | null>(null);
+  const [selectedCityGroup, setSelectedCityGroup] = useState<CityGroup | null>(null);
+  const [previewCollection, setPreviewCollection] = useState<PhotoCollection | null>(null);
   const [previewPage, setPreviewPage] = useState(0);
   const [hoveredCity, setHoveredCity] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; city: string; country: string; hasPhoto: boolean } | null>(null);
@@ -53,21 +64,36 @@ const Footprints: React.FC = () => {
     return codes;
   }, [collections, litCities]);
 
-  const allLitCityGeos = useMemo(() => {
-    const seen = new Set<string>();
-    const geos: { geo: GeoInfo; collection?: PhotoCollection }[] = [];
+  // Group collections by city
+  const cityGroups = useMemo(() => {
+    const map = new Map<string, CityGroup>();
     collections.forEach(c => {
-      if (c.geo) {
-        const key = `${c.geo.continent}:${c.geo.city}`;
-        if (!seen.has(key)) { seen.add(key); geos.push({ geo: c.geo, collection: c }); }
+      if (!c.geo) return;
+      const key = `${c.geo.city}:${c.geo.countryCode}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.collections.push(c);
+        existing.totalPhotos += c.photos.length;
+      } else {
+        map.set(key, { key, geo: c.geo, collections: [c], totalPhotos: c.photos.length });
       }
     });
+    return map;
+  }, [collections]);
+
+  const allLitCityGeos = useMemo(() => {
+    const seen = new Set<string>();
+    const geos: { geo: GeoInfo; cityGroup?: CityGroup }[] = [];
+    cityGroups.forEach((group, key) => {
+      seen.add(key);
+      geos.push({ geo: group.geo, cityGroup: group });
+    });
     litCities.forEach(g => {
-      const key = `${g.continent}:${g.city}`;
+      const key = `${g.city}:${g.countryCode}`;
       if (!seen.has(key)) { seen.add(key); geos.push({ geo: g }); }
     });
     return geos;
-  }, [collections, litCities]);
+  }, [cityGroups, litCities]);
 
   const filteredGeos = useMemo(() =>
     activeContinent === 'all' ? allLitCityGeos : allLitCityGeos.filter(g => g.geo.continent === activeContinent),
@@ -78,10 +104,15 @@ const Footprints: React.FC = () => {
   const totalCountries = litCountryCodes.size;
 
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedCity(null); };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (previewCollection) { setPreviewCollection(null); }
+        else { setSelectedCityGroup(null); }
+      }
+    };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, []);
+  }, [previewCollection]);
 
   const vc = VIEW_CONFIGS[activeContinent];
 
@@ -151,19 +182,20 @@ const Footprints: React.FC = () => {
     return features;
   }, [activeContinent]);
 
-  const renderPreview = () => {
-    if (!selectedCity) return null;
+  /* ============ City preview modal ============ */
+  const renderCollectionPreview = () => {
+    if (!previewCollection) return null;
     const allImages = [
-      { url: selectedCity.coverImage, alt: selectedCity.title },
-      ...selectedCity.photos.map(p => ({ url: p.url || p.thumbnail, alt: p.alt })),
+      { url: previewCollection.coverImage, alt: previewCollection.title },
+      ...previewCollection.photos.map(p => ({ url: p.url || p.thumbnail, alt: p.alt })),
     ];
     const uniqueImages = allImages.filter((img, idx, arr) => arr.findIndex(a => a.url === img.url) === idx);
     const currentImage = uniqueImages[previewPage] || uniqueImages[0];
 
     return (
-      <div className="preview-overlay" onClick={() => setSelectedCity(null)}>
+      <div className="preview-overlay" onClick={() => setPreviewCollection(null)}>
         <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
-          <button className="preview-close" onClick={() => setSelectedCity(null)}>
+          <button className="preview-close" onClick={() => setPreviewCollection(null)}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -183,15 +215,113 @@ const Footprints: React.FC = () => {
             <div className="preview-counter">{previewPage + 1} / {uniqueImages.length}</div>
           </div>
           <div className="preview-info">
-            <h3 className="preview-title">{selectedCity.title}</h3>
-            <p className="preview-location">{selectedCity.geo?.city}, {selectedCity.geo?.country} · {selectedCity.year}</p>
-            {selectedCity.description && <p className="preview-desc">{selectedCity.description}</p>}
-            <Link to={`/gallery/${selectedCity.id}`} className="preview-link" onClick={() => setSelectedCity(null)}>
+            <h3 className="preview-title">{previewCollection.title}</h3>
+            <p className="preview-location">{previewCollection.location} · {previewCollection.year}</p>
+            {previewCollection.description && <p className="preview-desc">{previewCollection.description}</p>}
+            <Link to={`/gallery/${previewCollection.id}`} className="preview-link" onClick={() => { setPreviewCollection(null); setSelectedCityGroup(null); }}>
               View Full Gallery →
             </Link>
           </div>
         </div>
       </div>
+    );
+  };
+
+  const renderCityPreview = () => {
+    if (!selectedCityGroup) return null;
+    const { geo, collections: cityCollections, totalPhotos } = selectedCityGroup;
+    const isSingle = cityCollections.length === 1;
+
+    // If only one collection in this city, show the old-style single preview directly
+    if (isSingle) {
+      const c = cityCollections[0];
+      const allImages = [
+        { url: c.coverImage, alt: c.title },
+        ...c.photos.map(p => ({ url: p.url || p.thumbnail, alt: p.alt })),
+      ];
+      const uniqueImages = allImages.filter((img, idx, arr) => arr.findIndex(a => a.url === img.url) === idx);
+      const currentImage = uniqueImages[previewPage] || uniqueImages[0];
+
+      return (
+        <div className="preview-overlay" onClick={() => setSelectedCityGroup(null)}>
+          <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="preview-close" onClick={() => setSelectedCityGroup(null)}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <div className="preview-image-area">
+              <img src={currentImage.url} alt={currentImage.alt} className="preview-image" draggable={false} />
+              {uniqueImages.length > 1 && (
+                <>
+                  <button className="preview-nav preview-nav-prev" onClick={() => setPreviewPage(p => p > 0 ? p - 1 : uniqueImages.length - 1)}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="15 18 9 12 15 6" /></svg>
+                  </button>
+                  <button className="preview-nav preview-nav-next" onClick={() => setPreviewPage(p => p < uniqueImages.length - 1 ? p + 1 : 0)}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="9 18 15 12 9 6" /></svg>
+                  </button>
+                </>
+              )}
+              <div className="preview-counter">{previewPage + 1} / {uniqueImages.length}</div>
+            </div>
+            <div className="preview-info">
+              <h3 className="preview-title">{c.title}</h3>
+              <p className="preview-location">{geo.city}, {geo.country} · {c.year}</p>
+              {c.description && <p className="preview-desc">{c.description}</p>}
+              <Link to={`/gallery/${c.id}`} className="preview-link" onClick={() => setSelectedCityGroup(null)}>
+                View Full Gallery →
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Multiple collections in this city — show city-level list
+    return (
+      <>
+        <div className="preview-overlay" onClick={() => setSelectedCityGroup(null)}>
+          <div className="city-preview-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="preview-close" onClick={() => setSelectedCityGroup(null)}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <div className="city-preview-header">
+              <h2 className="city-preview-city">{geo.city}</h2>
+              <p className="city-preview-meta">{geo.country} · {cityCollections.length} collections · {totalPhotos} photos</p>
+            </div>
+            <div className="city-preview-list">
+              {cityCollections.map(c => (
+                <div
+                  key={c.id}
+                  className="city-preview-item"
+                  onClick={() => { setPreviewCollection(c); setPreviewPage(0); }}
+                >
+                  <div className="city-preview-item-image">
+                    <img src={c.cardCoverImage || c.coverImage} alt={c.title} />
+                  </div>
+                  <div className="city-preview-item-info">
+                    <h4 className="city-preview-item-title">{c.title}</h4>
+                    <p className="city-preview-item-meta">{c.year} · {c.photos.length} photos</p>
+                    {c.description && (
+                      <p className="city-preview-item-desc">{c.description}</p>
+                    )}
+                  </div>
+                  <Link
+                    to={`/gallery/${c.id}`}
+                    className="city-preview-item-link"
+                    onClick={(e) => { e.stopPropagation(); setSelectedCityGroup(null); }}
+                  >
+                    →
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {renderCollectionPreview()}
+      </>
     );
   };
 
@@ -308,12 +438,12 @@ const Footprints: React.FC = () => {
             })}
 
             {/* City markers */}
-            {filteredGeos.map(({ geo, collection }) => {
+            {filteredGeos.map(({ geo, cityGroup }) => {
               const { lat, lng } = getLatLng(geo);
               const pos = projectCity(lat, lng);
               if (!pos) return null;
               const { x, y } = pos;
-              const hasPhoto = !!collection;
+              const hasPhoto = !!cityGroup;
               const isHovered = hoveredCity === geo.city;
 
               // Check if within viewBox
@@ -336,7 +466,7 @@ const Footprints: React.FC = () => {
                     onMouseMove={(e) => handleMarkerHover(e, geo.city, geo.country, hasPhoto)}
                     onMouseLeave={() => { setTooltip(null); setHoveredCity(null); }}
                     onClick={() => {
-                      if (collection) { setSelectedCity(collection); setPreviewPage(0); }
+                      if (cityGroup) { setSelectedCityGroup(cityGroup); setPreviewCollection(null); setPreviewPage(0); }
                     }}
                   />
                   {hasPhoto && (
@@ -375,26 +505,31 @@ const Footprints: React.FC = () => {
           {activeContinent === 'all' ? 'All Cities' : activeContinent === 'asia' ? 'Asia · 亚洲' : 'Europe · 欧洲'}
         </h2>
         <div className="city-list">
-          {collections
-            .filter(c => c.geo && (activeContinent === 'all' || c.geo.continent === activeContinent))
-            .map(collection => (
-              <div key={collection.id} className="city-card" onClick={() => { setSelectedCity(collection); setPreviewPage(0); }}>
+          {Array.from(cityGroups.values())
+            .filter(g => activeContinent === 'all' || g.geo.continent === activeContinent)
+            .map(group => (
+              <div key={group.key} className="city-card" onClick={() => { setSelectedCityGroup(group); setPreviewCollection(null); setPreviewPage(0); }}>
                 <div className="city-card-image">
-                  <img src={collection.coverImage} alt={collection.title} loading="lazy" />
+                  <img src={group.collections[0].coverImage} alt={group.geo.city} loading="lazy" />
                   <div className="city-card-overlay">
-                    <span className="city-card-count">{collection.photos.length} photos</span>
+                    <span className="city-card-count">
+                      {group.collections.length > 1
+                        ? `${group.collections.length} collections · ${group.totalPhotos} photos`
+                        : `${group.totalPhotos} photos`
+                      }
+                    </span>
                   </div>
                 </div>
                 <div className="city-card-info">
-                  <h4 className="city-card-name">{collection.geo?.city}</h4>
-                  <p className="city-card-country">{collection.geo?.country} · {collection.year}</p>
+                  <h4 className="city-card-name">{group.geo.city}</h4>
+                  <p className="city-card-country">{group.geo.country}</p>
                 </div>
               </div>
             ))}
         </div>
       </section>
 
-      {renderPreview()}
+      {renderCityPreview()}
     </div>
   );
 };

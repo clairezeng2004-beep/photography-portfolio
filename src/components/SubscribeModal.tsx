@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Check } from 'lucide-react';
+import { subscribeEmail } from '../utils/newsletter';
 import './SubscribeModal.css';
 
 interface SubscribeModalProps {
@@ -9,7 +10,8 @@ interface SubscribeModalProps {
 
 const SubscribeModal: React.FC<SubscribeModalProps> = ({ isOpen, onClose }) => {
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -17,6 +19,7 @@ const SubscribeModal: React.FC<SubscribeModalProps> = ({ isOpen, onClose }) => {
       setVisible(true);
       setEmail('');
       setStatus('idle');
+      setErrorMsg('');
     }
   }, [isOpen]);
 
@@ -25,21 +28,27 @@ const SubscribeModal: React.FC<SubscribeModalProps> = ({ isOpen, onClose }) => {
     setTimeout(onClose, 250);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setStatus('error');
+      setErrorMsg('请输入有效的邮箱地址');
       return;
     }
 
-    const subscribers: string[] = JSON.parse(localStorage.getItem('newsletter_subscribers') || '[]');
-    if (subscribers.includes(email)) {
-      setStatus('success');
-      return;
+    setStatus('submitting');
+    try {
+      const result = await subscribeEmail(email);
+      if (result.success) {
+        setStatus('success');
+      } else {
+        setStatus('error');
+        setErrorMsg(result.message);
+      }
+    } catch {
+      setStatus('error');
+      setErrorMsg('网络错误，请稍后重试');
     }
-    subscribers.push(email);
-    localStorage.setItem('newsletter_subscribers', JSON.stringify(subscribers));
-    setStatus('success');
   };
 
   if (!isOpen) return null;
@@ -72,16 +81,17 @@ const SubscribeModal: React.FC<SubscribeModalProps> = ({ isOpen, onClose }) => {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setStatus('idle'); }}
+                onChange={(e) => { setEmail(e.target.value); setStatus('idle'); setErrorMsg(''); }}
                 placeholder="your@email.com"
                 className={`subscribe-input ${status === 'error' ? 'error' : ''}`}
+                disabled={status === 'submitting'}
                 autoFocus
               />
               {status === 'error' && (
-                <span className="subscribe-error">请输入有效的邮箱地址</span>
+                <span className="subscribe-error">{errorMsg}</span>
               )}
-              <button type="submit" className="subscribe-btn">
-                Subscribe
+              <button type="submit" className="subscribe-btn" disabled={status === 'submitting'}>
+                {status === 'submitting' ? 'Subscribing...' : 'Subscribe'}
               </button>
             </form>
             <p className="subscribe-note">

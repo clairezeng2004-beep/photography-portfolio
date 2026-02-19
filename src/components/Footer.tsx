@@ -1,28 +1,37 @@
 import React, { useState } from 'react';
+import { subscribeEmail } from '../utils/newsletter';
 import './Footer.css';
 
 const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email');
+      setError('请输入有效的邮箱地址');
       return;
     }
-    const existing = JSON.parse(localStorage.getItem('newsletter_subscribers') || '[]');
-    if (!existing.includes(email)) {
-      existing.push(email);
-      localStorage.setItem('newsletter_subscribers', JSON.stringify(existing));
-    }
-    setSubmitted(true);
+    setSubmitting(true);
     setError('');
+    try {
+      const result = await subscribeEmail(email);
+      if (result.success) {
+        setSubmitted(true);
+      } else {
+        setError(result.message);
+      }
+    } catch {
+      setError('网络错误，请稍后重试');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -51,14 +60,21 @@ const Footer: React.FC = () => {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 className={`footer-email-input ${error ? 'has-error' : ''}`}
+                disabled={submitting}
               />
-              <button type="submit" className="footer-submit-btn" aria-label="订阅">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
+              <button type="submit" className="footer-submit-btn" aria-label="订阅" disabled={submitting}>
+                {submitting ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="spin-icon">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                )}
               </button>
             </form>
-            {error && <span className="footer-error">请输入有效的邮箱地址</span>}
+            {error && <span className="footer-error">{error}</span>}
           </>
         )}
       </div>

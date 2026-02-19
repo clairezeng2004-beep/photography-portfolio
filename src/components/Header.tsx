@@ -39,7 +39,7 @@ const Header: React.FC = () => {
   return (
     <header className={headerClass}>
       <div className="header-inner">
-        <Link to="/" className="logo">Ice On The Go</Link>
+        <Link to="/" className="logo">roaming ice</Link>
 
         <nav className="nav-links">
           <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>

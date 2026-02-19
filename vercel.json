@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/buttondown/:path*",
+      "destination": "https://api.buttondown.com/v1/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

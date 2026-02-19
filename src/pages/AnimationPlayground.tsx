@@ -95,7 +95,7 @@ const HeroPreview: React.FC<{ transition: HeroTransition; playing: boolean }> = 
           ))}
         </div>
         <div className="preview-hero-overlay">
-          <span>Ice On The Go</span>
+          <span>roaming ice</span>
         </div>
       </div>
     );
@@ -114,7 +114,7 @@ const HeroPreview: React.FC<{ transition: HeroTransition; playing: boolean }> = 
           />
         ))}
         <div className="preview-hero-overlay">
-          <span>Ice On The Go</span>
+          <span>roaming ice</span>
         </div>
       </div>
     );
@@ -136,7 +136,7 @@ const HeroPreview: React.FC<{ transition: HeroTransition; playing: boolean }> = 
           />
         ))}
         <div className="preview-hero-overlay">
-          <span>Ice On The Go</span>
+          <span>roaming ice</span>
         </div>
       </div>
     );
@@ -155,7 +155,7 @@ const HeroPreview: React.FC<{ transition: HeroTransition; playing: boolean }> = 
           />
         ))}
         <div className="preview-hero-overlay">
-          <span>Ice On The Go</span>
+          <span>roaming ice</span>
         </div>
       </div>
     );
@@ -177,7 +177,7 @@ const HeroPreview: React.FC<{ transition: HeroTransition; playing: boolean }> = 
         />
       ))}
       <div className="preview-hero-overlay">
-        <span>Ice On The Go</span>
+        <span>roaming ice</span>
       </div>
     </div>
   );
@@ -460,7 +460,7 @@ const PageTransitionPreview: React.FC<{ transition: PageTransition; playing: boo
           <span className="browser-dot red"></span>
           <span className="browser-dot yellow"></span>
           <span className="browser-dot green"></span>
-          <span className="browser-url">iceonthego.com/{current.title.toLowerCase()}</span>
+          <span className="browser-url">roamingice.com/{current.title.toLowerCase()}</span>
         </div>
         <div className="page-preview-viewport">
           <div className={cls} key={transition}>

@@ -1,7 +1,28 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { Photo } from '../types';
 import './Gallery.css';
+
+// Group photos into rows: full = 1 photo per row, consecutive halfs = 2 per row
+type PhotoRow = { type: 'full'; photo: Photo; index: number } | { type: 'pair'; photos: [Photo, Photo]; indices: [number, number] };
+
+function groupPhotoRows(photos: Photo[]): PhotoRow[] {
+  const rows: PhotoRow[] = [];
+  let i = 0;
+  while (i < photos.length) {
+    const p = photos[i];
+    if (p.layout === 'half' && i + 1 < photos.length && photos[i + 1].layout === 'half') {
+      // Caption on the first half photo goes above the pair row
+      rows.push({ type: 'pair', photos: [p, photos[i + 1]], indices: [i, i + 1] });
+      i += 2;
+    } else {
+      rows.push({ type: 'full', photo: p, index: i });
+      i += 1;
+    }
+  }
+  return rows;
+}
 
 const Gallery: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +78,10 @@ const Gallery: React.FC = () => {
     }
   };
 
+  // useMemo must be called before any conditional return (rules of hooks)
+  const hasAnnotations = collection?.photos.some(p => p.caption || p.footnote) ?? false;
+  const photoRows = useMemo(() => collection ? groupPhotoRows(collection.photos) : [], [collection]);
+
   if (!collection) {
     return (
       <div className="gallery-page">
@@ -68,6 +93,17 @@ const Gallery: React.FC = () => {
       </div>
     );
   }
+
+  const renderPhotoCell = (photo: Photo, index: number) => (
+    <div className="gallery-photo-cell" key={photo.id}>
+      <img src={photo.url} alt={photo.alt} loading="lazy" />
+      {photo.footnote && (
+        <div className="photo-footnote-block">
+          <p className="photo-footnote">{photo.footnote}</p>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="gallery-page">
@@ -87,17 +123,53 @@ const Gallery: React.FC = () => {
       )}
 
       {/* Photos */}
-      <div className="gallery-photos">
-        {collection.photos.map((photo, index) => (
-          <div
-            key={photo.id}
-            className={`gallery-photo-item ${visiblePhotos.has(index) ? 'visible' : ''}`}
-            data-index={index}
-            ref={photoRef}
-          >
-            <img src={photo.url} alt={photo.alt} loading="lazy" />
-          </div>
-        ))}
+      <div className={`gallery-photos ${hasAnnotations ? 'diary-style' : ''}`}>
+        {photoRows.map((row, rowIdx) => {
+          if (row.type === 'full') {
+            const { photo, index } = row;
+            return (
+              <div
+                key={photo.id}
+                className={`gallery-photo-item full ${visiblePhotos.has(index) ? 'visible' : ''} ${photo.caption ? 'has-caption-before' : ''}`}
+                data-index={index}
+                ref={photoRef}
+              >
+                {photo.caption && (
+                  <div className="photo-caption-block">
+                    {photo.caption.split('\n').map((line, i) => (
+                      <p key={i} className="photo-caption">{line}</p>
+                    ))}
+                  </div>
+                )}
+                {renderPhotoCell(photo, index)}
+              </div>
+            );
+          } else {
+            const [p1, p2] = row.photos;
+            const [i1, i2] = row.indices;
+            const isVisible = visiblePhotos.has(i1) || visiblePhotos.has(i2);
+            return (
+              <div
+                key={`${p1.id}-${p2.id}`}
+                className={`gallery-photo-item pair ${isVisible ? 'visible' : ''} ${p1.caption ? 'has-caption-before' : ''}`}
+                data-index={i1}
+                ref={photoRef}
+              >
+                {p1.caption && (
+                  <div className="photo-caption-block">
+                    {p1.caption.split('\n').map((line, i) => (
+                      <p key={i} className="photo-caption">{line}</p>
+                    ))}
+                  </div>
+                )}
+                <div className="gallery-photo-pair">
+                  {renderPhotoCell(p1, i1)}
+                  {renderPhotoCell(p2, i2)}
+                </div>
+              </div>
+            );
+          }
+        })}
       </div>
 
       {/* Recommendation Cards */}

@@ -4,7 +4,7 @@ import {
   Plus, Edit, Trash2, Save, X,
   User, Image as ImageIcon, Settings, LogOut,
   Folder, Camera, MapPin, Calendar, Globe, Map,
-  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download
+  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail
 } from 'lucide-react';
 import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage } from '../types';
 import { useData } from '../context/DataContext';
@@ -18,6 +18,8 @@ import {
   CityEntry,
 } from '../data/geoData';
 import ImageUploader from '../components/ImageUploader';
+import { getImgbbApiKey, setImgbbApiKey, isImageHostConfigured, countBase64Images, migrateAllToImgbb, MigrationProgress } from '../utils/imageHost';
+import { getNewsletterApiKey, setNewsletterApiKey, isNewsletterConfigured } from '../utils/newsletter';
 import Toast from '../components/Toast';
 import './Admin.css';
 
@@ -221,7 +223,7 @@ const GeoPicker: React.FC<GeoPickerProps> = ({ value, onChange, locationHint }) 
    Admin Component
    ============================================================ */
 const Admin: React.FC = () => {
-  const { collections, aboutInfo, litCities, heroImages, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages } = useData();
+  const { collections, aboutInfo, litCities, heroImages, animationConfig, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages } = useData();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -237,10 +239,133 @@ const Admin: React.FC = () => {
     setToastVisible(true);
   }, []);
 
+  // ImgBB API key state
+  const [imgbbKey, setImgbbKey] = useState(getImgbbApiKey());
+  const [showImgbbConfig, setShowImgbbConfig] = useState(false);
+  const [imgbbConfigured, setImgbbConfigured] = useState(isImageHostConfigured());
+
+  // Newsletter (Buttondown) state
+  const [newsletterKey, setNewsletterKey] = useState(getNewsletterApiKey());
+  const [showNewsletterConfig, setShowNewsletterConfig] = useState(false);
+  const [newsletterConfigured, setNewsletterConfigured] = useState(isNewsletterConfigured());
+
+  // Migration state
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationProgress, setMigrationProgress] = useState<MigrationProgress | null>(null);
+
+  const base64Count = useMemo(() => {
+    return countBase64Images(collections, heroImages, aboutInfo.avatar);
+  }, [collections, heroImages, aboutInfo.avatar]);
+
+  const handleMigrateAll = useCallback(async () => {
+    if (!isImageHostConfigured()) {
+      alert('请先配置 ImgBB API Key');
+      return;
+    }
+
+    // Build debug summary for alert
+    const lines: string[] = [];
+    lines.push(`作品集数量: ${collections.length}`);
+    lines.push(`首页封面数量: ${heroImages.length}`);
+    lines.push(`检测到 base64 图片: ${base64Count} 张`);
+    lines.push('');
+    collections.forEach((c, i) => {
+      const photoCount = c.photos.length;
+      const b64Photos = c.photos.filter(p => p.url?.startsWith('data:')).length;
+      const b64Thumbs = c.photos.filter(p => p.thumbnail?.startsWith('data:')).length;
+      const coverType = c.coverImage?.startsWith('data:') ? 'base64' : 'URL';
+      lines.push(`[${i + 1}] "${c.title}" — ${photoCount}张照片, ${b64Photos}张base64, ${b64Thumbs}张base64缩略图, 封面:${coverType}`);
+    });
+    if (heroImages.length > 0) {
+      lines.push('');
+      heroImages.forEach((h, i) => {
+        lines.push(`首页封面[${i + 1}]: ${h.url?.startsWith('data:') ? 'base64' : 'URL'}`);
+      });
+    }
+    lines.push('');
+    lines.push(`头像: ${aboutInfo.avatar?.startsWith('data:') ? 'base64' : 'URL'}`);
+
+    if (base64Count === 0) {
+      alert('图片诊断报告\n\n' + lines.join('\n') + '\n\n结论: 所有图片已经是外部 URL，无需迁移。');
+      return;
+    }
+
+    if (!window.confirm('图片诊断报告\n\n' + lines.join('\n') + '\n\n点击「确定」开始迁移，点击「取消」放弃。')) {
+      return;
+    }
+    setIsMigrating(true);
+    setMigrationProgress({ total: base64Count, done: 0, failed: 0, current: '准备中...' });
+    try {
+      const result = await migrateAllToImgbb(
+        collections,
+        heroImages,
+        aboutInfo.avatar,
+        (p) => setMigrationProgress({ ...p }),
+      );
+      // Save migrated data
+      updateCollections(result.collections);
+      updateHeroImages(result.heroImages);
+      if (result.avatarUrl !== aboutInfo.avatar) {
+        updateAboutInfo({ ...aboutInfo, avatar: result.avatarUrl });
+      }
+      const failCount = migrationProgress?.failed || 0;
+      const failMsg = failCount > 0 ? `（${failCount} 张失败）` : '';
+      showToast(`迁移完成！${failMsg}`);
+    } catch (err: any) {
+      alert(`迁移出错: ${err.message}`);
+    } finally {
+      setIsMigrating(false);
+      setMigrationProgress(null);
+    }
+  }, [collections, heroImages, aboutInfo, base64Count, showToast, updateCollections, updateHeroImages, updateAboutInfo, migrationProgress]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sortedCollections = useMemo(() => {
+    const hasManualOrder = collections.some(c => typeof c.order === 'number');
+    if (hasManualOrder) {
+      return [...collections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    }
+    return [...collections].sort((a, b) => {
+      if (b.year !== a.year) return b.year - a.year;
+      return a.title.localeCompare(b.title);
+    });
+  }, [collections]);
+
+  const reorderCollections = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= sortedCollections.length) return;
+    const reordered = [...sortedCollections];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    const withOrder = reordered.map((c, index) => ({ ...c, order: index }));
+    updateCollections(withOrder);
+    showToast('顺序已更新');
+  };
+
+  const reorderToPosition = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= sortedCollections.length || fromIndex === toIndex) return;
+    const reordered = [...sortedCollections];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    const withOrder = reordered.map((c, index) => ({ ...c, order: index }));
+    updateCollections(withOrder);
+    showToast('顺序已更新');
+  };
+
+  const [lastUsedYear, setLastUsedYear] = useState<number>(() => {
+    // 优先取最近一次创建的作品集的年份（按 createdAt 排序）
+    if (collections.length > 0) {
+      const sorted = [...collections].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const latestYear = sorted[0]?.year;
+      if (Number.isFinite(latestYear)) return latestYear;
+    }
+    const saved = localStorage.getItem('last_collection_year');
+    const parsed = saved ? parseInt(saved, 10) : NaN;
+    return Number.isFinite(parsed) ? parsed : new Date().getFullYear();
+  });
+
   const [newCollection, setNewCollection] = useState<Partial<PhotoCollection>>({
     title: '',
     location: '',
-    year: new Date().getFullYear(),
+    year: lastUsedYear,
     description: '',
     coverImage: '',
     coverTitle: '',
@@ -261,6 +386,22 @@ const Admin: React.FC = () => {
   useEffect(() => {
     setEditedAboutInfo(aboutInfo);
   }, [aboutInfo]);
+
+  useEffect(() => {
+    localStorage.setItem('last_collection_year', String(lastUsedYear));
+  }, [lastUsedYear]);
+
+  // 当 collections 变化时，同步更新默认年份为最近一次创建的作品集年份
+  useEffect(() => {
+    if (collections.length > 0) {
+      const sorted = [...collections].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      const latestYear = sorted[0]?.year;
+      if (Number.isFinite(latestYear)) {
+        setLastUsedYear(latestYear);
+        setNewCollection(prev => prev.year === lastUsedYear ? { ...prev, year: latestYear } : prev);
+      }
+    }
+  }, [collections]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -284,6 +425,7 @@ const Admin: React.FC = () => {
       aboutInfo,
       litCities,
       heroImages,
+      animationConfig,
     };
     const json = JSON.stringify(exportData, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -294,6 +436,35 @@ const Admin: React.FC = () => {
     a.click();
     URL.revokeObjectURL(url);
     showToast('数据已导出');
+  };
+
+  const handleAddNewPhotos = (images: { imageUrl: string; thumbnailUrl: string }[]) => {
+    setNewCollection(prev => {
+      const existing = prev.photos || [];
+      const added = images.map((img, index) => ({
+        id: `${Date.now()}-${index}`,
+        url: img.imageUrl,
+        thumbnail: img.thumbnailUrl,
+        alt: prev.title || '作品集照片',
+        width: 1920,
+        height: 1080,
+      }));
+      const combined = [...existing, ...added];
+      const coverImage = prev.coverImage || combined[0]?.url || '';
+      return { ...prev, photos: combined, coverImage };
+    });
+  };
+
+  const handleRemoveNewPhoto = (photoId: string) => {
+    setNewCollection(prev => {
+      const remaining = (prev.photos || []).filter(p => p.id !== photoId);
+      const coverStillExists = remaining.some(p => p.url === prev.coverImage);
+      return {
+        ...prev,
+        photos: remaining,
+        coverImage: coverStillExists ? prev.coverImage : (remaining[0]?.url || ''),
+      };
+    });
   };
 
   const handleCreateCollection = () => {
@@ -309,27 +480,33 @@ const Admin: React.FC = () => {
       if (resolved) geo = resolved;
     }
 
+    const photos = newCollection.photos || [];
+    const coverImage = newCollection.coverImage || photos[0]?.url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
+    const hasManualOrder = collections.some(c => typeof c.order === 'number');
+    const maxOrder = hasManualOrder ? Math.max(-1, ...collections.map(c => c.order ?? 0)) : undefined;
+
     const collection: PhotoCollection = {
       id: Date.now().toString(),
       title: newCollection.title || '',
       location: newCollection.location || '',
-      year: newCollection.year || new Date().getFullYear(),
+      year: newCollection.year || lastUsedYear,
       description: newCollection.description || '',
-      coverImage: newCollection.coverImage || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+      coverImage,
       coverTitle: newCollection.coverTitle || newCollection.location || '',
       hoverLocation: newCollection.hoverLocation || newCollection.location || '',
-      photos: newCollection.photos || [],
+      photos,
       createdAt: new Date().toISOString().split('T')[0],
       geo: geo,
+      order: hasManualOrder ? (maxOrder as number) + 1 : undefined,
     };
 
-    updateCollections([collection, ...collections]);
+    updateCollections([...collections, collection]);
     setIsCreatingCollection(false);
     showToast('作品集创建成功');
     setNewCollection({
       title: '',
       location: '',
-      year: new Date().getFullYear(),
+      year: lastUsedYear,
       description: '',
       coverImage: '',
       coverTitle: '',
@@ -354,7 +531,7 @@ const Admin: React.FC = () => {
 
   const handleAddPhoto = (collectionId: string, imageUrl: string, thumbnailUrl: string) => {
     const photo: Photo = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       url: imageUrl,
       thumbnail: thumbnailUrl,
       alt: '新照片',
@@ -471,6 +648,120 @@ const Admin: React.FC = () => {
             <span>导出数据</span>
           </button>
 
+          <button
+            className={`nav-item ${showImgbbConfig ? 'active' : ''} ${imgbbConfigured ? 'imgbb-ok' : 'imgbb-warn'}`}
+            onClick={() => setShowImgbbConfig(!showImgbbConfig)}
+          >
+            <Settings size={20} />
+            <span>图床设置</span>
+          </button>
+          {showImgbbConfig && (
+            <div className="imgbb-config-panel">
+              <p className="imgbb-config-desc">
+                配置 <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer">ImgBB</a> 图床后，上传的图片将自动存储到 CDN，不再使用 base64。
+              </p>
+              <div className="imgbb-config-status">
+                {imgbbConfigured
+                  ? <span className="imgbb-status-ok">已配置</span>
+                  : <span className="imgbb-status-warn">未配置（使用 base64 本地存储）</span>
+                }
+              </div>
+              <input
+                type="text"
+                className="imgbb-key-input"
+                value={imgbbKey}
+                onChange={(e) => setImgbbKey(e.target.value)}
+                placeholder="粘贴 ImgBB API Key..."
+              />
+              <button
+                className="imgbb-save-btn"
+                onClick={() => {
+                  setImgbbApiKey(imgbbKey);
+                  setImgbbConfigured(!!imgbbKey.trim());
+                  showToast(imgbbKey ? '图床 API Key 已保存' : '已清除图床配置');
+                }}
+              >
+                保存
+              </button>
+
+              {/* Batch migration section */}
+              {imgbbConfigured && (
+                <div className="imgbb-migrate-section">
+                  <div className="imgbb-migrate-divider" />
+                  <h4 className="imgbb-migrate-title">存量图片迁移</h4>
+                  <p className="imgbb-migrate-desc">
+                    将已有的 base64 图片批量上传到图床，替换为 CDN 链接。
+                  </p>
+                  <div className="imgbb-migrate-count">
+                    待迁移: <strong>{base64Count}</strong> 张 base64 图片
+                  </div>
+                  {isMigrating && migrationProgress && (
+                    <div className="imgbb-migrate-progress">
+                      <div className="imgbb-migrate-bar">
+                        <div
+                          className="imgbb-migrate-bar-fill"
+                          style={{ width: `${migrationProgress.total > 0 ? (migrationProgress.done / migrationProgress.total * 100) : 0}%` }}
+                        />
+                      </div>
+                      <div className="imgbb-migrate-stats">
+                        {migrationProgress.done}/{migrationProgress.total}
+                        {migrationProgress.failed > 0 && (
+                          <span className="imgbb-migrate-failed">（{migrationProgress.failed} 失败）</span>
+                        )}
+                      </div>
+                      <div className="imgbb-migrate-current">{migrationProgress.current}</div>
+                    </div>
+                  )}
+                  <button
+                    className="imgbb-migrate-btn"
+                    onClick={handleMigrateAll}
+                    disabled={isMigrating}
+                  >
+                    {isMigrating ? '迁移中...' : base64Count === 0 ? '检测图片状态' : `一键迁移 ${base64Count} 张图片`}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            className={`nav-item ${showNewsletterConfig ? 'active' : ''} ${newsletterConfigured ? 'imgbb-ok' : 'imgbb-warn'}`}
+            onClick={() => setShowNewsletterConfig(!showNewsletterConfig)}
+          >
+            <Mail size={20} />
+            <span>Newsletter</span>
+          </button>
+          {showNewsletterConfig && (
+            <div className="imgbb-config-panel">
+              <p className="imgbb-config-desc">
+                配置 <a href="https://buttondown.com" target="_blank" rel="noreferrer">Buttondown</a> 后，网站底部和订阅弹窗的邮箱订阅将自动同步到你的 Newsletter 后台。
+              </p>
+              <div className="imgbb-config-status">
+                {newsletterConfigured
+                  ? <span className="imgbb-status-ok">已配置</span>
+                  : <span className="imgbb-status-warn">未配置（订阅数据仅保存在本地）</span>
+                }
+              </div>
+              <input
+                type="text"
+                className="imgbb-key-input"
+                value={newsletterKey}
+                onChange={(e) => setNewsletterKey(e.target.value)}
+                placeholder="粘贴 Buttondown API Key..."
+              />
+              <button
+                className="imgbb-save-btn"
+                onClick={() => {
+                  setNewsletterApiKey(newsletterKey);
+                  setNewsletterConfigured(!!newsletterKey.trim());
+                  showToast(newsletterKey ? 'Newsletter API Key 已保存' : '已清除 Newsletter 配置');
+                }}
+              >
+                保存
+              </button>
+            </div>
+          )}
+
           <button className="logout-btn" onClick={handleLogout}>
             <LogOut size={20} />
             <span>退出登录</span>
@@ -559,10 +850,14 @@ const Admin: React.FC = () => {
                           <input
                             type="number"
                             value={newCollection.year}
-                            onChange={(e) => setNewCollection({
-                              ...newCollection,
-                              year: parseInt(e.target.value)
-                            })}
+                            onChange={(e) => {
+                              const yearValue = parseInt(e.target.value) || lastUsedYear;
+                              setNewCollection({
+                                ...newCollection,
+                                year: yearValue
+                              });
+                              setLastUsedYear(yearValue);
+                            }}
                           />
                         </div>
                         
@@ -570,16 +865,66 @@ const Admin: React.FC = () => {
                       </div>
 
                       <div className="form-group">
-                        <label>封面图片</label>
+                        <label>作品集图片（先上传）</label>
                         <ImageUploader
-                          onImageUpload={(url, thumb) => setNewCollection({
+                          onImageUpload={(url, thumb) => handleAddNewPhotos([{ imageUrl: url, thumbnailUrl: thumb }])}
+                          onMultiImageUpload={handleAddNewPhotos}
+                          label="上传作品集图片"
+                          multiple
+                        />
+                        {newCollection.photos && newCollection.photos.length > 0 && (
+                          <div className="new-photos-grid">
+                            {newCollection.photos.map(photo => (
+                              <div key={photo.id} className="new-photo-card">
+                                <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                                <button
+                                  className="remove-photo-btn"
+                                  onClick={() => handleRemoveNewPhoto(photo.id)}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label>封面选择（从作品集图片中选择）</label>
+                        <ImageUploader
+                          onImageUpload={(url) => setNewCollection({
                             ...newCollection,
                             coverImage: url
                           })}
                           currentImage={newCollection.coverImage}
                           onRemove={() => setNewCollection({ ...newCollection, coverImage: '' })}
-                          label="上传封面图片"
+                          label=""
+                          enableCrop
+                          allowUpload={false}
+                          emptyHint="请先上传作品集图片并选择封面"
+                          cropAspectOptions={[
+                            { label: '16:9', value: 16 / 9 },
+                            { label: '4:3', value: 4 / 3 },
+                            { label: '1:1', value: 1 }
+                          ]}
+                          defaultCropAspect={4 / 3}
+                          defaultOutputWidth={1600}
                         />
+                        {newCollection.photos && newCollection.photos.length > 0 && (
+                          <div className="cover-picker-grid">
+                            {newCollection.photos.map(photo => (
+                              <button
+                                type="button"
+                                key={photo.id}
+                                className={`cover-picker-item ${newCollection.coverImage === photo.url ? 'active' : ''}`}
+                                onClick={() => setNewCollection({ ...newCollection, coverImage: photo.url })}
+                              >
+                                <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                                <span>设为封面</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="form-group">
@@ -624,7 +969,7 @@ const Admin: React.FC = () => {
 
               {/* Collections List */}
               <div className="collections-grid">
-                {collections.map((collection) => {
+                {sortedCollections.map((collection, index) => {
                   const isEditing = editingCollection === collection.id;
                   return (
                     <CollectionCard
@@ -643,15 +988,41 @@ const Admin: React.FC = () => {
                         showToast('照片已添加');
                       }}
                       onAddPhotos={(images) => {
-                        images.forEach(({ imageUrl, thumbnailUrl }) => {
-                          handleAddPhoto(collection.id, imageUrl, thumbnailUrl);
-                        });
+                        const newPhotos = images.map((img, i) => ({
+                          id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
+                          url: img.imageUrl,
+                          thumbnail: img.thumbnailUrl,
+                          alt: '新照片',
+                          width: 1920,
+                          height: 1080,
+                        }));
+                        const updated = collections.map(c =>
+                          c.id === collection.id
+                            ? { ...c, photos: [...c.photos, ...newPhotos] }
+                            : c
+                        );
+                        updateCollections(updated);
                         showToast(`${images.length} 张照片已添加`);
                       }}
                       onRemovePhoto={(photoId) => {
                         removePhoto(collection.id, photoId);
                         showToast('照片已删除');
                       }}
+                      onUpdatePhoto={(photoId, data) => {
+                        const updated = collections.map(c =>
+                          c.id === collection.id
+                            ? { ...c, photos: c.photos.map(p => p.id === photoId ? { ...p, ...data } : p) }
+                            : c
+                        );
+                        updateCollections(updated);
+                      }}
+                      onMoveUp={() => reorderCollections(index, index - 1)}
+                      onMoveDown={() => reorderCollections(index, index + 1)}
+                      onMoveToPosition={(toIndex) => reorderToPosition(index, toIndex)}
+                      isFirst={index === 0}
+                      isLast={index === sortedCollections.length - 1}
+                      currentIndex={index}
+                      totalCount={sortedCollections.length}
                     />
                   );
                 })}
@@ -1062,15 +1433,26 @@ interface CollectionCardProps {
   onAddPhoto: (url: string, thumb: string) => void;
   onAddPhotos?: (images: { imageUrl: string; thumbnailUrl: string }[]) => void;
   onRemovePhoto: (photoId: string) => void;
+  onUpdatePhoto: (photoId: string, data: Partial<Photo>) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onMoveToPosition: (toIndex: number) => void;
+  isFirst: boolean;
+  isLast: boolean;
+  currentIndex: number;
+  totalCount: number;
 }
 
 const CollectionCard: React.FC<CollectionCardProps> = ({
-  collection, isEditing, onToggleEdit, onSave, onDelete, onAddPhoto, onAddPhotos, onRemovePhoto
+  collection, isEditing, onToggleEdit, onSave, onDelete, onAddPhoto, onAddPhotos, onRemovePhoto, onUpdatePhoto,
+  onMoveUp, onMoveDown, onMoveToPosition, isFirst, isLast, currentIndex, totalCount
 }) => {
   const [title, setTitle] = useState(collection.title);
   const [location, setLocation] = useState(collection.location);
   const [description, setDescription] = useState(collection.description);
   const [coverImage, setCoverImage] = useState(collection.coverImage);
+  const [cardCoverImage, setCardCoverImage] = useState(collection.cardCoverImage || '');
+  const [year, setYear] = useState(collection.year);
   const [geo, setGeo] = useState<GeoInfo | undefined>(collection.geo);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -1085,6 +1467,8 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     setLocation(collection.location);
     setDescription(collection.description);
     setCoverImage(collection.coverImage);
+    setCardCoverImage(collection.cardCoverImage || '');
+    setYear(collection.year);
     setGeo(collection.geo);
     // Try to resolve country from existing location
     const entry = lookupCity(collection.location);
@@ -1129,7 +1513,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   };
 
   const handleSave = () => {
-    onSave({ title, location, description, coverImage, geo });
+    onSave({ title, location, description, coverImage, cardCoverImage: cardCoverImage || undefined, year, geo });
   };
 
   const handleCancel = () => {
@@ -1137,6 +1521,8 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     setLocation(collection.location);
     setDescription(collection.description);
     setCoverImage(collection.coverImage);
+    setCardCoverImage(collection.cardCoverImage || '');
+    setYear(collection.year);
     setGeo(collection.geo);
     setShowAdvanced(false);
     setCitySearchText('');
@@ -1166,6 +1552,41 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
             <Trash2 size={18} />
           </button>
         </div>
+        {!isEditing && (
+          <div className="card-reorder-btns">
+            <button
+              className="btn-icon reorder-btn"
+              onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+              disabled={isFirst}
+              title="上移"
+            >
+              <ChevronUp size={16} />
+            </button>
+            <input
+              type="number"
+              className="card-order-input"
+              value={currentIndex + 1}
+              min={1}
+              max={totalCount}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                if (Number.isFinite(val) && val >= 1 && val <= totalCount) {
+                  onMoveToPosition(val - 1);
+                }
+              }}
+              title="输入数字调整排序"
+            />
+            <button
+              className="btn-icon reorder-btn"
+              onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+              disabled={isLast}
+              title="下移"
+            >
+              <ChevronDown size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="card-body">
@@ -1213,7 +1634,12 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                 </>
               )}
               <Calendar size={14} />
-              <span>{collection.year}</span>
+              <input
+                type="number"
+                className="inline-edit-year"
+                value={year}
+                onChange={(e) => setYear(parseInt(e.target.value) || collection.year)}
+              />
             </div>
             <textarea
               className="inline-edit-description"
@@ -1236,12 +1662,38 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
             {showAdvanced && (
               <div className="inline-edit-advanced">
                 <div className="form-group">
-                  <label>封面图片</label>
+                  <label>封面图片（横版，用于首页轮播等）</label>
                   <ImageUploader
                     onImageUpload={(url) => setCoverImage(url)}
                     currentImage={coverImage}
                     onRemove={() => setCoverImage('')}
                     label="更换封面"
+                    enableCrop
+                    cropAspectOptions={[
+                      { label: '16:9', value: 16 / 9 },
+                      { label: '4:3', value: 4 / 3 },
+                    ]}
+                    defaultCropAspect={4 / 3}
+                    defaultOutputWidth={1600}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>首页卡片封面（竖版 3:4）</label>
+                  <div className="card-cover-hint">
+                    首页下方小卡片使用的竖版封面，不设置则使用横版封面
+                  </div>
+                  <ImageUploader
+                    onImageUpload={(url) => setCardCoverImage(url)}
+                    currentImage={cardCoverImage}
+                    onRemove={() => setCardCoverImage('')}
+                    label="上传竖版封面"
+                    enableCrop
+                    cropAspectOptions={[
+                      { label: '3:4', value: 3 / 4 },
+                    ]}
+                    defaultCropAspect={3 / 4}
+                    defaultOutputWidth={900}
                   />
                 </div>
 
@@ -1266,16 +1718,52 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                 multiple
               />
 
-              <div className="photos-grid">
+              <div className="photos-grid-extended">
                 {collection.photos.map((photo) => (
-                  <div key={photo.id} className="photo-card">
-                    <img src={photo.thumbnail} alt={photo.alt} />
-                    <button
-                      className="remove-photo-btn"
-                      onClick={() => onRemovePhoto(photo.id)}
-                    >
-                      <X size={14} />
-                    </button>
+                  <div key={photo.id} className="photo-card-extended">
+                    <div className="photo-card-thumb">
+                      <img src={photo.thumbnail} alt={photo.alt} />
+                      <button
+                        className="remove-photo-btn"
+                        onClick={() => onRemovePhoto(photo.id)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="photo-card-fields">
+                      <div className="photo-layout-toggle">
+                        <button
+                          type="button"
+                          className={`layout-btn ${(!photo.layout || photo.layout === 'full') ? 'active' : ''}`}
+                          onClick={() => onUpdatePhoto(photo.id, { layout: 'full' })}
+                          title="单张一行"
+                        >
+                          单张
+                        </button>
+                        <button
+                          type="button"
+                          className={`layout-btn ${photo.layout === 'half' ? 'active' : ''}`}
+                          onClick={() => onUpdatePhoto(photo.id, { layout: 'half' })}
+                          title="两张并排（需连续两张都设为并排）"
+                        >
+                          并排
+                        </button>
+                      </div>
+                      <textarea
+                        className="photo-caption-input"
+                        value={photo.caption || ''}
+                        onChange={(e) => onUpdatePhoto(photo.id, { caption: e.target.value })}
+                        placeholder="图片前配文（出现在图片上方，用于图片组间叙事）"
+                        rows={2}
+                      />
+                      <input
+                        type="text"
+                        className="photo-footnote-input"
+                        value={photo.footnote || ''}
+                        onChange={(e) => onUpdatePhoto(photo.id, { footnote: e.target.value })}
+                        placeholder="脚注（图片下方小字）"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1379,6 +1867,16 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     if (index === localImages.length - 1) return;
     const newList = [...localImages];
     [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
+    setLocalImages(newList);
+    setHasChanges(true);
+  };
+
+  const moveToPosition = (fromIndex: number, toPosition: number) => {
+    const targetIndex = toPosition - 1;
+    if (targetIndex < 0 || targetIndex >= localImages.length || targetIndex === fromIndex) return;
+    const newList = [...localImages];
+    const [moved] = newList.splice(fromIndex, 1);
+    newList.splice(targetIndex, 0, moved);
     setLocalImages(newList);
     setHasChanges(true);
   };
@@ -1495,7 +1993,20 @@ const HeroManager: React.FC<HeroManagerProps> = ({
         {localImages.map((img, index) => (
           <div key={img.id} className="hero-image-item">
             <div className="hero-item-order">
-              <span className="hero-item-index">{index + 1}</span>
+              <input
+                type="number"
+                className="hero-item-index-input"
+                value={index + 1}
+                min={1}
+                max={localImages.length}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (Number.isFinite(val)) {
+                    moveToPosition(index, val);
+                  }
+                }}
+                title="输入数字调整排序"
+              />
               <div className="hero-item-arrows">
                 <button
                   className="btn-icon small"
@@ -1551,6 +2062,13 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   currentImage={img.url}
                   onRemove={() => replaceImage(index, '')}
                   label="替换图片"
+                  enableCrop
+                  cropAspectOptions={[
+                    { label: '16:9', value: 16 / 9 },
+                    { label: '4:3', value: 4 / 3 },
+                  ]}
+                  defaultCropAspect={16 / 9}
+                  defaultOutputWidth={1920}
                 />
                 <button
                   className="btn btn-secondary btn-sm"
@@ -1573,6 +2091,13 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   currentImage={img.mobileUrl}
                   onRemove={() => replaceMobileImage(index, '')}
                   label="上传手机端封面"
+                  enableCrop
+                  cropAspectOptions={[
+                    { label: '9:16', value: 9 / 16 },
+                    { label: '3:4', value: 3 / 4 },
+                  ]}
+                  defaultCropAspect={9 / 16}
+                  defaultOutputWidth={1080}
                 />
                 <button
                   className="btn btn-secondary btn-sm"
@@ -1599,6 +2124,13 @@ const HeroManager: React.FC<HeroManagerProps> = ({
         <ImageUploader
           onImageUpload={(url) => addCustomImage(url)}
           label="添加自定义封面图"
+          enableCrop
+          cropAspectOptions={[
+            { label: '16:9', value: 16 / 9 },
+            { label: '4:3', value: 4 / 3 },
+          ]}
+          defaultCropAspect={16 / 9}
+          defaultOutputWidth={1920}
         />
         <button
           className="btn btn-secondary"

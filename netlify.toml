@@ -2,6 +2,13 @@
   publish = "build"
   command = "npm run build"
 
+# Proxy Buttondown API to avoid CORS issues
+[[redirects]]
+  from = "/api/buttondown/*"
+  to = "https://api.buttondown.com/v1/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

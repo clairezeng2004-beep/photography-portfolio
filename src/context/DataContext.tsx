@@ -80,6 +80,26 @@ const defaultAnimationConfig: AnimationConfig = {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// Fix duplicate photo ids within collections (caused by batch upload bug)
+function fixDuplicatePhotoIds(cols: PhotoCollection[]): PhotoCollection[] {
+  let changed = false;
+  const fixed = cols.map(c => {
+    const seen = new Set<string>();
+    let collectionChanged = false;
+    const photos = c.photos.map(p => {
+      if (seen.has(p.id)) {
+        collectionChanged = true;
+        return { ...p, id: `${p.id}-${Math.random().toString(36).slice(2, 8)}` };
+      }
+      seen.add(p.id);
+      return p;
+    });
+    if (collectionChanged) changed = true;
+    return collectionChanged ? { ...c, photos } : c;
+  });
+  return changed ? fixed : cols;
+}
+
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [collections, setCollections] = useState<PhotoCollection[]>([]);
   const [aboutInfo, setAboutInfo] = useState<AboutInfo>(defaultAboutInfo);
@@ -94,12 +114,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const saved = await dbGet<PhotoCollection[]>('photo_collections');
         if (saved && saved.length > 0) {
-          setCollections(saved);
+          const fixed = fixDuplicatePhotoIds(saved);
+          setCollections(fixed);
+          if (fixed !== saved) await dbSet('photo_collections', fixed);
         } else {
           // Try migrate from localStorage (one-time)
           const lsSaved = localStorage.getItem('photo_collections');
           if (lsSaved) {
-            const parsed = JSON.parse(lsSaved) as PhotoCollection[];
+            const parsed = fixDuplicatePhotoIds(JSON.parse(lsSaved) as PhotoCollection[]);
             setCollections(parsed);
             await dbSet('photo_collections', parsed);
             localStorage.removeItem('photo_collections');
