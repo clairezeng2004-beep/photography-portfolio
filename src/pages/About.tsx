@@ -25,17 +25,6 @@ const About: React.FC = () => {
           ))}
         </div>
 
-        {/* Philosophy */}
-        <div className="about-section">
-          <div className="about-text">
-            {aboutInfo.philosophy.map((item, index) => (
-              <p key={index}>
-                <strong>{item.title}</strong> — {item.description}
-              </p>
-            ))}
-          </div>
-        </div>
-
         {/* Contact */}
         <div className="about-contact">
           <h2 className="about-subtitle">Say Hello</h2>
