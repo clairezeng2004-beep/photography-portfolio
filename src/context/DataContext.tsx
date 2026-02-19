@@ -110,6 +110,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const loadData = async () => {
+      let hasData = false;
+
       // 1. Load collections from IndexedDB (large data)
       try {
         const saved = await dbGet<PhotoCollection[]>('photo_collections');
@@ -117,6 +119,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const fixed = fixDuplicatePhotoIds(saved);
           setCollections(fixed);
           if (fixed !== saved) await dbSet('photo_collections', fixed);
+          hasData = true;
         } else {
           // Try migrate from localStorage (one-time)
           const lsSaved = localStorage.getItem('photo_collections');
@@ -125,14 +128,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setCollections(parsed);
             await dbSet('photo_collections', parsed);
             localStorage.removeItem('photo_collections');
-          } else {
-            setCollections(mockCollections);
-            await dbSet('photo_collections', mockCollections);
+            hasData = true;
           }
         }
       } catch (e) {
         console.error('Failed to load collections from IndexedDB:', e);
-        setCollections(mockCollections);
       }
 
       // 2. Load about info from IndexedDB
@@ -140,6 +140,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const savedAbout = await dbGet<AboutInfo>('about_info');
         if (savedAbout) {
           setAboutInfo(savedAbout);
+          hasData = true;
         } else {
           const lsSaved = localStorage.getItem('about_info');
           if (lsSaved) {
@@ -147,8 +148,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setAboutInfo(parsed);
             await dbSet('about_info', parsed);
             localStorage.removeItem('about_info');
-          } else {
-            await dbSet('about_info', defaultAboutInfo);
+            hasData = true;
           }
         }
       } catch (e) {
@@ -191,6 +191,43 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (e) {
         console.error('Failed to load animation config:', e);
+      }
+
+      // 6. If no data found in IndexedDB/localStorage, try loading seed file
+      if (!hasData) {
+        try {
+          const res = await fetch('/portfolio-data.json');
+          if (res.ok) {
+            const seed = await res.json();
+            if (seed.collections && seed.collections.length > 0) {
+              const fixed = fixDuplicatePhotoIds(seed.collections);
+              setCollections(fixed);
+              await dbSet('photo_collections', fixed);
+            }
+            if (seed.aboutInfo) {
+              setAboutInfo(seed.aboutInfo);
+              await dbSet('about_info', seed.aboutInfo);
+            }
+            if (seed.litCities) {
+              setLitCities(seed.litCities);
+              await dbSet('lit_cities', seed.litCities);
+            }
+            if (seed.heroImages && seed.heroImages.length > 0) {
+              setHeroImages(seed.heroImages);
+              await dbSet('hero_images', seed.heroImages);
+            }
+            if (seed.animationConfig) {
+              setAnimationConfig(seed.animationConfig);
+              await dbSet('animation_config', seed.animationConfig);
+            }
+            console.log('[DataContext] Loaded seed data from portfolio-data.json');
+          }
+        } catch (e) {
+          console.log('[DataContext] No seed data file found, using defaults');
+          setCollections(mockCollections);
+          await dbSet('photo_collections', mockCollections);
+          await dbSet('about_info', defaultAboutInfo);
+        }
       }
 
       setDataLoaded(true);

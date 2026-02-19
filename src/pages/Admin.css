@@ -384,6 +384,12 @@
   cursor: not-allowed;
 }
 
+.admin-sidebar-divider {
+  height: 1px;
+  background: #e8e6e2;
+  margin: 8px 16px;
+}
+
 .logout-btn {
   display: flex;
   align-items: center;

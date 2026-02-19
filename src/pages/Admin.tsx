@@ -4,7 +4,7 @@ import {
   Plus, Edit, Trash2, Save, X,
   User, Image as ImageIcon, Settings, LogOut,
   Folder, Camera, MapPin, Calendar, Globe, Map,
-  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail
+  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload
 } from 'lucide-react';
 import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage } from '../types';
 import { useData } from '../context/DataContext';
@@ -223,7 +223,7 @@ const GeoPicker: React.FC<GeoPickerProps> = ({ value, onChange, locationHint }) 
    Admin Component
    ============================================================ */
 const Admin: React.FC = () => {
-  const { collections, aboutInfo, litCities, heroImages, animationConfig, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages } = useData();
+  const { collections, aboutInfo, litCities, heroImages, animationConfig, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages, updateAnimationConfig } = useData();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -318,6 +318,37 @@ const Admin: React.FC = () => {
       setMigrationProgress(null);
     }
   }, [collections, heroImages, aboutInfo, base64Count, showToast, updateCollections, updateHeroImages, updateAboutInfo, migrationProgress]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ===== Data Export / Import =====
+  const handleImportData = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (!data.collections || !data.aboutInfo) {
+          alert('无效的数据文件，缺少 collections 或 aboutInfo');
+          return;
+        }
+        if (!window.confirm(`将导入 ${data.collections.length} 个作品集，覆盖当前数据。确定继续？`)) {
+          return;
+        }
+        updateCollections(data.collections);
+        updateAboutInfo(data.aboutInfo);
+        if (data.litCities) updateLitCities(data.litCities);
+        if (data.heroImages) updateHeroImages(data.heroImages);
+        if (data.animationConfig) updateAnimationConfig(data.animationConfig);
+        showToast('数据导入成功！');
+      } catch (err: any) {
+        alert(`导入失败: ${err.message}`);
+      }
+    };
+    input.click();
+  }, [showToast, updateCollections, updateAboutInfo, updateLitCities, updateHeroImages, updateAnimationConfig]);
 
   const sortedCollections = useMemo(() => {
     const hasManualOrder = collections.some(c => typeof c.order === 'number');
@@ -643,11 +674,6 @@ const Admin: React.FC = () => {
             <span>动画实验室</span>
           </Link>
 
-          <button className="nav-item export-btn" onClick={handleExportData}>
-            <Download size={20} />
-            <span>导出数据</span>
-          </button>
-
           <button
             className={`nav-item ${showImgbbConfig ? 'active' : ''} ${imgbbConfigured ? 'imgbb-ok' : 'imgbb-warn'}`}
             onClick={() => setShowImgbbConfig(!showImgbbConfig)}
@@ -761,6 +787,17 @@ const Admin: React.FC = () => {
               </button>
             </div>
           )}
+
+          <div className="admin-sidebar-divider" />
+
+          <button className="nav-item" onClick={handleExportData}>
+            <Download size={20} />
+            <span>导出数据</span>
+          </button>
+          <button className="nav-item" onClick={handleImportData}>
+            <Upload size={20} />
+            <span>导入数据</span>
+          </button>
 
           <button className="logout-btn" onClick={handleLogout}>
             <LogOut size={20} />
