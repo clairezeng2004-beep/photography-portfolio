@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage, AnimationConfig } from '../types';
 import { mockCollections } from '../data/mockData';
 import { dbGet, dbSet } from '../utils/storage';
+import { isSupabaseConfigured, supabaseGet, supabaseSet } from '../utils/supabase';
 
 interface DataContextType {
   collections: PhotoCollection[];
@@ -108,92 +109,84 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [animationConfig, setAnimationConfig] = useState<AnimationConfig>(defaultAnimationConfig);
   const [dataLoaded, setDataLoaded] = useState(false);
 
+  // Save to both Supabase (cloud) and IndexedDB (local cache)
+  const saveToAll = useCallback(<T,>(key: string, value: T) => {
+    dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
+    if (isSupabaseConfigured()) {
+      supabaseSet(key, value).catch(e => console.error(`[Supabase] save "${key}" failed:`, e));
+    }
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
+      const useCloud = isSupabaseConfigured();
       let hasData = false;
 
-      // 1. Load collections from IndexedDB (large data)
-      try {
-        const saved = await dbGet<PhotoCollection[]>('photo_collections');
-        if (saved && saved.length > 0) {
-          const fixed = fixDuplicatePhotoIds(saved);
-          setCollections(fixed);
-          if (fixed !== saved) await dbSet('photo_collections', fixed);
-          hasData = true;
-        } else {
-          // Try migrate from localStorage (one-time)
-          const lsSaved = localStorage.getItem('photo_collections');
-          if (lsSaved) {
-            const parsed = fixDuplicatePhotoIds(JSON.parse(lsSaved) as PhotoCollection[]);
-            setCollections(parsed);
-            await dbSet('photo_collections', parsed);
-            localStorage.removeItem('photo_collections');
-            hasData = true;
+      // Helper: try Supabase first, then IndexedDB, then localStorage
+      async function loadKey<T>(key: string): Promise<T | undefined> {
+        // 1. Try Supabase
+        if (useCloud) {
+          try {
+            const val = await supabaseGet<T>(key);
+            if (val !== undefined) return val;
+          } catch (e) {
+            console.warn(`[DataContext] Supabase read failed for "${key}", falling back to local`, e);
           }
         }
-      } catch (e) {
-        console.error('Failed to load collections from IndexedDB:', e);
-      }
-
-      // 2. Load about info from IndexedDB
-      try {
-        const savedAbout = await dbGet<AboutInfo>('about_info');
-        if (savedAbout) {
-          setAboutInfo(savedAbout);
-          hasData = true;
-        } else {
-          const lsSaved = localStorage.getItem('about_info');
-          if (lsSaved) {
-            const parsed = JSON.parse(lsSaved) as AboutInfo;
-            setAboutInfo(parsed);
-            await dbSet('about_info', parsed);
-            localStorage.removeItem('about_info');
-            hasData = true;
-          }
+        // 2. Try IndexedDB
+        try {
+          const val = await dbGet<T>(key);
+          if (val !== undefined) return val;
+        } catch (e) {
+          console.warn(`[DataContext] IndexedDB read failed for "${key}"`, e);
         }
-      } catch (e) {
-        console.error('Failed to load about info:', e);
-      }
-
-      // 3. Load lit cities from IndexedDB
-      try {
-        const savedCities = await dbGet<GeoInfo[]>('lit_cities');
-        if (savedCities) {
-          setLitCities(savedCities);
-        } else {
-          const lsSaved = localStorage.getItem('lit_cities');
-          if (lsSaved) {
-            const parsed = JSON.parse(lsSaved) as GeoInfo[];
-            setLitCities(parsed);
-            await dbSet('lit_cities', parsed);
-            localStorage.removeItem('lit_cities');
-          }
+        // 3. Try localStorage (migration)
+        const ls = localStorage.getItem(key);
+        if (ls) {
+          const parsed = JSON.parse(ls) as T;
+          localStorage.removeItem(key);
+          return parsed;
         }
-      } catch (e) {
-        console.error('Failed to load lit cities:', e);
+        return undefined;
       }
 
-      // 4. Load hero images from IndexedDB
-      try {
-        const savedHero = await dbGet<HeroImage[]>('hero_images');
-        if (savedHero && savedHero.length > 0) {
-          setHeroImages(savedHero);
+      // 1. Load collections
+      const savedCollections = await loadKey<PhotoCollection[]>('photo_collections');
+      if (savedCollections && savedCollections.length > 0) {
+        const fixed = fixDuplicatePhotoIds(savedCollections);
+        setCollections(fixed);
+        if (fixed !== savedCollections) {
+          dbSet('photo_collections', fixed).catch(() => {});
         }
-      } catch (e) {
-        console.error('Failed to load hero images:', e);
+        hasData = true;
       }
 
-      // 5. Load animation config from IndexedDB
-      try {
-        const savedAnim = await dbGet<AnimationConfig>('animation_config');
-        if (savedAnim) {
-          setAnimationConfig(savedAnim);
-        }
-      } catch (e) {
-        console.error('Failed to load animation config:', e);
+      // 2. Load about info
+      const savedAbout = await loadKey<AboutInfo>('about_info');
+      if (savedAbout) {
+        setAboutInfo(savedAbout);
+        hasData = true;
       }
 
-      // 6. If no data found in IndexedDB/localStorage, try loading seed file
+      // 3. Load lit cities
+      const savedCities = await loadKey<GeoInfo[]>('lit_cities');
+      if (savedCities) {
+        setLitCities(savedCities);
+      }
+
+      // 4. Load hero images
+      const savedHero = await loadKey<HeroImage[]>('hero_images');
+      if (savedHero && savedHero.length > 0) {
+        setHeroImages(savedHero);
+      }
+
+      // 5. Load animation config
+      const savedAnim = await loadKey<AnimationConfig>('animation_config');
+      if (savedAnim) {
+        setAnimationConfig(savedAnim);
+      }
+
+      // 6. If no data found anywhere, try loading seed file
       if (!hasData) {
         try {
           const res = await fetch('/portfolio-data.json');
@@ -202,31 +195,31 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (seed.collections && seed.collections.length > 0) {
               const fixed = fixDuplicatePhotoIds(seed.collections);
               setCollections(fixed);
-              await dbSet('photo_collections', fixed);
+              saveToAll('photo_collections', fixed);
             }
             if (seed.aboutInfo) {
               setAboutInfo(seed.aboutInfo);
-              await dbSet('about_info', seed.aboutInfo);
+              saveToAll('about_info', seed.aboutInfo);
             }
             if (seed.litCities) {
               setLitCities(seed.litCities);
-              await dbSet('lit_cities', seed.litCities);
+              saveToAll('lit_cities', seed.litCities);
             }
             if (seed.heroImages && seed.heroImages.length > 0) {
               setHeroImages(seed.heroImages);
-              await dbSet('hero_images', seed.heroImages);
+              saveToAll('hero_images', seed.heroImages);
             }
             if (seed.animationConfig) {
               setAnimationConfig(seed.animationConfig);
-              await dbSet('animation_config', seed.animationConfig);
+              saveToAll('animation_config', seed.animationConfig);
             }
             console.log('[DataContext] Loaded seed data from portfolio-data.json');
           }
         } catch (e) {
           console.log('[DataContext] No seed data file found, using defaults');
           setCollections(mockCollections);
-          await dbSet('photo_collections', mockCollections);
-          await dbSet('about_info', defaultAboutInfo);
+          saveToAll('photo_collections', mockCollections);
+          saveToAll('about_info', defaultAboutInfo);
         }
       }
 
@@ -238,17 +231,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateCollections = useCallback((newCollections: PhotoCollection[]) => {
     setCollections(newCollections);
-    dbSet('photo_collections', newCollections).catch(e =>
-      console.error('Failed to save collections:', e)
-    );
-  }, []);
+    saveToAll('photo_collections', newCollections);
+  }, [saveToAll]);
 
   const updateAboutInfo = useCallback((newAboutInfo: AboutInfo) => {
     setAboutInfo(newAboutInfo);
-    dbSet('about_info', newAboutInfo).catch(e =>
-      console.error('Failed to save about info:', e)
-    );
-  }, []);
+    saveToAll('about_info', newAboutInfo);
+  }, [saveToAll]);
 
   const addPhoto = useCallback((collectionId: string, photo: Photo) => {
     setCollections(prev => {
@@ -257,12 +246,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           ? { ...c, photos: [...c.photos, photo] }
           : c
       );
-      dbSet('photo_collections', updated).catch(e =>
-        console.error('Failed to save collections:', e)
-      );
+      saveToAll('photo_collections', updated);
       return updated;
     });
-  }, []);
+  }, [saveToAll]);
 
   const removePhoto = useCallback((collectionId: string, photoId: string) => {
     setCollections(prev => {
@@ -271,33 +258,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           ? { ...c, photos: c.photos.filter(p => p.id !== photoId) }
           : c
       );
-      dbSet('photo_collections', updated).catch(e =>
-        console.error('Failed to save collections:', e)
-      );
+      saveToAll('photo_collections', updated);
       return updated;
     });
-  }, []);
+  }, [saveToAll]);
 
   const updateLitCities = useCallback((cities: GeoInfo[]) => {
     setLitCities(cities);
-    dbSet('lit_cities', cities).catch(e =>
-      console.error('Failed to save lit cities:', e)
-    );
-  }, []);
+    saveToAll('lit_cities', cities);
+  }, [saveToAll]);
 
   const updateHeroImages = useCallback((images: HeroImage[]) => {
     setHeroImages(images);
-    dbSet('hero_images', images).catch(e =>
-      console.error('Failed to save hero images:', e)
-    );
-  }, []);
+    saveToAll('hero_images', images);
+  }, [saveToAll]);
 
   const updateAnimationConfig = useCallback((config: AnimationConfig) => {
     setAnimationConfig(config);
-    dbSet('animation_config', config).catch(e =>
-      console.error('Failed to save animation config:', e)
-    );
-  }, []);
+    saveToAll('animation_config', config);
+  }, [saveToAll]);
 
   return (
     <DataContext.Provider value={{
