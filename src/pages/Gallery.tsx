@@ -192,7 +192,7 @@ const Gallery: React.FC = () => {
                 style={{ transitionDelay: `${i * 0.08}s` }}
               >
                 <div className="rec-card-image">
-                  <img src={c.coverImage} alt={c.title} loading="lazy" />
+                  <img src={c.photos?.[0]?.thumbnail || c.coverImage} alt={c.title} loading="lazy" />
                   <div className="rec-card-overlay">
                     <h3 className="rec-card-title">{c.location}</h3>
                     <span className="rec-card-year">{c.year}</span>

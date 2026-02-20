@@ -120,7 +120,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const loadData = async () => {
       const useCloud = isSupabaseConfigured();
-      let hasData = false;
+      let cloudReachable = false;
 
       // Helper: try Supabase first, then IndexedDB, then localStorage
       async function loadKey<T>(key: string): Promise<T | undefined> {
@@ -128,7 +128,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (useCloud) {
           try {
             const val = await supabaseGet<T>(key);
-            if (val !== undefined) return val;
+            if (val !== undefined) {
+              cloudReachable = true;
+              return val;
+            }
           } catch (e) {
             console.warn(`[DataContext] Supabase read failed for "${key}", falling back to local`, e);
           }
@@ -158,14 +161,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (fixed !== savedCollections) {
           dbSet('photo_collections', fixed).catch(() => {});
         }
-        hasData = true;
       }
 
       // 2. Load about info
       const savedAbout = await loadKey<AboutInfo>('about_info');
       if (savedAbout) {
         setAboutInfo(savedAbout);
-        hasData = true;
       }
 
       // 3. Load lit cities
@@ -186,8 +187,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setAnimationConfig(savedAnim);
       }
 
-      // 6. If no data found anywhere, try loading seed file
-      if (!hasData) {
+      // 6. Only fall back to seed file if Supabase is NOT configured/reachable
+      //    AND no local data was found
+      const hasAnyData = !!(savedCollections && savedCollections.length > 0) || !!savedAbout;
+      if (!hasAnyData && !cloudReachable) {
         try {
           const res = await fetch('/portfolio-data.json');
           if (res.ok) {

@@ -510,7 +510,7 @@ const Footprints: React.FC = () => {
             .map(group => (
               <div key={group.key} className="city-card" onClick={() => { setSelectedCityGroup(group); setPreviewCollection(null); setPreviewPage(0); }}>
                 <div className="city-card-image">
-                  <img src={group.collections[0].coverImage} alt={group.geo.city} loading="lazy" />
+                  <img src={group.collections[0].photos?.[0]?.thumbnail || group.collections[0].coverImage} alt={group.geo.city} loading="lazy" />
                   <div className="city-card-overlay" />
                 </div>
                 <div className="city-card-info">
