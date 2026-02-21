@@ -121,6 +121,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const loadData = async () => {
       const useCloud = isSupabaseConfigured();
       let cloudReachable = false;
+      console.log('[DataContext] Starting data load. Supabase configured:', useCloud);
 
       // Helper: try Supabase first, then IndexedDB, then localStorage
       async function loadKey<T>(key: string): Promise<T | undefined> {
@@ -190,7 +191,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // 6. Only fall back to seed file if Supabase is NOT configured/reachable
       //    AND no local data was found
       const hasAnyData = !!(savedCollections && savedCollections.length > 0) || !!savedAbout;
+      console.log('[DataContext] Load complete. cloudReachable:', cloudReachable, '| hasAnyData:', hasAnyData, '| collections:', savedCollections?.length ?? 0);
       if (!hasAnyData && !cloudReachable) {
+        console.log('[DataContext] No data found, falling back to seed file...');
         try {
           const res = await fetch('/portfolio-data.json');
           if (res.ok) {

@@ -3,6 +3,12 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
+// Debug: log Supabase config status (safe — only logs boolean, not secrets)
+console.log('[Supabase] URL configured:', !!supabaseUrl, '| Key configured:', !!supabaseAnonKey);
+if (supabaseUrl) {
+  console.log('[Supabase] URL:', supabaseUrl);
+}
+
 // Singleton Supabase client
 let client: SupabaseClient | null = null;
 
