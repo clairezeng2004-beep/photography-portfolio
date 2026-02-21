@@ -337,11 +337,11 @@ const Admin: React.FC = () => {
         if (!window.confirm(`将导入 ${data.collections.length} 个作品集，覆盖当前数据。确定继续？`)) {
           return;
         }
-        updateCollections(data.collections);
-        updateAboutInfo(data.aboutInfo);
-        if (data.litCities) updateLitCities(data.litCities);
-        if (data.heroImages) updateHeroImages(data.heroImages);
-        if (data.animationConfig) updateAnimationConfig(data.animationConfig);
+        await updateCollections(data.collections);
+        await updateAboutInfo(data.aboutInfo);
+        if (data.litCities) await updateLitCities(data.litCities);
+        if (data.heroImages) await updateHeroImages(data.heroImages);
+        if (data.animationConfig) await updateAnimationConfig(data.animationConfig);
         showToast('数据导入成功！');
       } catch (err: any) {
         alert(`导入失败: ${err.message}`);
@@ -498,7 +498,7 @@ const Admin: React.FC = () => {
     });
   };
 
-  const handleCreateCollection = () => {
+  const handleCreateCollection = async () => {
     if (!newCollection.title || !newCollection.location) {
       alert('请填写完整信息！');
       return;
@@ -531,7 +531,7 @@ const Admin: React.FC = () => {
       order: hasManualOrder ? (maxOrder as number) + 1 : undefined,
     };
 
-    updateCollections([...collections, collection]);
+    await updateCollections([...collections, collection]);
     setIsCreatingCollection(false);
     showToast('作品集创建成功');
     setNewCollection({
@@ -547,17 +547,17 @@ const Admin: React.FC = () => {
     });
   };
 
-  const handleDeleteCollection = (id: string) => {
+  const handleDeleteCollection = async (id: string) => {
     if (window.confirm('确定要删除这个作品集吗？')) {
-      updateCollections(collections.filter(c => c.id !== id));
+      await updateCollections(collections.filter(c => c.id !== id));
     }
   };
 
-  const handleUpdateCollection = (id: string, updatedData: Partial<PhotoCollection>) => {
+  const handleUpdateCollection = async (id: string, updatedData: Partial<PhotoCollection>) => {
     const updated = collections.map(c => 
       c.id === id ? { ...c, ...updatedData } : c
     );
-    updateCollections(updated);
+    await updateCollections(updated);
   };
 
   const handleAddPhoto = (collectionId: string, imageUrl: string, thumbnailUrl: string) => {
@@ -572,8 +572,8 @@ const Admin: React.FC = () => {
     addPhoto(collectionId, photo);
   };
 
-  const handleSaveAbout = () => {
-    updateAboutInfo(editedAboutInfo);
+  const handleSaveAbout = async () => {
+    await updateAboutInfo(editedAboutInfo);
     showToast('关于我页面已保存');
   };
 
@@ -1014,8 +1014,8 @@ const Admin: React.FC = () => {
                       collection={collection}
                       isEditing={isEditing}
                       onToggleEdit={() => setEditingCollection(isEditing ? null : collection.id)}
-                      onSave={(updatedData) => {
-                        handleUpdateCollection(collection.id, updatedData);
+                      onSave={async (updatedData) => {
+                        await handleUpdateCollection(collection.id, updatedData);
                         setEditingCollection(null);
                         showToast('作品集已保存');
                       }}
@@ -1024,7 +1024,7 @@ const Admin: React.FC = () => {
                         handleAddPhoto(collection.id, url, thumb);
                         showToast('照片已添加');
                       }}
-                      onAddPhotos={(images) => {
+                      onAddPhotos={async (images) => {
                         const newPhotos = images.map((img, i) => ({
                           id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
                           url: img.imageUrl,
@@ -1038,20 +1038,20 @@ const Admin: React.FC = () => {
                             ? { ...c, photos: [...c.photos, ...newPhotos] }
                             : c
                         );
-                        updateCollections(updated);
+                        await updateCollections(updated);
                         showToast(`${images.length} 张照片已添加`);
                       }}
                       onRemovePhoto={(photoId) => {
                         removePhoto(collection.id, photoId);
                         showToast('照片已删除');
                       }}
-                      onUpdatePhoto={(photoId, data) => {
+                      onUpdatePhoto={async (photoId, data) => {
                         const updated = collections.map(c =>
                           c.id === collection.id
                             ? { ...c, photos: c.photos.map(p => p.id === photoId ? { ...p, ...data } : p) }
                             : c
                         );
-                        updateCollections(updated);
+                        await updateCollections(updated);
                       }}
                       onMoveUp={() => reorderCollections(index, index - 1)}
                       onMoveDown={() => reorderCollections(index, index + 1)}
@@ -1981,8 +1981,8 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     setShowPicker(false);
   };
 
-  const handleSave = () => {
-    updateHeroImages(localImages);
+  const handleSave = async () => {
+    await updateHeroImages(localImages);
     setHasChanges(false);
     showToast('首页封面已保存');
   };

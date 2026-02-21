@@ -11,13 +11,13 @@ interface DataContextType {
   heroImages: HeroImage[];
   animationConfig: AnimationConfig;
   dataLoaded: boolean;
-  updateCollections: (collections: PhotoCollection[]) => void;
-  updateAboutInfo: (aboutInfo: AboutInfo) => void;
+  updateCollections: (collections: PhotoCollection[]) => Promise<void>;
+  updateAboutInfo: (aboutInfo: AboutInfo) => Promise<void>;
   addPhoto: (collectionId: string, photo: Photo) => void;
   removePhoto: (collectionId: string, photoId: string) => void;
-  updateLitCities: (cities: GeoInfo[]) => void;
-  updateHeroImages: (images: HeroImage[]) => void;
-  updateAnimationConfig: (config: AnimationConfig) => void;
+  updateLitCities: (cities: GeoInfo[]) => Promise<void>;
+  updateHeroImages: (images: HeroImage[]) => Promise<void>;
+  updateAnimationConfig: (config: AnimationConfig) => Promise<void>;
 }
 
 const defaultAboutInfo: AboutInfo = {
@@ -110,10 +110,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Save to both Supabase (cloud) and IndexedDB (local cache)
-  const saveToAll = useCallback(<T,>(key: string, value: T) => {
+  const saveToAll = useCallback(async <T,>(key: string, value: T) => {
+    // Always save to local first (fast)
     dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
+    // Then save to Supabase (cloud)
     if (isSupabaseConfigured()) {
-      supabaseSet(key, value).catch(e => console.error(`[Supabase] save "${key}" failed:`, e));
+      try {
+        await supabaseSet(key, value);
+        console.log(`[Supabase] saved "${key}" successfully`);
+      } catch (e) {
+        console.error(`[Supabase] save "${key}" failed:`, e);
+      }
     }
   }, []);
 
@@ -233,14 +240,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const updateCollections = useCallback((newCollections: PhotoCollection[]) => {
+  const updateCollections = useCallback(async (newCollections: PhotoCollection[]) => {
     setCollections(newCollections);
-    saveToAll('photo_collections', newCollections);
+    await saveToAll('photo_collections', newCollections);
   }, [saveToAll]);
 
-  const updateAboutInfo = useCallback((newAboutInfo: AboutInfo) => {
+  const updateAboutInfo = useCallback(async (newAboutInfo: AboutInfo) => {
     setAboutInfo(newAboutInfo);
-    saveToAll('about_info', newAboutInfo);
+    await saveToAll('about_info', newAboutInfo);
   }, [saveToAll]);
 
   const addPhoto = useCallback((collectionId: string, photo: Photo) => {
@@ -267,19 +274,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   }, [saveToAll]);
 
-  const updateLitCities = useCallback((cities: GeoInfo[]) => {
+  const updateLitCities = useCallback(async (cities: GeoInfo[]) => {
     setLitCities(cities);
-    saveToAll('lit_cities', cities);
+    await saveToAll('lit_cities', cities);
   }, [saveToAll]);
 
-  const updateHeroImages = useCallback((images: HeroImage[]) => {
+  const updateHeroImages = useCallback(async (images: HeroImage[]) => {
     setHeroImages(images);
-    saveToAll('hero_images', images);
+    await saveToAll('hero_images', images);
   }, [saveToAll]);
 
-  const updateAnimationConfig = useCallback((config: AnimationConfig) => {
+  const updateAnimationConfig = useCallback(async (config: AnimationConfig) => {
     setAnimationConfig(config);
-    saveToAll('animation_config', config);
+    await saveToAll('animation_config', config);
   }, [saveToAll]);
 
   return (
