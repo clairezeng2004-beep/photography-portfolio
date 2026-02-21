@@ -111,19 +111,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Save to both Supabase (cloud) and IndexedDB (local cache)
   const saveToAll = useCallback(async <T,>(key: string, value: T) => {
-    // Save to local and cloud in parallel, await both (with timeout for cloud)
-    const localPromise = dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
-    let cloudPromise: Promise<void> = Promise.resolve();
+    // Save to local first (always)
+    await dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
+    // Then save to Supabase (cloud) — propagate errors so callers know if cloud save failed
     if (isSupabaseConfigured()) {
-      const timeout = new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error('Supabase save timeout')), 10000)
-      );
-      cloudPromise = Promise.race([
-        supabaseSet(key, value).then(() => console.log(`[Supabase] saved "${key}" successfully`)),
-        timeout
-      ]).catch(e => console.error(`[Supabase] save "${key}" failed:`, e));
+      await supabaseSet(key, value);
+      console.log(`[Supabase] saved "${key}" successfully`);
     }
-    await Promise.all([localPromise, cloudPromise]);
   }, []);
 
   useEffect(() => {
@@ -134,44 +128,71 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       let cloudReachable = false;
 
       // Helper: try Supabase first, then IndexedDB, then localStorage
+      // For array values, prefer whichever source has more data to avoid
+      // stale empty arrays in Supabase overriding valid local data.
       async function loadKey<T>(key: string): Promise<T | undefined> {
+        let cloudVal: T | undefined;
+        let localVal: T | undefined;
+
         // 1. Try Supabase
         if (useCloud) {
           try {
-            const val = await supabaseGet<T>(key);
-            if (val !== undefined) {
+            cloudVal = await supabaseGet<T>(key);
+            if (cloudVal !== undefined) {
               cloudReachable = true;
-              return val;
             }
           } catch (e) {
             console.warn(`[DataContext] Supabase read failed for "${key}", falling back to local`, e);
           }
         }
+
         // 2. Try IndexedDB
         try {
-          const val = await dbGet<T>(key);
-          if (val !== undefined) return val;
+          localVal = await dbGet<T>(key);
         } catch (e) {
           console.warn(`[DataContext] IndexedDB read failed for "${key}"`, e);
         }
+
         // 3. Try localStorage (migration)
-        const ls = localStorage.getItem(key);
-        if (ls) {
-          const parsed = JSON.parse(ls) as T;
-          localStorage.removeItem(key);
-          return parsed;
+        if (localVal === undefined) {
+          const ls = localStorage.getItem(key);
+          if (ls) {
+            localVal = JSON.parse(ls) as T;
+            localStorage.removeItem(key);
+          }
         }
-        return undefined;
+
+        // If both exist and are arrays, prefer the one with more items
+        // This prevents a stale empty array in cloud from overwriting valid local data
+        if (Array.isArray(cloudVal) && Array.isArray(localVal)) {
+          if (cloudVal.length === 0 && localVal.length > 0) {
+            console.log(`[DataContext] "${key}": cloud is empty but local has ${localVal.length} items, using local and syncing to cloud`);
+            // Sync local data back to cloud
+            if (useCloud) {
+              supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
+            }
+            return localVal;
+          }
+        }
+
+        // Cloud takes priority if available
+        if (cloudVal !== undefined) return cloudVal;
+        return localVal;
       }
 
       // 1. Load collections
       const savedCollections = await loadKey<PhotoCollection[]>('photo_collections');
       if (cancelled) return;
-      if (savedCollections && savedCollections.length > 0) {
-        const fixed = fixDuplicatePhotoIds(savedCollections);
-        setCollections(fixed);
-        if (fixed !== savedCollections) {
-          dbSet('photo_collections', fixed).catch(() => {});
+      if (savedCollections) {
+        if (savedCollections.length > 0) {
+          const fixed = fixDuplicatePhotoIds(savedCollections);
+          setCollections(fixed);
+          if (fixed !== savedCollections) {
+            dbSet('photo_collections', fixed).catch(() => {});
+          }
+        } else {
+          // Explicitly set empty — user may have deleted all collections
+          setCollections([]);
         }
       }
 
@@ -203,10 +224,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setAnimationConfig(savedAnim);
       }
 
-      // 6. Only fall back to seed file if Supabase is NOT configured/reachable
-      //    AND no local data was found
-      const hasAnyData = !!(savedCollections && savedCollections.length > 0) || !!savedAbout;
-      if (!hasAnyData && !cloudReachable) {
+      // 6. Only fall back to seed file if no data source returned anything useful
+      //    If Supabase is reachable (even with empty data), trust it — don't override with seed.
+      //    Also trust if any key was found (even empty arrays mean the DB was initialized).
+      const hasAnyData = savedCollections !== undefined || !!savedAbout || cloudReachable;
+      if (!hasAnyData) {
         try {
           const res = await fetch('/portfolio-data.json');
           if (cancelled) return;

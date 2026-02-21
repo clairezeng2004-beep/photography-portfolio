@@ -34,16 +34,41 @@ export async function supabaseGet<T>(key: string): Promise<T | undefined> {
 /** Write a value to Supabase app_data table (upsert) */
 export async function supabaseSet<T>(key: string, value: T): Promise<void> {
   const supabase = getSupabase();
-  const { error } = await supabase
+
+  // Try upsert first
+  const { error: upsertError } = await supabase
     .from('app_data')
     .upsert(
       { key, value: value as any, updated_at: new Date().toISOString() },
       { onConflict: 'key' }
     );
 
-  if (error) {
-    console.error(`[Supabase] Failed to save "${key}":`, error.message);
-    throw error;
+  if (upsertError) {
+    console.error(`[Supabase] upsert failed for "${key}":`, upsertError.message, upsertError);
+    // If upsert fails (e.g. RLS blocks INSERT), try UPDATE for existing row
+    const { error: updateError } = await supabase
+      .from('app_data')
+      .update({ value: value as any, updated_at: new Date().toISOString() })
+      .eq('key', key);
+
+    if (updateError) {
+      console.error(`[Supabase] update also failed for "${key}":`, updateError.message);
+      throw updateError;
+    }
+    console.log(`[Supabase] saved "${key}" via UPDATE fallback`);
+    return;
+  }
+
+  // Verify write succeeded by reading back
+  const { data: verify } = await supabase
+    .from('app_data')
+    .select('key')
+    .eq('key', key)
+    .single();
+
+  if (!verify) {
+    console.error(`[Supabase] write verification failed for "${key}" — row not found after upsert`);
+    throw new Error(`Supabase write verification failed for "${key}"`);
   }
 }
 
