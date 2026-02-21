@@ -110,13 +110,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Save to both Supabase (cloud) and IndexedDB (local cache)
+  // Errors are caught and logged — callers that need strict error handling
+  // should call supabaseSet directly.
   const saveToAll = useCallback(async <T,>(key: string, value: T) => {
     // Save to local first (always)
     await dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
-    // Then save to Supabase (cloud) — propagate errors so callers know if cloud save failed
+    // Then save to Supabase (cloud)
     if (isSupabaseConfigured()) {
-      await supabaseSet(key, value);
-      console.log(`[Supabase] saved "${key}" successfully`);
+      try {
+        await supabaseSet(key, value);
+        console.log(`[Supabase] saved "${key}" successfully`);
+      } catch (e) {
+        console.error(`[Supabase] save "${key}" failed:`, e);
+      }
     }
   }, []);
 
@@ -275,15 +281,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Strict save: write to both IndexedDB and Supabase, throw on Supabase failure.
+  // Used by user-initiated operations that need to report errors.
+  const saveStrict = useCallback(async <T,>(key: string, value: T) => {
+    await dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
+    if (isSupabaseConfigured()) {
+      await supabaseSet(key, value);
+      console.log(`[Supabase] saved "${key}" successfully`);
+    }
+  }, []);
+
   const updateCollections = useCallback(async (newCollections: PhotoCollection[]) => {
     setCollections(newCollections);
-    await saveToAll('photo_collections', newCollections);
-  }, [saveToAll]);
+    await saveStrict('photo_collections', newCollections);
+  }, [saveStrict]);
 
   const updateAboutInfo = useCallback(async (newAboutInfo: AboutInfo) => {
     setAboutInfo(newAboutInfo);
-    await saveToAll('about_info', newAboutInfo);
-  }, [saveToAll]);
+    await saveStrict('about_info', newAboutInfo);
+  }, [saveStrict]);
 
   const addPhoto = useCallback((collectionId: string, photo: Photo) => {
     setCollections(prev => {
@@ -311,18 +327,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateLitCities = useCallback(async (cities: GeoInfo[]) => {
     setLitCities(cities);
-    await saveToAll('lit_cities', cities);
-  }, [saveToAll]);
+    await saveStrict('lit_cities', cities);
+  }, [saveStrict]);
 
   const updateHeroImages = useCallback(async (images: HeroImage[]) => {
     setHeroImages(images);
-    await saveToAll('hero_images', images);
-  }, [saveToAll]);
+    await saveStrict('hero_images', images);
+  }, [saveStrict]);
 
   const updateAnimationConfig = useCallback(async (config: AnimationConfig) => {
     setAnimationConfig(config);
-    await saveToAll('animation_config', config);
-  }, [saveToAll]);
+    await saveStrict('animation_config', config);
+  }, [saveStrict]);
 
   return (
     <DataContext.Provider value={{
