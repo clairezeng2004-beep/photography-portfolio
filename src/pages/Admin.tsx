@@ -229,6 +229,7 @@ const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [editingCollection, setEditingCollection] = useState<string | null>(null);
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
+  const [isSavingCollection, setIsSavingCollection] = useState(false);
 
   // Toast state
   const [toastMessage, setToastMessage] = useState('');
@@ -504,47 +505,56 @@ const Admin: React.FC = () => {
       return;
     }
 
-    // Auto-resolve geo if not already set
-    let geo = newCollection.geo;
-    if (!geo && newCollection.location) {
-      const resolved = resolveGeoFromCity(newCollection.location);
-      if (resolved) geo = resolved;
+    setIsSavingCollection(true);
+
+    try {
+      // Auto-resolve geo if not already set
+      let geo = newCollection.geo;
+      if (!geo && newCollection.location) {
+        const resolved = resolveGeoFromCity(newCollection.location);
+        if (resolved) geo = resolved;
+      }
+
+      const photos = newCollection.photos || [];
+      const coverImage = newCollection.coverImage || photos[0]?.url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
+      const hasManualOrder = collections.some(c => typeof c.order === 'number');
+      const maxOrder = hasManualOrder ? Math.max(-1, ...collections.map(c => c.order ?? 0)) : undefined;
+
+      const collection: PhotoCollection = {
+        id: Date.now().toString(),
+        title: newCollection.title || '',
+        location: newCollection.location || '',
+        year: newCollection.year || lastUsedYear,
+        description: newCollection.description || '',
+        coverImage,
+        coverTitle: newCollection.coverTitle || newCollection.location || '',
+        hoverLocation: newCollection.hoverLocation || newCollection.location || '',
+        photos,
+        createdAt: new Date().toISOString().split('T')[0],
+        geo: geo,
+        order: hasManualOrder ? (maxOrder as number) + 1 : undefined,
+      };
+
+      await updateCollections([...collections, collection]);
+      setIsCreatingCollection(false);
+      showToast('作品集创建成功');
+      setNewCollection({
+        title: '',
+        location: '',
+        year: lastUsedYear,
+        description: '',
+        coverImage: '',
+        coverTitle: '',
+        hoverLocation: '',
+        photos: [],
+        geo: undefined,
+      });
+    } catch (e) {
+      console.error('创建作品集失败:', e);
+      alert('保存失败，请重试');
+    } finally {
+      setIsSavingCollection(false);
     }
-
-    const photos = newCollection.photos || [];
-    const coverImage = newCollection.coverImage || photos[0]?.url || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
-    const hasManualOrder = collections.some(c => typeof c.order === 'number');
-    const maxOrder = hasManualOrder ? Math.max(-1, ...collections.map(c => c.order ?? 0)) : undefined;
-
-    const collection: PhotoCollection = {
-      id: Date.now().toString(),
-      title: newCollection.title || '',
-      location: newCollection.location || '',
-      year: newCollection.year || lastUsedYear,
-      description: newCollection.description || '',
-      coverImage,
-      coverTitle: newCollection.coverTitle || newCollection.location || '',
-      hoverLocation: newCollection.hoverLocation || newCollection.location || '',
-      photos,
-      createdAt: new Date().toISOString().split('T')[0],
-      geo: geo,
-      order: hasManualOrder ? (maxOrder as number) + 1 : undefined,
-    };
-
-    await updateCollections([...collections, collection]);
-    setIsCreatingCollection(false);
-    showToast('作品集创建成功');
-    setNewCollection({
-      title: '',
-      location: '',
-      year: lastUsedYear,
-      description: '',
-      coverImage: '',
-      coverTitle: '',
-      hoverLocation: '',
-      photos: [],
-      geo: undefined,
-    });
   };
 
   const handleDeleteCollection = async (id: string) => {
@@ -1005,15 +1015,17 @@ const Admin: React.FC = () => {
                       <button
                         className="btn btn-secondary"
                         onClick={() => setIsCreatingCollection(false)}
+                        disabled={isSavingCollection}
                       >
                         取消
                       </button>
                       <button
                         className="btn btn-primary"
                         onClick={handleCreateCollection}
+                        disabled={isSavingCollection}
                       >
                         <Save size={20} />
-                        创建作品集
+                        {isSavingCollection ? '保存中...' : '创建作品集'}
                       </button>
                     </div>
                   </div>

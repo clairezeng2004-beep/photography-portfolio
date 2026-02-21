@@ -111,13 +111,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Save to both Supabase (cloud) and IndexedDB (local cache)
   const saveToAll = useCallback(async <T,>(key: string, value: T) => {
-    // Save to local and cloud in parallel, await both
+    // Save to local and cloud in parallel, await both (with timeout for cloud)
     const localPromise = dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
     let cloudPromise: Promise<void> = Promise.resolve();
     if (isSupabaseConfigured()) {
-      cloudPromise = supabaseSet(key, value)
-        .then(() => console.log(`[Supabase] saved "${key}" successfully`))
-        .catch(e => console.error(`[Supabase] save "${key}" failed:`, e));
+      const timeout = new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error('Supabase save timeout')), 10000)
+      );
+      cloudPromise = Promise.race([
+        supabaseSet(key, value).then(() => console.log(`[Supabase] saved "${key}" successfully`)),
+        timeout
+      ]).catch(e => console.error(`[Supabase] save "${key}" failed:`, e));
     }
     await Promise.all([localPromise, cloudPromise]);
   }, []);
