@@ -223,7 +223,7 @@ const GeoPicker: React.FC<GeoPickerProps> = ({ value, onChange, locationHint }) 
    Admin Component
    ============================================================ */
 const Admin: React.FC = () => {
-  const { collections, aboutInfo, litCities, heroImages, animationConfig, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages, updateAnimationConfig } = useData();
+  const { collections, aboutInfo, litCities, heroImages, animationConfig, dataLoaded, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages, updateAnimationConfig } = useData();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -593,6 +593,22 @@ const Admin: React.FC = () => {
       }
     }));
   };
+
+  if (!dataLoaded) {
+    return (
+      <div className="admin-page">
+        <div className="admin-login-container">
+          <div className="admin-login-card">
+            <div className="login-icon">
+              <Camera size={48} />
+            </div>
+            <h2>加载中...</h2>
+            <p className="login-hint">正在从云端同步数据，请稍候</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

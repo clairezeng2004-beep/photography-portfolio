@@ -111,20 +111,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Save to both Supabase (cloud) and IndexedDB (local cache)
   const saveToAll = useCallback(async <T,>(key: string, value: T) => {
-    // Always save to local first (fast)
-    dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
-    // Then save to Supabase (cloud)
+    // Save to local and cloud in parallel, await both
+    const localPromise = dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
+    let cloudPromise: Promise<void> = Promise.resolve();
     if (isSupabaseConfigured()) {
-      try {
-        await supabaseSet(key, value);
-        console.log(`[Supabase] saved "${key}" successfully`);
-      } catch (e) {
-        console.error(`[Supabase] save "${key}" failed:`, e);
-      }
+      cloudPromise = supabaseSet(key, value)
+        .then(() => console.log(`[Supabase] saved "${key}" successfully`))
+        .catch(e => console.error(`[Supabase] save "${key}" failed:`, e));
     }
+    await Promise.all([localPromise, cloudPromise]);
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadData = async () => {
       const useCloud = isSupabaseConfigured();
       let cloudReachable = false;
@@ -162,6 +162,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // 1. Load collections
       const savedCollections = await loadKey<PhotoCollection[]>('photo_collections');
+      if (cancelled) return;
       if (savedCollections && savedCollections.length > 0) {
         const fixed = fixDuplicatePhotoIds(savedCollections);
         setCollections(fixed);
@@ -172,24 +173,28 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // 2. Load about info
       const savedAbout = await loadKey<AboutInfo>('about_info');
+      if (cancelled) return;
       if (savedAbout) {
         setAboutInfo(savedAbout);
       }
 
       // 3. Load lit cities
       const savedCities = await loadKey<GeoInfo[]>('lit_cities');
+      if (cancelled) return;
       if (savedCities) {
         setLitCities(savedCities);
       }
 
       // 4. Load hero images
       const savedHero = await loadKey<HeroImage[]>('hero_images');
+      if (cancelled) return;
       if (savedHero && savedHero.length > 0) {
         setHeroImages(savedHero);
       }
 
       // 5. Load animation config
       const savedAnim = await loadKey<AnimationConfig>('animation_config');
+      if (cancelled) return;
       if (savedAnim) {
         setAnimationConfig(savedAnim);
       }
@@ -200,6 +205,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!hasAnyData && !cloudReachable) {
         try {
           const res = await fetch('/portfolio-data.json');
+          if (cancelled) return;
           if (res.ok) {
             const seed = await res.json();
             if (seed.collections && seed.collections.length > 0) {
@@ -226,6 +232,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.log('[DataContext] Loaded seed data from portfolio-data.json');
           }
         } catch (e) {
+          if (cancelled) return;
           console.log('[DataContext] No seed data file found, using defaults');
           setCollections(mockCollections);
           saveToAll('photo_collections', mockCollections);
@@ -237,6 +244,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     loadData();
+
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
