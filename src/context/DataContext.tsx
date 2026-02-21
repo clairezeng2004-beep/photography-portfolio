@@ -134,13 +134,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       let cloudReachable = false;
 
       // Helper: try Supabase first, then IndexedDB, then localStorage
-      // For array values, prefer whichever source has more data to avoid
-      // stale empty arrays in Supabase overriding valid local data.
       async function loadKey<T>(key: string): Promise<T | undefined> {
         let cloudVal: T | undefined;
         let localVal: T | undefined;
 
-        // 1. Try Supabase
+        // 1. Try Supabase (with timeout already in supabaseGet)
         if (useCloud) {
           try {
             cloudVal = await supabaseGet<T>(key);
@@ -163,17 +161,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (localVal === undefined) {
           const ls = localStorage.getItem(key);
           if (ls) {
-            localVal = JSON.parse(ls) as T;
+            try { localVal = JSON.parse(ls) as T; } catch {}
             localStorage.removeItem(key);
           }
         }
 
         // If both exist and are arrays, prefer the one with more items
-        // This prevents a stale empty array in cloud from overwriting valid local data
         if (Array.isArray(cloudVal) && Array.isArray(localVal)) {
           if (cloudVal.length === 0 && localVal.length > 0) {
-            console.log(`[DataContext] "${key}": cloud is empty but local has ${localVal.length} items, using local and syncing to cloud`);
-            // Sync local data back to cloud
+            console.log(`[DataContext] "${key}": cloud is empty but local has ${localVal.length} items, using local`);
             if (useCloud) {
               supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
             }
@@ -181,14 +177,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         }
 
-        // Cloud takes priority if available
         if (cloudVal !== undefined) return cloudVal;
         return localVal;
       }
 
-      // 1. Load collections
-      const savedCollections = await loadKey<PhotoCollection[]>('photo_collections');
+      // Load all keys in PARALLEL to avoid serial latency
+      const [savedCollections, savedAbout, savedCities, savedHero, savedAnim] = await Promise.all([
+        loadKey<PhotoCollection[]>('photo_collections'),
+        loadKey<AboutInfo>('about_info'),
+        loadKey<GeoInfo[]>('lit_cities'),
+        loadKey<HeroImage[]>('hero_images'),
+        loadKey<AnimationConfig>('animation_config'),
+      ]);
+
       if (cancelled) return;
+
+      // Apply loaded data
       if (savedCollections) {
         if (savedCollections.length > 0) {
           const fixed = fixDuplicatePhotoIds(savedCollections);
@@ -197,42 +201,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             dbSet('photo_collections', fixed).catch(() => {});
           }
         } else {
-          // Explicitly set empty — user may have deleted all collections
           setCollections([]);
         }
       }
+      if (savedAbout) setAboutInfo(savedAbout);
+      if (savedCities) setLitCities(savedCities);
+      if (savedHero && savedHero.length > 0) setHeroImages(savedHero);
+      if (savedAnim) setAnimationConfig(savedAnim);
 
-      // 2. Load about info
-      const savedAbout = await loadKey<AboutInfo>('about_info');
-      if (cancelled) return;
-      if (savedAbout) {
-        setAboutInfo(savedAbout);
-      }
-
-      // 3. Load lit cities
-      const savedCities = await loadKey<GeoInfo[]>('lit_cities');
-      if (cancelled) return;
-      if (savedCities) {
-        setLitCities(savedCities);
-      }
-
-      // 4. Load hero images
-      const savedHero = await loadKey<HeroImage[]>('hero_images');
-      if (cancelled) return;
-      if (savedHero && savedHero.length > 0) {
-        setHeroImages(savedHero);
-      }
-
-      // 5. Load animation config
-      const savedAnim = await loadKey<AnimationConfig>('animation_config');
-      if (cancelled) return;
-      if (savedAnim) {
-        setAnimationConfig(savedAnim);
-      }
-
-      // 6. Only fall back to seed file if no data source returned anything useful
-      //    If Supabase is reachable (even with empty data), trust it — don't override with seed.
-      //    Also trust if any key was found (even empty arrays mean the DB was initialized).
+      // Fall back to seed file only if nothing was found anywhere
       const hasAnyData = savedCollections !== undefined || !!savedAbout || cloudReachable;
       if (!hasAnyData) {
         try {
@@ -245,22 +222,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setCollections(fixed);
               saveToAll('photo_collections', fixed);
             }
-            if (seed.aboutInfo) {
-              setAboutInfo(seed.aboutInfo);
-              saveToAll('about_info', seed.aboutInfo);
-            }
-            if (seed.litCities) {
-              setLitCities(seed.litCities);
-              saveToAll('lit_cities', seed.litCities);
-            }
-            if (seed.heroImages && seed.heroImages.length > 0) {
-              setHeroImages(seed.heroImages);
-              saveToAll('hero_images', seed.heroImages);
-            }
-            if (seed.animationConfig) {
-              setAnimationConfig(seed.animationConfig);
-              saveToAll('animation_config', seed.animationConfig);
-            }
+            if (seed.aboutInfo) { setAboutInfo(seed.aboutInfo); saveToAll('about_info', seed.aboutInfo); }
+            if (seed.litCities) { setLitCities(seed.litCities); saveToAll('lit_cities', seed.litCities); }
+            if (seed.heroImages && seed.heroImages.length > 0) { setHeroImages(seed.heroImages); saveToAll('hero_images', seed.heroImages); }
+            if (seed.animationConfig) { setAnimationConfig(seed.animationConfig); saveToAll('animation_config', seed.animationConfig); }
             console.log('[DataContext] Loaded seed data from portfolio-data.json');
           }
         } catch (e) {
@@ -271,13 +236,37 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           saveToAll('about_info', defaultAboutInfo);
         }
       }
-
-      setDataLoaded(true);
     };
 
-    loadData();
+    // Guarantee dataLoaded is set to true even if loadData throws/hangs
+    const LOAD_TIMEOUT = 12000;
+    let resolved = false;
 
-    return () => { cancelled = true; };
+    const finish = () => {
+      if (!resolved && !cancelled) {
+        resolved = true;
+        setDataLoaded(true);
+      }
+    };
+
+    loadData()
+      .then(finish)
+      .catch(e => {
+        console.error('[DataContext] loadData failed:', e);
+        finish();
+      });
+
+    const fallbackTimer = setTimeout(() => {
+      if (!resolved && !cancelled) {
+        console.warn('[DataContext] loadData timed out after', LOAD_TIMEOUT, 'ms, forcing dataLoaded=true');
+        finish();
+      }
+    }, LOAD_TIMEOUT);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(fallbackTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
