@@ -106,14 +106,25 @@ function filterOverlappingLabels(
     b.priority !== a.priority ? b.priority - a.priority : b.totalPhotos - a.totalPhotos
   );
   const visible = new Set<string>();
-  const placed: { x: number; y: number; w: number; markerX?: number; markerY?: number }[] = [];
+  const placed: { x: number; y: number; w: number }[] = [];
+
+  // Collect ALL city marker positions (both with and without photos) for region label avoidance
+  const allMarkers: { x: number; y: number }[] = [];
+  for (const item of sorted) {
+    if (item.markerX !== undefined && item.markerY !== undefined) {
+      allMarkers.push({ x: item.markerX, y: item.markerY });
+    }
+  }
 
   for (const item of sorted) {
+    // Skip marker-only items (they exist solely for avoidance data)
+    if (item.label === '') continue;
+
     const estWidth = item.label.length * charWidth;
 
     // Check if label text overflows the region's bounding box width
     if (item.bboxW !== undefined && estWidth > item.bboxW * 0.85) {
-      continue; // skip — text wider than the region on screen
+      continue;
     }
 
     // Check overlap with already-placed labels
@@ -123,18 +134,17 @@ function filterOverlappingLabels(
     );
     if (overlapsLabel) continue;
 
-    // For region labels (priority <= 5), also check against city marker positions
+    // For region labels (priority <= 5), check against ALL city marker positions
     if (item.priority <= 5) {
-      const overlapsMarker = placed.some(p => {
-        if (p.markerX === undefined || p.markerY === undefined) return false;
-        return Math.abs(p.markerX - item.x) < estWidth * 0.5 + 8 &&
-               Math.abs(p.markerY - item.y) < minDistY * 1.2;
-      });
+      const overlapsMarker = allMarkers.some(m =>
+        Math.abs(m.x - item.x) < estWidth * 0.5 + 12 &&
+        Math.abs(m.y - item.y) < minDistY * 1.8
+      );
       if (overlapsMarker) continue;
     }
 
     visible.add(item.key);
-    placed.push({ x: item.x, y: item.y, w: estWidth, markerX: item.markerX, markerY: item.markerY });
+    placed.push({ x: item.x, y: item.y, w: estWidth });
   }
   return visible;
 }
@@ -438,21 +448,36 @@ const Footprints: React.FC = () => {
     const items: LabelItem[] = [];
 
     // City labels (highest priority — always try to show)
+    // Also register ALL city markers (even without photos) for region label avoidance
     filteredGeos.forEach(({ geo, cityGroup }) => {
-      if (!cityGroup) return;
       const { lat, lng } = geo.lat && geo.lng ? geo : (CITY_DATABASE.find(c => c.city === geo.city && c.continent === geo.continent) || { lat: 0, lng: 0 });
       const pos = projection([lng, lat]);
       if (!pos) return;
-      items.push({
-        key: `city-${geo.continent}-${geo.city}`,
-        x: pos[0],
-        y: pos[1] - 9, // city labels are rendered above marker
-        priority: 10,
-        totalPhotos: cityGroup.totalPhotos,
-        label: geo.city,
-        markerX: pos[0],  // actual marker position for avoidance
-        markerY: pos[1],
-      });
+      if (cityGroup) {
+        // City with photos — show label, also register marker for avoidance
+        items.push({
+          key: `city-${geo.continent}-${geo.city}`,
+          x: pos[0],
+          y: pos[1] - 9,
+          priority: 10,
+          totalPhotos: cityGroup.totalPhotos,
+          label: geo.city,
+          markerX: pos[0],
+          markerY: pos[1],
+        });
+      } else {
+        // City without photos — only register marker position for avoidance (no label)
+        items.push({
+          key: `marker-only-${geo.continent}-${geo.city}`,
+          x: pos[0],
+          y: pos[1],
+          priority: 100, // will be placed first but invisible (just a marker position)
+          totalPhotos: 0,
+          label: '',
+          markerX: pos[0],
+          markerY: pos[1],
+        });
+      }
     });
 
     if (activeContinent === 'china') {
@@ -515,8 +540,8 @@ const Footprints: React.FC = () => {
       });
     }
 
-    const charWidth = activeContinent === 'china' ? 5 / zoom : 5.5 / zoom;
-    const minY = activeContinent === 'china' ? 12 / zoom : 13 / zoom;
+    const charWidth = activeContinent === 'china' ? 8 / zoom : 8.5 / zoom;
+    const minY = activeContinent === 'china' ? 14 / zoom : 15 / zoom;
     return filterOverlappingLabels(items, charWidth, minY);
   }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures, chinaGeoJson]);
 
