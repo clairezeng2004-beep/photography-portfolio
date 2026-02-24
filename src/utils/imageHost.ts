@@ -7,15 +7,45 @@
  *   3. Paste it in Admin → Settings → ImgBB API Key
  */
 
+import { isSupabaseConfigured, supabaseGet, supabaseSet } from './supabase';
+
 const IMGBB_API = 'https://api.imgbb.com/1/upload';
 const STORAGE_KEY = 'imgbb_api_key';
+const CLOUD_KEY = 'imgbb_api_key'; // Supabase app_data key
 
 export function getImgbbApiKey(): string {
   return localStorage.getItem(STORAGE_KEY) || '';
 }
 
 export function setImgbbApiKey(key: string): void {
-  localStorage.setItem(STORAGE_KEY, key.trim());
+  const trimmed = key.trim();
+  localStorage.setItem(STORAGE_KEY, trimmed);
+  // Sync to Supabase so other devices can pick it up
+  if (isSupabaseConfigured()) {
+    supabaseSet(CLOUD_KEY, trimmed).catch(e =>
+      console.warn('[imageHost] Failed to sync ImgBB key to cloud:', e)
+    );
+  }
+}
+
+/** Load ImgBB key from Supabase if local is empty. Call once on app init. */
+export async function syncImgbbKeyFromCloud(): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  const local = getImgbbApiKey();
+  if (local) {
+    // Local has a key — push to cloud in case cloud is empty
+    supabaseSet(CLOUD_KEY, local).catch(() => {});
+    return;
+  }
+  try {
+    const cloudKey = await supabaseGet<string>(CLOUD_KEY);
+    if (cloudKey) {
+      localStorage.setItem(STORAGE_KEY, cloudKey);
+      console.log('[imageHost] Synced ImgBB key from cloud');
+    }
+  } catch (e) {
+    console.warn('[imageHost] Failed to sync ImgBB key from cloud:', e);
+  }
 }
 
 export function isImageHostConfigured(): boolean {

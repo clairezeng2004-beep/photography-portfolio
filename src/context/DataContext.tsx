@@ -3,6 +3,8 @@ import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage, AnimationConfig 
 import { mockCollections } from '../data/mockData';
 import { dbGet, dbSet } from '../utils/storage';
 import { isSupabaseConfigured, supabaseGet, supabaseSet } from '../utils/supabase';
+import { syncImgbbKeyFromCloud } from '../utils/imageHost';
+import { syncNewsletterKeyFromCloud } from '../utils/newsletter';
 
 interface DataContextType {
   collections: PhotoCollection[];
@@ -166,18 +168,29 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         }
 
-        // If both exist and are arrays, prefer the one with more items
-        if (Array.isArray(cloudVal) && Array.isArray(localVal)) {
-          if (cloudVal.length === 0 && localVal.length > 0) {
+        // Cloud is the authority when reachable.
+        // Exception: cloud returns empty array but local has data — prefer local
+        // and sync back to cloud (handles initial migration / stale cloud).
+        if (cloudVal !== undefined) {
+          if (Array.isArray(cloudVal) && cloudVal.length === 0 && Array.isArray(localVal) && localVal.length > 0) {
             console.log(`[DataContext] "${key}": cloud is empty but local has ${localVal.length} items, using local`);
             if (useCloud) {
               supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
             }
+            // Also update local cache
+            dbSet(key, localVal).catch(() => {});
             return localVal;
           }
+          // Cloud has data (or intentionally empty after user deleted all) — use cloud
+          // Also update local cache so IndexedDB stays in sync
+          dbSet(key, cloudVal).catch(() => {});
+          return cloudVal;
         }
 
-        if (cloudVal !== undefined) return cloudVal;
+        // Cloud not reachable — use local, and try to sync local to cloud
+        if (localVal !== undefined && useCloud) {
+          supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
+        }
         return localVal;
       }
 
@@ -236,6 +249,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           saveToAll('about_info', defaultAboutInfo);
         }
       }
+
+      // Sync API keys (ImgBB, Newsletter) from cloud to local if missing
+      await Promise.all([
+        syncImgbbKeyFromCloud().catch(() => {}),
+        syncNewsletterKeyFromCloud().catch(() => {}),
+      ]);
     };
 
     // Guarantee dataLoaded is set to true even if loadData throws/hangs
@@ -290,29 +309,34 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await saveStrict('about_info', newAboutInfo);
   }, [saveStrict]);
 
-  const addPhoto = useCallback((collectionId: string, photo: Photo) => {
+  const addPhoto = useCallback(async (collectionId: string, photo: Photo) => {
     setCollections(prev => {
       const updated = prev.map(c =>
         c.id === collectionId
           ? { ...c, photos: [...c.photos, photo] }
           : c
       );
-      saveToAll('photo_collections', updated);
+      // Save to both in background — use saveStrict for cloud reliability
+      saveStrict('photo_collections', updated).catch(e =>
+        console.error('[addPhoto] save failed:', e)
+      );
       return updated;
     });
-  }, [saveToAll]);
+  }, [saveStrict]);
 
-  const removePhoto = useCallback((collectionId: string, photoId: string) => {
+  const removePhoto = useCallback(async (collectionId: string, photoId: string) => {
     setCollections(prev => {
       const updated = prev.map(c =>
         c.id === collectionId
           ? { ...c, photos: c.photos.filter(p => p.id !== photoId) }
           : c
       );
-      saveToAll('photo_collections', updated);
+      saveStrict('photo_collections', updated).catch(e =>
+        console.error('[removePhoto] save failed:', e)
+      );
       return updated;
     });
-  }, [saveToAll]);
+  }, [saveStrict]);
 
   const updateLitCities = useCallback(async (cities: GeoInfo[]) => {
     setLitCities(cities);

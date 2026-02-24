@@ -12,7 +12,10 @@
  * to avoid CORS issues. See netlify.toml for the redirect rule.
  */
 
+import { isSupabaseConfigured, supabaseGet, supabaseSet } from './supabase';
+
 const STORAGE_KEY = 'buttondown_api_key';
+const CLOUD_KEY = 'buttondown_api_key';
 
 /**
  * Get the API base URL — use Netlify proxy in production, direct API in dev.
@@ -29,7 +32,32 @@ export function getNewsletterApiKey(): string {
 }
 
 export function setNewsletterApiKey(key: string): void {
-  localStorage.setItem(STORAGE_KEY, key.trim());
+  const trimmed = key.trim();
+  localStorage.setItem(STORAGE_KEY, trimmed);
+  if (isSupabaseConfigured()) {
+    supabaseSet(CLOUD_KEY, trimmed).catch(e =>
+      console.warn('[newsletter] Failed to sync key to cloud:', e)
+    );
+  }
+}
+
+/** Load newsletter key from Supabase if local is empty. */
+export async function syncNewsletterKeyFromCloud(): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  const local = getNewsletterApiKey();
+  if (local) {
+    supabaseSet(CLOUD_KEY, local).catch(() => {});
+    return;
+  }
+  try {
+    const cloudKey = await supabaseGet<string>(CLOUD_KEY);
+    if (cloudKey) {
+      localStorage.setItem(STORAGE_KEY, cloudKey);
+      console.log('[newsletter] Synced key from cloud');
+    }
+  } catch (e) {
+    console.warn('[newsletter] Failed to sync key from cloud:', e);
+  }
 }
 
 export function isNewsletterConfigured(): boolean {
