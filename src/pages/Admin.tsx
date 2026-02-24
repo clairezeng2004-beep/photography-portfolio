@@ -361,7 +361,7 @@ const Admin: React.FC = () => {
     navigate(`/admin#${tab}`, { replace: true });
   }, [navigate]);
 
-  useEffect(() => { document.title = '小冰块 - 摄影集 - 管理后台'; }, []);
+  useEffect(() => { document.title = '管理后台'; }, []);
   const [editingCollection, setEditingCollection] = useState<string | null>(null);
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [isSavingCollection, setIsSavingCollection] = useState(false);
@@ -823,7 +823,7 @@ const Admin: React.FC = () => {
         <div className="admin-sidebar">
           <div className="sidebar-header">
             <Camera size={32} />
-            <h2>摄影集管理</h2>
+            <h2>管理后台</h2>
           </div>
           
           <nav className="sidebar-nav">
@@ -1811,7 +1811,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
   // Collapsible section states
   const [showPhotosSection, setShowPhotosSection] = useState(false);
-  const [showGeoSection, setShowGeoSection] = useState(false);
+  const [showLocationTimeSection, setShowLocationTimeSection] = useState(false);
 
   // City search state
   const [citySearchText, setCitySearchText] = useState('');
@@ -1961,69 +1961,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="作品集标题"
             />
-            <div className="inline-edit-meta">
-              <MapPin size={14} />
-              <div className="inline-city-search">
-                <input
-                  type="text"
-                  className="inline-edit-location"
-                  value={citySearchText || location}
-                  onChange={(e) => handleCityInputChange(e.target.value)}
-                  onFocus={() => { if (citySearchText) setShowCityDropdown(true); }}
-                  onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
-                  placeholder="搜索城市..."
-                />
-                {showCityDropdown && filteredCityResults.length > 0 && (
-                  <div className="inline-city-dropdown">
-                    {filteredCityResults.map((entry, i) => (
-                      <button
-                        key={`${entry.city}-${i}`}
-                        type="button"
-                        className={`inline-city-dropdown-item ${entry.city === location ? 'selected' : ''}`}
-                        onMouseDown={(e) => { e.preventDefault(); handleCitySelect(entry); }}
-                      >
-                        <span className="inline-city-name">{entry.city}</span>
-                        <span className="inline-city-country">{entry.country}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {matchedCountry && (
-                <>
-                  <Globe size={14} />
-                  <span className="inline-matched-country">{matchedCountry}</span>
-                </>
-              )}
-              <Calendar size={14} />
-              <div className="year-stepper">
-                <input
-                  type="number"
-                  className="inline-edit-year"
-                  value={year}
-                  onChange={(e) => setYear(parseInt(e.target.value) || collection.year)}
-                />
-                <div className="year-stepper-arrows">
-                  <button type="button" className="year-arrow" onClick={() => setYear(y => y + 1)} title="年份+1">
-                    <ChevronUp size={12} />
-                  </button>
-                  <button type="button" className="year-arrow" onClick={() => setYear(y => y - 1)} title="年份-1">
-                    <ChevronDown size={12} />
-                  </button>
-                </div>
-              </div>
-              <select
-                className="inline-edit-month"
-                value={month}
-                onChange={(e) => setMonth(parseInt(e.target.value))}
-                title="月份（仅管理后台显示）"
-              >
-                <option value={0}>月</option>
-                {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
-                  <option key={m} value={m}>{m}月</option>
-                ))}
-              </select>
-            </div>
             <textarea
               className="inline-edit-description"
               value={description}
@@ -2209,25 +2146,86 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               )}
             </div>
 
-            {/* 位置信息 — 折叠，放在最后 */}
+            {/* 地点时间 — 折叠，放在最后 */}
             <div className="collapsible-section">
               <button
                 type="button"
-                className={`collapsible-toggle ${showGeoSection ? 'open' : ''}`}
-                onClick={() => setShowGeoSection(!showGeoSection)}
+                className={`collapsible-toggle ${showLocationTimeSection ? 'open' : ''}`}
+                onClick={() => setShowLocationTimeSection(!showLocationTimeSection)}
               >
                 <span className="collapsible-toggle-icon">
                   <ChevronDown size={14} />
                 </span>
-                <span>位置信息</span>
-                {geo && (
-                  <span className="geo-status-badge active" style={{ marginLeft: 8 }}>
-                    <Map size={12} /> {geo.city}, {geo.country}
-                  </span>
-                )}
+                <span>地点时间</span>
+                <span className="collapsible-toggle-summary">
+                  {location || '未设置'} · {year}{month ? `.${month}` : ''}
+                </span>
               </button>
-              {showGeoSection && (
+              {showLocationTimeSection && (
                 <div className="collapsible-body">
+                  <div className="inline-edit-meta">
+                    <MapPin size={14} />
+                    <div className="inline-city-search">
+                      <input
+                        type="text"
+                        className="inline-edit-location"
+                        value={citySearchText || location}
+                        onChange={(e) => handleCityInputChange(e.target.value)}
+                        onFocus={() => { if (citySearchText) setShowCityDropdown(true); }}
+                        onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
+                        placeholder="搜索城市..."
+                      />
+                      {showCityDropdown && filteredCityResults.length > 0 && (
+                        <div className="inline-city-dropdown">
+                          {filteredCityResults.map((entry, i) => (
+                            <button
+                              key={`${entry.city}-${i}`}
+                              type="button"
+                              className={`inline-city-dropdown-item ${entry.city === location ? 'selected' : ''}`}
+                              onMouseDown={(e) => { e.preventDefault(); handleCitySelect(entry); }}
+                            >
+                              <span className="inline-city-name">{entry.city}</span>
+                              <span className="inline-city-country">{entry.country}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {matchedCountry && (
+                      <>
+                        <Globe size={14} />
+                        <span className="inline-matched-country">{matchedCountry}</span>
+                      </>
+                    )}
+                    <Calendar size={14} />
+                    <div className="year-stepper">
+                      <input
+                        type="number"
+                        className="inline-edit-year"
+                        value={year}
+                        onChange={(e) => setYear(parseInt(e.target.value) || collection.year)}
+                      />
+                      <div className="year-stepper-arrows">
+                        <button type="button" className="year-arrow" onClick={() => setYear(y => y + 1)} title="年份+1">
+                          <ChevronUp size={12} />
+                        </button>
+                        <button type="button" className="year-arrow" onClick={() => setYear(y => y - 1)} title="年份-1">
+                          <ChevronDown size={12} />
+                        </button>
+                      </div>
+                    </div>
+                    <select
+                      className="inline-edit-month"
+                      value={month}
+                      onChange={(e) => setMonth(parseInt(e.target.value))}
+                      title="月份（仅管理后台显示）"
+                    >
+                      <option value={0}>月</option>
+                      {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
+                        <option key={m} value={m}>{m}月</option>
+                      ))}
+                    </select>
+                  </div>
                   <GeoPicker
                     value={geo}
                     onChange={(g) => setGeo(g)}

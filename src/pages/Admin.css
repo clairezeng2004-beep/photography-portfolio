@@ -783,7 +783,7 @@
 /* ============ COLLECTIONS GRID ============ */
 .collections-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 32px;
 }
 
@@ -1259,6 +1259,14 @@
   font-size: 11px;
   color: #999;
   font-weight: 400;
+}
+
+.collapsible-toggle-summary {
+  margin-left: auto;
+  font-size: 11px;
+  color: #999;
+  font-weight: 400;
+  font-family: 'Noto Serif SC', serif;
 }
 
 .collapsible-body {
