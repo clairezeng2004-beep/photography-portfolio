@@ -101,7 +101,10 @@ async function autoCropToAspect(
   const blobUrl = await toBlobUrl(imageUrl);
   return new Promise((resolve, reject) => {
     const img = new window.Image();
-    img.crossOrigin = 'anonymous';
+    // Only set crossOrigin for remote HTTP(S) URLs; data: and blob: don't need it
+    if (blobUrl.startsWith('http')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => {
       try {
         const outputHeight = Math.round(outputWidth / targetAspect);
@@ -1240,14 +1243,17 @@ const Admin: React.FC = () => {
                                 type="button"
                                 key={photo.id}
                                 className="cover-picker-item"
-                                onClick={() => {
-                                  autoCropToPortrait(photo.url).then(portrait => {
+                                onClick={async () => {
+                                  try {
+                                    const portrait = await autoCropToPortrait(photo.url);
                                     setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
-                                  }).catch(() => {});
+                                  } catch {
+                                    setNewCollection(prev => ({ ...prev, cardCoverImage: photo.url }));
+                                  }
                                 }}
                               >
                                 <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                                <span>选择</span>
+                                <span>设为封面</span>
                               </button>
                             ))}
                           </div>
@@ -2084,17 +2090,25 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                           onClick={async () => {
                             setCropProcessing(true);
                             try {
-                              const portrait = await autoCropToPortrait(photo.url);
-                              setCardCoverImage(portrait);
+                              const result = await Promise.allSettled([
+                                autoCropToPortrait(photo.url),
+                              ]);
+                              if (result[0].status === 'fulfilled') {
+                                setCardCoverImage(result[0].value);
+                              } else {
+                                // Fallback: use original URL directly
+                                setCardCoverImage(photo.url);
+                                console.error('Portrait crop failed, using original:', result[0].reason);
+                              }
                             } catch (err) {
                               console.error('Portrait crop failed:', err);
-                              alert('裁剪失败，请重试');
+                              setCardCoverImage(photo.url);
                             }
                             setCropProcessing(false);
                           }}
                         >
                           <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                          <span>{cropProcessing ? '处理中...' : '选择'}</span>
+                          <span>{cropProcessing ? '处理中...' : '设为封面'}</span>
                         </button>
                       ))}
                     </div>
