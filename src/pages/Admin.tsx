@@ -118,7 +118,7 @@ async function autoCropToAspect(
         canvas.height = outputHeight;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, sx, sy, sw, sh, 0, 0, outputWidth, outputHeight);
-        resolve(canvas.toDataURL('image/jpeg', 0.9));
+        resolve(canvas.toDataURL('image/jpeg', 0.92));
       } catch (err) {
         reject(err);
       } finally {
@@ -133,7 +133,7 @@ async function autoCropToAspect(
   });
 }
 
-function autoCropToLandscape(imageUrl: string, outputWidth: number = 1600): Promise<string> {
+function autoCropToLandscape(imageUrl: string, outputWidth: number = 2400): Promise<string> {
   return autoCropToAspect(imageUrl, 4 / 3, outputWidth);
 }
 
@@ -142,7 +142,7 @@ function autoCropToLandscape(imageUrl: string, outputWidth: number = 1600): Prom
    ============================================================ */
 function autoCropToPortrait(
   imageUrl: string,
-  outputWidth: number = 900
+  outputWidth: number = 1200
 ): Promise<string> {
   return autoCropToAspect(imageUrl, 3 / 4, outputWidth);
 }
@@ -1219,7 +1219,7 @@ const Admin: React.FC = () => {
                             { label: '4:3', value: 4 / 3 },
                           ]}
                           defaultCropAspect={4 / 3}
-                          defaultOutputWidth={1600}
+                          defaultOutputWidth={2400}
                         />
                       </div>
 
@@ -1254,7 +1254,7 @@ const Admin: React.FC = () => {
                             { label: '3:4', value: 3 / 4 },
                           ]}
                           defaultCropAspect={3 / 4}
-                          defaultOutputWidth={900}
+                          defaultOutputWidth={1200}
                         />
                       </div>
                       
@@ -2004,7 +2004,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                       { label: '4:3', value: 4 / 3 },
                     ]}
                     defaultCropAspect={4 / 3}
-                    defaultOutputWidth={1600}
+                    defaultOutputWidth={2400}
                   />
                   {collection.photos.length > 0 && (
                     <div className="cover-picker-grid">
@@ -2052,7 +2052,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                       { label: '3:4', value: 3 / 4 },
                     ]}
                     defaultCropAspect={3 / 4}
-                    defaultOutputWidth={900}
+                    defaultOutputWidth={1200}
                   />
                   {collection.photos.length > 0 && (
                     <div className="cover-picker-grid">
@@ -2331,7 +2331,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
 }) => {
   // Local state for editing
   const [localImages, setLocalImages] = useState<HeroImage[]>([]);
-  const [hasChanges, setHasChanges] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<number | 'add' | { type: 'mobile'; index: number }>('add');
   const [pickerFilter, setPickerFilter] = useState('');
@@ -2355,7 +2354,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
       }));
       setLocalImages(derived);
     }
-    setHasChanges(false);
   }, [heroImages, collections]);
 
   const moveUp = (index: number) => {
@@ -2363,7 +2361,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     const newList = [...localImages];
     [newList[index - 1], newList[index]] = [newList[index], newList[index - 1]];
     setLocalImages(newList);
-    setHasChanges(true);
   };
 
   const moveDown = (index: number) => {
@@ -2371,7 +2368,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     const newList = [...localImages];
     [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
     setLocalImages(newList);
-    setHasChanges(true);
   };
 
   const moveToPosition = (fromIndex: number, toPosition: number) => {
@@ -2381,12 +2377,10 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     const [moved] = newList.splice(fromIndex, 1);
     newList.splice(targetIndex, 0, moved);
     setLocalImages(newList);
-    setHasChanges(true);
   };
 
   const removeImage = (index: number) => {
     setLocalImages(prev => prev.filter((_, i) => i !== index));
-    setHasChanges(true);
   };
 
   const addCustomImage = (url: string) => {
@@ -2397,14 +2391,12 @@ const HeroManager: React.FC<HeroManagerProps> = ({
       location: '',
     };
     setLocalImages(prev => [...prev, newImage]);
-    setHasChanges(true);
   };
 
   const updateImageField = (index: number, field: 'title' | 'location', value: string) => {
     setLocalImages(prev => prev.map((img, i) =>
       i === index ? { ...img, [field]: value } : img
     ));
-    setHasChanges(true);
   };
 
 
@@ -2412,7 +2404,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     setLocalImages(prev => prev.map((img, i) =>
       i === index ? { ...img, mobileUrl: mobileUrl || undefined } : img
     ));
-    setHasChanges(true);
   };
 
   const openPicker = (target: number | 'add' | { type: 'mobile'; index: number }) => {
@@ -2439,34 +2430,25 @@ const HeroManager: React.FC<HeroManagerProps> = ({
         i === pickerTarget ? { ...img, url, mobileUrl: mobileUrl || url, title: collectionTitle, location: collectionLocation } : img
       ));
     }
-    setHasChanges(true);
     setShowPicker(false);
     setPickerSelectedCollection(null);
   };
 
-  const handleSave = async () => {
+  const handleSaveItem = async () => {
     await updateHeroImages(localImages);
-    setHasChanges(false);
-    showToast('首页封面已保存');
+    setExpandedIndex(null);
+    showToast('首页封面已更新');
   };
 
   return (
     <div className="tab-content">
       <div className="tab-header">
         <h1>首页管理</h1>
-        <div className="hero-manager-actions">
-          {hasChanges && (
-            <button className="btn btn-primary" onClick={handleSave}>
-              <Check size={16} />
-              完成
-            </button>
-          )}
-        </div>
       </div>
 
       <div className="hero-manager-hint">
         <p>
-          管理首页封面轮播图。你可以调整顺序、替换图片、编辑标题，也可以上传自定义图片。
+          管理首页封面轮播图。你可以调整顺序、替换图片、编辑标题。
         </p>
       </div>
 
@@ -2477,6 +2459,20 @@ const HeroManager: React.FC<HeroManagerProps> = ({
           <div key={img.id} className={`hero-image-item ${isExpanded ? 'expanded' : 'collapsed'}`}>
             {/* Collapsed: compact row */}
             <div className="hero-item-compact" onClick={() => setExpandedIndex(isExpanded ? null : index)}>
+              <span className="hero-item-expand-icon">
+                <ChevronDown size={16} />
+              </span>
+              <div className="hero-item-thumb">
+                {img.url ? (
+                  <img src={img.url} alt={img.title || '封面图'} />
+                ) : (
+                  <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
+                )}
+              </div>
+              <div className="hero-item-summary">
+                <span className="hero-item-summary-title">{img.title || '未命名'}</span>
+                <span className="hero-item-summary-location">{img.location || ''}</span>
+              </div>
               <div className="hero-item-order">
                 <input
                   type="number"
@@ -2512,20 +2508,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   </button>
                 </div>
               </div>
-              <div className="hero-item-thumb">
-                {img.url ? (
-                  <img src={img.url} alt={img.title || '封面图'} />
-                ) : (
-                  <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
-                )}
-              </div>
-              <div className="hero-item-summary">
-                <span className="hero-item-summary-title">{img.title || '未命名'}</span>
-                <span className="hero-item-summary-location">{img.location || ''}</span>
-              </div>
-              <span className="hero-item-expand-icon">
-                <ChevronDown size={16} />
-              </span>
               <button
                 className="btn-icon danger"
                 onClick={(e) => { e.stopPropagation(); removeImage(index); }}
@@ -2614,6 +2596,16 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                       </div>
                     </div>
                   </div>
+
+                  <div className="hero-item-save-row">
+                    <button className="btn btn-primary btn-sm" onClick={handleSaveItem}>
+                      <Check size={14} />
+                      完成
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setExpandedIndex(null)}>
+                      收起
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -2629,22 +2621,26 @@ const HeroManager: React.FC<HeroManagerProps> = ({
         >
           从作品集选图添加
         </button>
-        <div className="hero-custom-upload-hint">
-          <span>或</span>
-          <ImageUploader
-            onImageUpload={(url) => addCustomImage(url)}
-            label="上传自定义图片"
-            enableCrop
-            cropAspectOptions={[
-              { label: '16:9', value: 16 / 9 },
-              { label: '4:3', value: 4 / 3 },
-            ]}
-            defaultCropAspect={16 / 9}
-            defaultOutputWidth={1920}
-            compressMaxWidth={2500}
-            compressQuality={0.85}
+        <label className="hero-custom-upload-btn" title="上传自定义图片">
+          <Upload size={13} />
+          <span>自定义上传</span>
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                const url = ev.target?.result as string;
+                if (url) addCustomImage(url);
+              };
+              reader.readAsDataURL(file);
+              e.target.value = '';
+            }}
           />
-        </div>
+        </label>
       </div>
 
       {localImages.length === 0 && (
@@ -2652,16 +2648,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
           <ImageIcon size={48} />
           <h3>还没有封面图</h3>
           <p>上传自定义图片或点击「从作品集同步」</p>
-        </div>
-      )}
-
-      {hasChanges && (
-        <div className="hero-save-bar">
-          <span>有未保存的更改</span>
-          <button className="btn btn-primary" onClick={handleSave}>
-            <Check size={16} />
-            完成
-          </button>
         </div>
       )}
 

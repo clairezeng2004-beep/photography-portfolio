@@ -359,7 +359,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   allowUpload = true,
   emptyHint = '请先选择图片',
   compressMaxWidth = 2000,
-  compressQuality = 0.82,
+  compressQuality = 0.88,
   originalSource,
 }) => {
   const [isDragging, setIsDragging] = useState(false);

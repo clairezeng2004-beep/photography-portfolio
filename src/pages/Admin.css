@@ -2723,6 +2723,39 @@
   margin-top: 24px;
   padding-top: 24px;
   border-top: 1px solid #e8e6e2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-custom-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+  border: 1px dashed #d4d2ce;
+  border-radius: 6px;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.hero-custom-upload-btn:hover {
+  color: #666;
+  border-color: #999;
+  background: #faf9f7;
+}
+
+/* Per-item save row */
+.hero-item-save-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0eeea;
 }
 
 .hero-save-bar {
