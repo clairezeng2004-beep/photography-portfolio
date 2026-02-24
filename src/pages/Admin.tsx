@@ -1110,6 +1110,33 @@ const Admin: React.FC = () => {
 
                       <div className="form-group">
                         <label>封面图片（横版，用于首页轮播等）</label>
+                        {newCollection.photos && newCollection.photos.length > 0 && (
+                          <div className="cover-picker-grid">
+                            {newCollection.photos.map(photo => (
+                              <button
+                                type="button"
+                                key={photo.id}
+                                className={`cover-picker-item ${newCollection.coverImage === photo.url ? 'active' : ''}`}
+                                onClick={() => {
+                                  const originalUrl = photo.url;
+                                  // Auto-crop to 4:3 landscape for coverImage
+                                  autoCropToLandscape(originalUrl).then(landscape => {
+                                    setNewCollection(prev => ({ ...prev, coverImage: landscape }));
+                                  }).catch(() => {
+                                    setNewCollection(prev => ({ ...prev, coverImage: originalUrl }));
+                                  });
+                                  // Auto-crop to 3:4 portrait for cardCoverImage
+                                  autoCropToPortrait(originalUrl).then(portrait => {
+                                    setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
+                                  }).catch(() => {});
+                                }}
+                              >
+                                <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                                <span>设为封面</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         <ImageUploader
                           onImageUpload={(url) => {
                             setNewCollection(prev => {
@@ -1138,49 +1165,10 @@ const Admin: React.FC = () => {
                           defaultCropAspect={4 / 3}
                           defaultOutputWidth={1600}
                         />
-                        {newCollection.photos && newCollection.photos.length > 0 && (
-                          <div className="cover-picker-grid">
-                            {newCollection.photos.map(photo => (
-                              <button
-                                type="button"
-                                key={photo.id}
-                                className={`cover-picker-item ${newCollection.coverImage === photo.url ? 'active' : ''}`}
-                                onClick={() => {
-                                  const originalUrl = photo.url;
-                                  // Auto-crop to 4:3 landscape for coverImage
-                                  autoCropToLandscape(originalUrl).then(landscape => {
-                                    setNewCollection(prev => ({ ...prev, coverImage: landscape }));
-                                  }).catch(() => {
-                                    setNewCollection(prev => ({ ...prev, coverImage: originalUrl }));
-                                  });
-                                  // Auto-crop to 3:4 portrait for cardCoverImage
-                                  autoCropToPortrait(originalUrl).then(portrait => {
-                                    setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
-                                  }).catch(() => {});
-                                }}
-                              >
-                                <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                                <span>设为封面</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
                       <div className="form-group">
                         <label>首页卡片封面（竖版 3:4）</label>
-                        <ImageUploader
-                          onImageUpload={(url) => setNewCollection(prev => ({ ...prev, cardCoverImage: url }))}
-                          currentImage={newCollection.cardCoverImage}
-                          onRemove={() => setNewCollection(prev => ({ ...prev, cardCoverImage: '' }))}
-                          label="上传竖版封面"
-                          enableCrop
-                          cropAspectOptions={[
-                            { label: '3:4', value: 3 / 4 },
-                          ]}
-                          defaultCropAspect={3 / 4}
-                          defaultOutputWidth={900}
-                        />
                         {newCollection.photos && newCollection.photos.length > 0 && (
                           <div className="cover-picker-grid">
                             {newCollection.photos.map(photo => (
@@ -1200,6 +1188,18 @@ const Admin: React.FC = () => {
                             ))}
                           </div>
                         )}
+                        <ImageUploader
+                          onImageUpload={(url) => setNewCollection(prev => ({ ...prev, cardCoverImage: url }))}
+                          currentImage={newCollection.cardCoverImage}
+                          onRemove={() => setNewCollection(prev => ({ ...prev, cardCoverImage: '' }))}
+                          label="上传竖版封面"
+                          enableCrop
+                          cropAspectOptions={[
+                            { label: '3:4', value: 3 / 4 },
+                          ]}
+                          defaultCropAspect={3 / 4}
+                          defaultOutputWidth={900}
+                        />
                       </div>
                       
                       <div className="form-group">
@@ -2388,11 +2388,18 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                 />
               </div>
               <div className="hero-item-image-actions">
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => openPicker(index)}
+                  style={{ marginBottom: 8 }}
+                >
+                  从作品集选图
+                </button>
                 <ImageUploader
                   onImageUpload={(url) => replaceImage(index, url)}
                   currentImage={img.url}
                   onRemove={() => replaceImage(index, '')}
-                  label="替换图片"
+                  label="上传图片"
                   enableCrop
                   cropAspectOptions={[
                     { label: '16:9', value: 16 / 9 },
@@ -2401,13 +2408,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   defaultCropAspect={16 / 9}
                   defaultOutputWidth={1920}
                 />
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => openPicker(index)}
-                  style={{ marginTop: 8 }}
-                >
-                  从作品集选图
-                </button>
               </div>
               <div className="hero-item-mobile-cover">
                 <label className="mobile-cover-label">
@@ -2433,7 +2433,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => openPicker({ type: 'mobile', index })}
-                  style={{ marginTop: 8 }}
+                  style={{ marginBottom: 8 }}
                 >
                   从作品集选图
                 </button>
