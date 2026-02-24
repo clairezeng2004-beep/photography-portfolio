@@ -64,6 +64,52 @@ function extractFromTitle(title: string): { location?: string; year?: number } {
   return result;
 }
 
+/* ============================================================
+   Helper: Auto-crop a landscape image to 3:4 portrait from center
+   ============================================================ */
+function autoCropToPortrait(
+  imageUrl: string,
+  outputWidth: number = 900
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const targetAspect = 3 / 4;
+        const outputHeight = Math.round(outputWidth / targetAspect);
+        const imgAspect = img.width / img.height;
+
+        let sx: number, sy: number, sw: number, sh: number;
+        if (imgAspect > targetAspect) {
+          // Image is wider — fit height, crop width from center
+          sh = img.height;
+          sw = Math.round(sh * targetAspect);
+          sx = Math.round((img.width - sw) / 2);
+          sy = 0;
+        } else {
+          // Image is taller — fit width, crop height from center
+          sw = img.width;
+          sh = Math.round(sw / targetAspect);
+          sx = 0;
+          sy = Math.round((img.height - sh) / 2);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = outputWidth;
+        canvas.height = outputHeight;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, sx, sy, sw, sh, 0, 0, outputWidth, outputHeight);
+        resolve(canvas.toDataURL('image/jpeg', 0.9));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = reject;
+    img.src = imageUrl;
+  });
+}
+
 type TabType = 'home' | 'collections' | 'about' | 'map';
 
 /* ============================================================
@@ -583,7 +629,7 @@ const Admin: React.FC = () => {
         year: newCollection.year || lastUsedYear,
         description: newCollection.description || '',
         coverImage,
-        cardCoverImage: coverImage,  // Default: mobile cover = desktop cover
+        cardCoverImage: newCollection.cardCoverImage || coverImage,
         coverTitle: newCollection.coverTitle || newCollection.location || '',
         hoverLocation: newCollection.hoverLocation || newCollection.location || '',
         photos,
@@ -602,6 +648,7 @@ const Admin: React.FC = () => {
           year: lastUsedYear,
           description: '',
           coverImage: '',
+          cardCoverImage: '',
           coverTitle: '',
           hoverLocation: '',
           photos: [],
@@ -1042,34 +1089,39 @@ const Admin: React.FC = () => {
                       </div>
 
                       <div className="form-group">
-                        <label>封面选择（从作品集图片中选择）</label>
+                        <label>封面图片（横版，用于首页轮播等）</label>
                         <ImageUploader
-                          onImageUpload={(url) => setNewCollection({
-                            ...newCollection,
-                            coverImage: url
-                          })}
+                          onImageUpload={(url) => {
+                            setNewCollection(prev => ({ ...prev, coverImage: url }));
+                            // Auto-generate portrait cover
+                            autoCropToPortrait(url).then(portrait => {
+                              setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
+                            }).catch(() => {});
+                          }}
                           currentImage={newCollection.coverImage}
-                          onRemove={() => setNewCollection({ ...newCollection, coverImage: '' })}
-                          label=""
+                          onRemove={() => setNewCollection({ ...newCollection, coverImage: '', cardCoverImage: '' })}
+                          label="上传横版封面"
                           enableCrop
-                          allowUpload={false}
-                          emptyHint="请先上传作品集图片并选择封面"
                           cropAspectOptions={[
                             { label: '16:9', value: 16 / 9 },
                             { label: '4:3', value: 4 / 3 },
-                            { label: '1:1', value: 1 }
                           ]}
                           defaultCropAspect={4 / 3}
                           defaultOutputWidth={1600}
                         />
-                        {newCollection.photos && newCollection.photos.length > 0 && (
+                        {!newCollection.coverImage && newCollection.photos && newCollection.photos.length > 0 && (
                           <div className="cover-picker-grid">
                             {newCollection.photos.map(photo => (
                               <button
                                 type="button"
                                 key={photo.id}
                                 className={`cover-picker-item ${newCollection.coverImage === photo.url ? 'active' : ''}`}
-                                onClick={() => setNewCollection({ ...newCollection, coverImage: photo.url })}
+                                onClick={() => {
+                                  setNewCollection(prev => ({ ...prev, coverImage: photo.url }));
+                                  autoCropToPortrait(photo.url).then(portrait => {
+                                    setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
+                                  }).catch(() => {});
+                                }}
                               >
                                 <img src={photo.thumbnail || photo.url} alt={photo.alt} />
                                 <span>设为封面</span>
@@ -1077,6 +1129,22 @@ const Admin: React.FC = () => {
                             ))}
                           </div>
                         )}
+                      </div>
+
+                      <div className="form-group">
+                        <label>首页卡片封面（竖版 3:4）</label>
+                        <ImageUploader
+                          onImageUpload={(url) => setNewCollection(prev => ({ ...prev, cardCoverImage: url }))}
+                          currentImage={newCollection.cardCoverImage}
+                          onRemove={() => setNewCollection(prev => ({ ...prev, cardCoverImage: '' }))}
+                          label="上传竖版封面"
+                          enableCrop
+                          cropAspectOptions={[
+                            { label: '3:4', value: 3 / 4 },
+                          ]}
+                          defaultCropAspect={3 / 4}
+                          defaultOutputWidth={900}
+                        />
                       </div>
                       
                       <div className="form-group">
@@ -1629,6 +1697,13 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     setMatchedCountry(entry ? entry.country : '');
   }, [collection]);
 
+  // Auto-generate portrait cover from landscape cover when empty
+  useEffect(() => {
+    if (isEditing && coverImage && !cardCoverImage) {
+      autoCropToPortrait(coverImage).then(setCardCoverImage).catch(() => {});
+    }
+  }, [isEditing, coverImage, cardCoverImage]);
+
   const filteredCityResults = useMemo(() => {
     if (!citySearchText) return [];
     const q = citySearchText.toLowerCase();
@@ -1806,7 +1881,11 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                 <div className="form-group">
                   <label>封面图片（横版，用于首页轮播等）</label>
                   <ImageUploader
-                    onImageUpload={(url) => setCoverImage(url)}
+                    onImageUpload={(url) => {
+                      setCoverImage(url);
+                      // Auto-generate portrait crop
+                      autoCropToPortrait(url).then(setCardCoverImage).catch(() => {});
+                    }}
                     currentImage={coverImage}
                     onRemove={() => setCoverImage('')}
                     label="更换封面"
