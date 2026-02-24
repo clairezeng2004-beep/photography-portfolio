@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { PhotoCollection, GeoInfo } from '../types';
@@ -598,7 +599,7 @@ const Footprints: React.FC = () => {
               {/* Country shapes */}
               {activeContinent === 'china' && chinaGeoJson ? (
                 <>
-                  {/* Non-China countries (dimmed) */}
+                  {/* Non-China countries (dimmed, no border) */}
                   {visibleFeatures.map((feature: any, i: number) => {
                     const d = pathGenerator(feature as GeoPermissibleObjects);
                     if (!d) return null;
@@ -622,10 +623,18 @@ const Footprints: React.FC = () => {
                       />
                     );
                   })}
-                  {/* Province borders */}
+                  {/* Province internal borders */}
                   {chinaGeoJson.features.map((feature: any, i: number) => {
                     const d = pathGenerator(feature as GeoPermissibleObjects);
                     return d ? <path key={`prov-border-${i}`} d={d} className="province-border" /> : null;
+                  })}
+                  {/* Single clean China national outline from world-atlas (low-detail, smooth) */}
+                  {visibleFeatures.map((feature: any, i: number) => {
+                    const numId = feature.id;
+                    const code = COUNTRY_NUMERIC_TO_CODE[numId] || '';
+                    if (code !== 'CN') return null;
+                    const d = pathGenerator(feature as GeoPermissibleObjects);
+                    return d ? <path key={`cn-outline-${i}`} d={d} className="country-border" /> : null;
                   })}
                 </>
               ) : (
@@ -647,15 +656,10 @@ const Footprints: React.FC = () => {
                 </>
               )}
 
-              {/* Country borders (skip China in China tab since province borders handle it) */}
-              {visibleFeatures.map((feature: any, i: number) => {
+              {/* Country borders (skip entirely in China tab — province borders suffice) */}
+              {!(activeContinent === 'china' && chinaGeoJson) && visibleFeatures.map((feature: any, i: number) => {
                 const d = pathGenerator(feature as GeoPermissibleObjects);
                 if (!d) return null;
-                if (activeContinent === 'china' && chinaGeoJson) {
-                  const numId = feature.id;
-                  const code = COUNTRY_NUMERIC_TO_CODE[numId] || '';
-                  if (code === 'CN') return null;
-                }
                 return <path key={`border-${i}`} d={d} className="country-border" />;
               })}
 
@@ -762,7 +766,7 @@ const Footprints: React.FC = () => {
         </div>
       </section>
 
-      {renderCityPreview()}
+      {selectedCityGroup && createPortal(renderCityPreview(), document.body)}
     </div>
   );
 };

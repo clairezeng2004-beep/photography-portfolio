@@ -76,7 +76,7 @@
   display: flex;
   justify-content: center;
   gap: 8px;
-  padding: 0 40px 48px;
+  padding: 0 60px 48px;
 }
 
 .filter-btn {
@@ -106,8 +106,8 @@
 
 /* ============ SVG MAP SECTION ============ */
 .map-section {
-  padding: 0 40px 60px;
-  max-width: 1200px;
+  padding: 0 60px 48px;
+  max-width: 1400px;
   margin: 0 auto;
   opacity: 0;
   transform: translateY(30px);
@@ -304,7 +304,7 @@
 }
 
 .province-lit {
-  fill: #c4b596;
+  fill: #c9bfb0;
 }
 
 .province-dim {
@@ -313,8 +313,8 @@
 
 .province-border {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.85);
-  stroke-width: 0.8;
+  stroke: #fff;
+  stroke-width: 0.5;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
@@ -334,7 +334,7 @@
 }
 
 .province-label-lit {
-  fill: #8b6914;
+  fill: #5a554e;
   font-weight: 600;
   font-size: 11px;
 }
@@ -487,7 +487,10 @@
 /* ============ PREVIEW MODAL ============ */
 .preview-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.85);
   z-index: 2000;
   display: flex;
@@ -495,6 +498,8 @@
   justify-content: center;
   animation: fadeIn 0.3s ease;
   backdrop-filter: blur(4px);
+  overflow-y: auto;
+  padding: 40px 20px;
 }
 
 @keyframes fadeIn {
@@ -510,8 +515,11 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overflow-y: auto;
   position: relative;
   animation: slideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  margin: auto;
+  flex-shrink: 0;
 }
 
 @keyframes slideUp {
@@ -665,8 +673,11 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overflow-y: auto;
   position: relative;
   animation: slideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  margin: auto;
+  flex-shrink: 0;
 }
 
 .city-preview-header {
@@ -811,7 +822,7 @@
   .stat-number { font-size: 28px; }
   .continent-filter { padding: 0 24px 36px; flex-wrap: wrap; }
   .filter-btn { padding: 8px 20px; font-size: 12px; }
-  .map-section { padding: 0 16px 40px; }
+  .map-section { padding: 0 24px 40px; }
   .city-list-section { padding: 24px 24px 80px; }
   .city-list { grid-template-columns: 1fr; gap: 24px; }
   .city-card-name { font-size: 19px; }
