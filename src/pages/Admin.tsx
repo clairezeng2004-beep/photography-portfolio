@@ -1093,8 +1093,10 @@ const Admin: React.FC = () => {
                         <ImageUploader
                           onImageUpload={(url) => {
                             setNewCollection(prev => ({ ...prev, coverImage: url }));
-                            // Auto-generate portrait cover
-                            autoCropToPortrait(url).then(portrait => {
+                          }}
+                          onCropOriginal={(originalUrl) => {
+                            // Auto-generate portrait cover from original image
+                            autoCropToPortrait(originalUrl).then(portrait => {
                               setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
                             }).catch(() => {});
                           }}
@@ -1118,6 +1120,7 @@ const Admin: React.FC = () => {
                                 className={`cover-picker-item ${newCollection.coverImage === photo.url ? 'active' : ''}`}
                                 onClick={() => {
                                   setNewCollection(prev => ({ ...prev, coverImage: photo.url }));
+                                  // Use original photo for portrait crop
                                   autoCropToPortrait(photo.url).then(portrait => {
                                     setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
                                   }).catch(() => {});
@@ -1883,8 +1886,10 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   <ImageUploader
                     onImageUpload={(url) => {
                       setCoverImage(url);
-                      // Auto-generate portrait crop
-                      autoCropToPortrait(url).then(setCardCoverImage).catch(() => {});
+                    }}
+                    onCropOriginal={(originalUrl) => {
+                      // Auto-generate portrait crop from original image
+                      autoCropToPortrait(originalUrl).then(setCardCoverImage).catch(() => {});
                     }}
                     currentImage={coverImage}
                     onRemove={() => setCoverImage('')}

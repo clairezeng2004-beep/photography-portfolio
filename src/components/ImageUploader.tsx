@@ -6,6 +6,7 @@ import './ImageUploader.css';
 interface ImageUploaderProps {
   onImageUpload: (imageUrl: string, thumbnailUrl: string) => void;
   onMultiImageUpload?: (images: { imageUrl: string; thumbnailUrl: string }[]) => void;
+  onCropOriginal?: (originalUrl: string) => void;
   currentImage?: string;
   onRemove?: () => void;
   label?: string;
@@ -270,6 +271,7 @@ const DragCropper: React.FC<{
 const ImageUploader: React.FC<ImageUploaderProps> = ({
   onImageUpload,
   onMultiImageUpload,
+  onCropOriginal,
   currentImage,
   onRemove,
   label = '点击或拖拽上传图片',
@@ -427,6 +429,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       const thumbnailBase64 = await createThumbnail(croppedUrl);
       const { imageUrl, thumbnailUrl } = await maybeUploadToHost(croppedUrl, thumbnailBase64);
       onImageUpload(imageUrl, thumbnailUrl);
+      // Pass the original (uncropped) image to the parent
+      if (onCropOriginal) onCropOriginal(cropSource);
       setCropOpen(false);
       setCropSource(null);
     } catch (e) {
