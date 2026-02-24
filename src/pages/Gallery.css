@@ -48,7 +48,7 @@
 .gallery-photos {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 6px;
   padding: 0 40px;
   max-width: 600px;
   margin: 0 auto;
@@ -75,7 +75,7 @@
 /* ============ PAIR ROW (two photos side by side) ============ */
 .gallery-photo-pair {
   display: flex;
-  gap: 12px;
+  gap: 6px;
 }
 
 .gallery-photo-pair .gallery-photo-cell {
@@ -91,7 +91,7 @@
 
 /* ============ DIARY STYLE (图文交错 / 豆瓣日记风格) ============ */
 .gallery-photos.diary-style {
-  gap: 16px;
+  gap: 6px;
   max-width: 600px;
 }
 
@@ -101,7 +101,7 @@
 
 /* Extra spacing above items that have a caption block before the image */
 .gallery-photos.diary-style .gallery-photo-item.has-caption-before {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .gallery-photos.diary-style .gallery-photo-item.has-caption-before:first-child {
@@ -343,7 +343,7 @@
   }
 
   .gallery-photos {
-    gap: 12px;
+    gap: 4px;
     padding: 0 24px;
     max-width: 100%;
   }
@@ -353,7 +353,7 @@
   }
 
   .photo-caption-block {
-    padding: 0 0 16px;
+    padding: 0 0 10px;
   }
 
   .photo-caption {
