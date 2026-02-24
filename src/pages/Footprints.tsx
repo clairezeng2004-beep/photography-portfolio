@@ -122,23 +122,18 @@ function filterOverlappingLabels(
 
     const estWidth = item.label.length * charWidth;
 
-    // Check if label text overflows the region's bounding box width
-    if (item.bboxW !== undefined && estWidth > item.bboxW * 0.85) {
-      continue;
-    }
-
-    // Check overlap with already-placed labels
+    // Check overlap with already-placed labels (only hide if EXACT overlap)
     const overlapsLabel = placed.some(p =>
-      Math.abs(p.x - item.x) < (estWidth + p.w) * 0.5 &&
-      Math.abs(p.y - item.y) < minDistY
+      Math.abs(p.x - item.x) < (estWidth + p.w) * 0.4 &&
+      Math.abs(p.y - item.y) < minDistY * 0.8
     );
     if (overlapsLabel) continue;
 
-    // For region labels (priority <= 5), check against ALL city marker positions
+    // For region labels (priority <= 5), only hide if marker is VERY close (direct overlap)
     if (item.priority <= 5) {
       const overlapsMarker = allMarkers.some(m =>
-        Math.abs(m.x - item.x) < estWidth * 0.5 + 12 &&
-        Math.abs(m.y - item.y) < minDistY * 1.8
+        Math.abs(m.x - item.x) < estWidth * 0.3 + 4 &&
+        Math.abs(m.y - item.y) < minDistY * 0.6
       );
       if (overlapsMarker) continue;
     }
@@ -540,8 +535,8 @@ const Footprints: React.FC = () => {
       });
     }
 
-    const charWidth = activeContinent === 'china' ? 8 / zoom : 8.5 / zoom;
-    const minY = activeContinent === 'china' ? 14 / zoom : 15 / zoom;
+    const charWidth = activeContinent === 'china' ? 7 / zoom : 7.5 / zoom;
+    const minY = activeContinent === 'china' ? 10 / zoom : 11 / zoom;
     return filterOverlappingLabels(items, charWidth, minY);
   }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures, chinaGeoJson]);
 
