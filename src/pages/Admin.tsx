@@ -2527,15 +2527,32 @@ const HeroManager: React.FC<HeroManagerProps> = ({
             {/* Expanded: full editing */}
             {isExpanded && (
               <div className="hero-item-detail">
-                <div className="hero-item-preview" onClick={() => openPicker(index)} title="点击从作品集更换">
-                  {img.url ? (
-                    <img src={img.url} alt={img.title || '封面图'} />
-                  ) : (
-                    <div className="hero-item-placeholder">
-                      <ImageIcon size={24} />
+                {/* Hero preview - simulates real cover look */}
+                <div className="hero-detail-preview">
+                  <div className="hero-preview-desktop" title="桌面端预览">
+                    <div className="hero-preview-label">桌面端</div>
+                    {img.url ? (
+                      <img src={img.url} alt={img.title || '封面图'} />
+                    ) : (
+                      <div className="hero-item-placeholder"><ImageIcon size={24} /></div>
+                    )}
+                    <div className="hero-preview-text-overlay">
+                      <span className="hero-preview-text-title">{img.title || '标题'}</span>
+                      <span className="hero-preview-text-location">{img.location || '地点'}</span>
                     </div>
-                  )}
-                  <div className="hero-preview-overlay">从作品集更换</div>
+                  </div>
+                  <div className="hero-preview-mobile" title="手机端预览">
+                    <div className="hero-preview-label">手机端</div>
+                    {(img.mobileUrl || img.url) ? (
+                      <img src={img.mobileUrl || img.url} alt={img.title || '封面图'} />
+                    ) : (
+                      <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
+                    )}
+                    <div className="hero-preview-text-overlay">
+                      <span className="hero-preview-text-title">{img.title || '标题'}</span>
+                      <span className="hero-preview-text-location">{img.location || '地点'}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="hero-item-info">
@@ -2557,48 +2574,34 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                       placeholder="地点"
                     />
                   </div>
-                  <div className="hero-item-image-actions">
-                    <div className="hero-custom-upload-hint">
-                      <ImageUploader
-                        onImageUpload={(url) => replaceImage(index, url)}
-                        currentImage={img.url}
-                        onRemove={() => replaceImage(index, '')}
-                        label="自定义图片"
-                        enableCrop
-                        cropAspectOptions={[
-                          { label: '16:9', value: 16 / 9 },
-                          { label: '4:3', value: 4 / 3 },
-                        ]}
-                        defaultCropAspect={16 / 9}
-                        defaultOutputWidth={1920}
-                        compressMaxWidth={2500}
-                        compressQuality={0.85}
-                      />
+
+                  {/* 更换封面 — 横版 + 竖版并排 */}
+                  <div className="hero-covers-row">
+                    <div className="hero-cover-slot">
+                      <label className="hero-cover-slot-label">横版封面</label>
+                      <div className="hero-cover-thumb" onClick={() => openPicker(index)} title="点击更换横版封面">
+                        {img.url ? (
+                          <img src={img.url} alt="横版" />
+                        ) : (
+                          <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
+                        )}
+                        <div className="hero-cover-thumb-overlay">更换</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="hero-item-mobile-cover">
-                    <label className="mobile-cover-label">
-                      <Smartphone size={12} style={{ marginRight: 4, verticalAlign: -1 }} />
-                      手机端封面（竖版）
-                    </label>
-                    <div className="mobile-cover-hint">
-                      横版图片在手机端显示效果不佳，建议上传竖版或方形图片
+                    <div className="hero-cover-slot">
+                      <label className="hero-cover-slot-label">
+                        <Smartphone size={11} style={{ marginRight: 3, verticalAlign: -1 }} />
+                        竖版封面
+                      </label>
+                      <div className="hero-cover-thumb" onClick={() => openPicker({ type: 'mobile', index })} title="点击更换竖版封面">
+                        {(img.mobileUrl || img.url) ? (
+                          <img src={img.mobileUrl || img.url} alt="竖版" />
+                        ) : (
+                          <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
+                        )}
+                        <div className="hero-cover-thumb-overlay">更换</div>
+                      </div>
                     </div>
-                    <ImageUploader
-                      onImageUpload={(url) => replaceMobileImage(index, url)}
-                      currentImage={img.mobileUrl}
-                      onRemove={() => replaceMobileImage(index, '')}
-                      label="上传手机端封面"
-                      enableCrop
-                      cropAspectOptions={[
-                        { label: '9:16', value: 9 / 16 },
-                        { label: '3:4', value: 3 / 4 },
-                      ]}
-                      defaultCropAspect={9 / 16}
-                      defaultOutputWidth={1080}
-                      compressMaxWidth={1200}
-                      compressQuality={0.85}
-                    />
                   </div>
                 </div>
               </div>
