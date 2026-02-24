@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage, AnimationConfig } from '../types';
 import { mockCollections } from '../data/mockData';
 import { dbGet, dbSet } from '../utils/storage';
-import { isSupabaseConfigured, supabaseGet, supabaseSet } from '../utils/supabase';
+import { isSupabaseConfigured, supabaseGet, supabaseGetDetailed, supabaseSet } from '../utils/supabase';
 import { syncImgbbKeyFromCloud } from '../utils/imageHost';
 import { syncNewsletterKeyFromCloud } from '../utils/newsletter';
 
@@ -113,8 +113,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Save to both Supabase (cloud) and IndexedDB (local cache)
   // Errors are caught and logged — callers that need strict error handling
-  // should call supabaseSet directly.
+  // should call saveStrict instead.
   const saveToAll = useCallback(async <T,>(key: string, value: T) => {
+    const jsonSize = JSON.stringify(value).length;
+    console.log(`[saveToAll] saving "${key}" (${(jsonSize / 1024).toFixed(1)} KB)...`);
     // Save to local first (always)
     await dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
     // Then save to Supabase (cloud)
@@ -136,16 +138,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       let cloudReachable = false;
 
       // Helper: try Supabase first, then IndexedDB, then localStorage
+      // Uses supabaseGetDetailed to distinguish "not found" from "unreachable"
       async function loadKey<T>(key: string): Promise<T | undefined> {
         let cloudVal: T | undefined;
+        let cloudFound = false; // true if cloud was reached AND row exists
+        let cloudReached = false; // true if cloud responded (even if row not found)
         let localVal: T | undefined;
 
-        // 1. Try Supabase (with timeout already in supabaseGet)
+        // 1. Try Supabase (with timeout already in supabaseGetDetailed)
         if (useCloud) {
           try {
-            cloudVal = await supabaseGet<T>(key);
-            if (cloudVal !== undefined) {
-              cloudReachable = true;
+            const result = await supabaseGetDetailed<T>(key);
+            cloudReached = true;
+            cloudReachable = true;
+            if (result.found) {
+              cloudFound = true;
+              cloudVal = result.value;
             }
           } catch (e) {
             console.warn(`[DataContext] Supabase read failed for "${key}", falling back to local`, e);
@@ -168,30 +176,38 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         }
 
-        // Cloud is the authority when reachable.
-        // Exception: cloud returns empty array but local has data — prefer local
-        // and sync back to cloud (handles initial migration / stale cloud).
-        if (cloudVal !== undefined) {
-          if (Array.isArray(cloudVal) && cloudVal.length === 0 && Array.isArray(localVal) && localVal.length > 0) {
-            console.log(`[DataContext] "${key}": cloud is empty but local has ${localVal.length} items, using local`);
-            if (useCloud) {
+        // Decision logic:
+        if (cloudReached) {
+          if (cloudFound) {
+            // Cloud has the row — it is the authority
+            // Exception: cloud row is empty array but local has data → prefer local & sync back
+            if (Array.isArray(cloudVal) && cloudVal.length === 0 && Array.isArray(localVal) && localVal.length > 0) {
+              console.log(`[DataContext] "${key}": cloud is empty array but local has ${localVal.length} items, using local & syncing to cloud`);
               supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
+              dbSet(key, localVal).catch(() => {});
+              return localVal;
             }
-            // Also update local cache
-            dbSet(key, localVal).catch(() => {});
-            return localVal;
+            // Use cloud value, update local cache
+            dbSet(key, cloudVal!).catch(() => {});
+            return cloudVal;
+          } else {
+            // Cloud is reachable but key doesn't exist there yet
+            // If we have local data, USE it AND push to cloud so other devices get it
+            if (localVal !== undefined) {
+              console.log(`[DataContext] "${key}": cloud reachable but key not found, pushing local data to cloud`);
+              supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
+              return localVal;
+            }
+            // Neither cloud nor local has data
+            return undefined;
           }
-          // Cloud has data (or intentionally empty after user deleted all) — use cloud
-          // Also update local cache so IndexedDB stays in sync
-          dbSet(key, cloudVal).catch(() => {});
-          return cloudVal;
+        } else {
+          // Cloud not reachable — use local, and try to sync local to cloud in background
+          if (localVal !== undefined && useCloud) {
+            supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
+          }
+          return localVal;
         }
-
-        // Cloud not reachable — use local, and try to sync local to cloud
-        if (localVal !== undefined && useCloud) {
-          supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
-        }
-        return localVal;
       }
 
       // Load all keys in PARALLEL to avoid serial latency
@@ -258,7 +274,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     // Guarantee dataLoaded is set to true even if loadData throws/hangs
-    const LOAD_TIMEOUT = 12000;
+    const LOAD_TIMEOUT = 20000;
     let resolved = false;
 
     const finish = () => {
@@ -292,10 +308,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Strict save: write to both IndexedDB and Supabase, throw on Supabase failure.
   // Used by user-initiated operations that need to report errors.
   const saveStrict = useCallback(async <T,>(key: string, value: T) => {
+    const jsonSize = JSON.stringify(value).length;
+    console.log(`[saveStrict] saving "${key}" (${(jsonSize / 1024).toFixed(1)} KB)...`);
     await dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
     if (isSupabaseConfigured()) {
-      await supabaseSet(key, value);
-      console.log(`[Supabase] saved "${key}" successfully`);
+      try {
+        await supabaseSet(key, value);
+        console.log(`[Supabase] saved "${key}" successfully (${(jsonSize / 1024).toFixed(1)} KB)`);
+      } catch (e: any) {
+        console.error(`[Supabase] FAILED to save "${key}":`, e);
+        throw new Error(`云端保存失败 (${key}): ${e.message || e}`);
+      }
     }
   }, []);
 
@@ -315,34 +338,31 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await saveStrict('about_info', newAboutInfo);
   }, [saveStrict, dataLoaded]);
 
+  // Keep a ref to the latest collections for addPhoto/removePhoto
+  // so they can compute the new value AND properly await saveStrict.
+  const collectionsRef = React.useRef(collections);
+  React.useEffect(() => { collectionsRef.current = collections; }, [collections]);
+
   const addPhoto = useCallback(async (collectionId: string, photo: Photo) => {
     if (!dataLoaded) return;
-    setCollections(prev => {
-      const updated = prev.map(c =>
-        c.id === collectionId
-          ? { ...c, photos: [...c.photos, photo] }
-          : c
-      );
-      saveStrict('photo_collections', updated).catch(e =>
-        console.error('[addPhoto] save failed:', e)
-      );
-      return updated;
-    });
+    const updated = collectionsRef.current.map(c =>
+      c.id === collectionId
+        ? { ...c, photos: [...c.photos, photo] }
+        : c
+    );
+    setCollections(updated);
+    await saveStrict('photo_collections', updated);
   }, [saveStrict, dataLoaded]);
 
   const removePhoto = useCallback(async (collectionId: string, photoId: string) => {
     if (!dataLoaded) return;
-    setCollections(prev => {
-      const updated = prev.map(c =>
-        c.id === collectionId
-          ? { ...c, photos: c.photos.filter(p => p.id !== photoId) }
-          : c
-      );
-      saveStrict('photo_collections', updated).catch(e =>
-        console.error('[removePhoto] save failed:', e)
-      );
-      return updated;
-    });
+    const updated = collectionsRef.current.map(c =>
+      c.id === collectionId
+        ? { ...c, photos: c.photos.filter(p => p.id !== photoId) }
+        : c
+    );
+    setCollections(updated);
+    await saveStrict('photo_collections', updated);
   }, [saveStrict, dataLoaded]);
 
   const updateLitCities = useCallback(async (cities: GeoInfo[]) => {

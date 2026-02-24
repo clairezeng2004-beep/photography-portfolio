@@ -304,10 +304,10 @@ const Admin: React.FC = () => {
         (p) => setMigrationProgress({ ...p }),
       );
       // Save migrated data
-      updateCollections(result.collections);
-      updateHeroImages(result.heroImages);
+      await updateCollections(result.collections);
+      await updateHeroImages(result.heroImages);
       if (result.avatarUrl !== aboutInfo.avatar) {
-        updateAboutInfo({ ...aboutInfo, avatar: result.avatarUrl });
+        await updateAboutInfo({ ...aboutInfo, avatar: result.avatarUrl });
       }
       const failCount = migrationProgress?.failed || 0;
       const failMsg = failCount > 0 ? `（${failCount} 张失败）` : '';
@@ -362,23 +362,23 @@ const Admin: React.FC = () => {
     });
   }, [collections]);
 
-  const reorderCollections = (fromIndex: number, toIndex: number) => {
+  const reorderCollections = async (fromIndex: number, toIndex: number) => {
     if (toIndex < 0 || toIndex >= sortedCollections.length) return;
     const reordered = [...sortedCollections];
     const [moved] = reordered.splice(fromIndex, 1);
     reordered.splice(toIndex, 0, moved);
     const withOrder = reordered.map((c, index) => ({ ...c, order: index }));
-    updateCollections(withOrder);
+    await updateCollections(withOrder);
     showToast('顺序已更新');
   };
 
-  const reorderToPosition = (fromIndex: number, toIndex: number) => {
+  const reorderToPosition = async (fromIndex: number, toIndex: number) => {
     if (toIndex < 0 || toIndex >= sortedCollections.length || fromIndex === toIndex) return;
     const reordered = [...sortedCollections];
     const [moved] = reordered.splice(fromIndex, 1);
     reordered.splice(toIndex, 0, moved);
     const withOrder = reordered.map((c, index) => ({ ...c, order: index }));
-    updateCollections(withOrder);
+    await updateCollections(withOrder);
     showToast('顺序已更新');
   };
 

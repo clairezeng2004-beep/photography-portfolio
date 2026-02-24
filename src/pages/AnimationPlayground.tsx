@@ -511,14 +511,14 @@ const AnimationPlayground: React.FC = () => {
     if (section === 'page') { setPagePlay(false); setTimeout(() => setPagePlay(true), 50); }
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     const config: AnimationConfig = {
       heroTransition: hero,
       introAnimation: intro,
       cardAnimation: card,
       pageTransition: pageTrans,
     };
-    updateAnimationConfig(config);
+    await updateAnimationConfig(config);
     setToastMsg('动画配置已应用到首页');
     setToastVis(true);
   };

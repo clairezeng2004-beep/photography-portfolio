@@ -30,11 +30,31 @@ function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number, label: string):
   });
 }
 
-const READ_TIMEOUT = 5000;
-const WRITE_TIMEOUT = 8000;
+const READ_TIMEOUT = 8000;
+const WRITE_TIMEOUT = 15000;
+
+/**
+ * Result from supabaseGet — distinguishes "key not found" from "network error".
+ * - found=true, value=T  → key exists in cloud
+ * - found=false           → key does not exist in cloud (but cloud IS reachable)
+ * On network/timeout error the function throws.
+ */
+export interface CloudGetResult<T> {
+  found: boolean;
+  value?: T;
+}
 
 /** Read a value from Supabase app_data table */
 export async function supabaseGet<T>(key: string): Promise<T | undefined> {
+  const result = await supabaseGetDetailed<T>(key);
+  return result.found ? result.value : undefined;
+}
+
+/**
+ * Detailed read — lets the caller distinguish "not found" from "unreachable".
+ * Throws on network / timeout errors.
+ */
+export async function supabaseGetDetailed<T>(key: string): Promise<CloudGetResult<T>> {
   const supabase = getSupabase();
   const { data, error } = await withTimeout(
     supabase.from('app_data').select('value').eq('key', key).single(),
@@ -42,38 +62,88 @@ export async function supabaseGet<T>(key: string): Promise<T | undefined> {
     `GET ${key}`
   );
 
-  if (error || !data) return undefined;
-  return data.value as T;
+  if (error) {
+    // PGRST116 = "JSON object requested, multiple (or no) rows returned" → row doesn't exist
+    if (error.code === 'PGRST116') {
+      return { found: false };
+    }
+    // Any other error is a real failure (network, permission, etc.)
+    throw error;
+  }
+
+  if (!data) return { found: false };
+  return { found: true, value: data.value as T };
 }
 
-/** Write a value to Supabase app_data table (upsert) */
+/** Write a value to Supabase app_data table (upsert) with verification */
 export async function supabaseSet<T>(key: string, value: T): Promise<void> {
   const supabase = getSupabase();
+  const now = new Date().toISOString();
+  const row = { key, value: value as any, updated_at: now };
 
+  // Try upsert first
   const { error: upsertError } = await withTimeout(
-    supabase.from('app_data').upsert(
-      { key, value: value as any, updated_at: new Date().toISOString() },
-      { onConflict: 'key' }
-    ),
+    supabase.from('app_data').upsert(row, { onConflict: 'key' }),
     WRITE_TIMEOUT,
     `SET ${key}`
   );
 
   if (upsertError) {
-    console.error(`[Supabase] upsert failed for "${key}":`, upsertError.message);
-    const { error: updateError } = await withTimeout(
-      supabase.from('app_data')
-        .update({ value: value as any, updated_at: new Date().toISOString() })
-        .eq('key', key),
-      WRITE_TIMEOUT,
-      `UPDATE ${key}`
-    );
+    console.error(`[Supabase] upsert failed for "${key}":`, upsertError.message, upsertError.code);
 
-    if (updateError) {
-      console.error(`[Supabase] update also failed for "${key}":`, updateError.message);
-      throw updateError;
+    // If upsert failed, try explicit insert-or-update approach
+    // First check if row exists
+    const existing = await supabaseGetDetailed(key).catch(() => null);
+    
+    if (existing && existing.found) {
+      // Row exists → update
+      const { error: updateError } = await withTimeout(
+        supabase.from('app_data')
+          .update({ value: value as any, updated_at: now })
+          .eq('key', key),
+        WRITE_TIMEOUT,
+        `UPDATE ${key}`
+      );
+      if (updateError) {
+        console.error(`[Supabase] update also failed for "${key}":`, updateError.message);
+        throw updateError;
+      }
+      console.log(`[Supabase] saved "${key}" via UPDATE fallback`);
+    } else {
+      // Row doesn't exist → insert
+      const { error: insertError } = await withTimeout(
+        supabase.from('app_data').insert(row),
+        WRITE_TIMEOUT,
+        `INSERT ${key}`
+      );
+      if (insertError) {
+        console.error(`[Supabase] insert also failed for "${key}":`, insertError.message);
+        throw insertError;
+      }
+      console.log(`[Supabase] saved "${key}" via INSERT fallback`);
     }
-    console.log(`[Supabase] saved "${key}" via UPDATE fallback`);
+    return;
+  }
+
+  // Verify the write actually persisted (catch silent failures)
+  try {
+    const verify = await supabaseGetDetailed(key);
+    if (!verify.found) {
+      console.error(`[Supabase] VERIFICATION FAILED for "${key}": upsert reported success but row not found!`);
+      // Attempt insert as the row might not exist
+      const { error: insertError } = await withTimeout(
+        supabase.from('app_data').insert(row),
+        WRITE_TIMEOUT,
+        `INSERT-VERIFY ${key}`
+      );
+      if (insertError) {
+        throw new Error(`[Supabase] write verification failed and insert failed for "${key}": ${insertError.message}`);
+      }
+      console.log(`[Supabase] saved "${key}" via INSERT after verification failure`);
+    }
+  } catch (verifyErr) {
+    // Don't fail the whole operation if verification read itself fails
+    console.warn(`[Supabase] verification read failed for "${key}" (write may have succeeded):`, verifyErr);
   }
 }
 
