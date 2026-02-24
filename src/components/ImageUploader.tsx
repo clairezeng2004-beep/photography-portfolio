@@ -23,6 +23,8 @@ interface ImageUploaderProps {
   compressQuality?: number;
   /** Original (uncropped) source image for re-cropping with position memory */
   originalSource?: string;
+  /** If set, the preview image will be constrained to this aspect ratio (width/height) */
+  previewAspectRatio?: number;
 }
 
 const DEFAULT_ASPECT_OPTIONS = [
@@ -361,6 +363,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   compressMaxWidth = 2000,
   compressQuality = 0.88,
   originalSource,
+  previewAspectRatio,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -716,8 +719,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   return (
     <div className="image-uploader">
       {currentImage ? (
-        <div className="uploaded-image">
-          <img src={currentImage} alt="已上传" />
+        <div className="uploaded-image" style={previewAspectRatio ? { aspectRatio: `${previewAspectRatio}` } : undefined}>
+          <img src={currentImage} alt="已上传" style={previewAspectRatio ? { width: '100%', height: '100%', objectFit: 'cover' } : undefined} />
           <div className="uploaded-image-actions">
             {enableCrop && (
               <button

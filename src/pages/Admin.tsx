@@ -79,9 +79,15 @@ function extractFromTitle(title: string): { location?: string; year?: number } {
    ============================================================ */
 async function toBlobUrl(url: string): Promise<string> {
   if (url.startsWith('data:') || url.startsWith('blob:')) return url;
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return URL.createObjectURL(blob);
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch {
+    // Fallback: return original URL, image will be loaded with crossOrigin
+    return url;
+  }
 }
 
 /* ============================================================
@@ -95,6 +101,7 @@ async function autoCropToAspect(
   const blobUrl = await toBlobUrl(imageUrl);
   return new Promise((resolve, reject) => {
     const img = new window.Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => {
       try {
         const outputHeight = Math.round(outputWidth / targetAspect);
@@ -1220,6 +1227,7 @@ const Admin: React.FC = () => {
                           ]}
                           defaultCropAspect={4 / 3}
                           defaultOutputWidth={2400}
+                          previewAspectRatio={4 / 3}
                         />
                       </div>
 
@@ -1255,6 +1263,7 @@ const Admin: React.FC = () => {
                           ]}
                           defaultCropAspect={3 / 4}
                           defaultOutputWidth={1200}
+                          previewAspectRatio={3 / 4}
                         />
                       </div>
                       
@@ -1813,6 +1822,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [showCoverSection, setShowCoverSection] = useState(false);
   const [showPhotosSection, setShowPhotosSection] = useState(false);
   const [showLocationTimeSection, setShowLocationTimeSection] = useState(false);
+  const [cropProcessing, setCropProcessing] = useState(false);
 
   // City search state
   const [citySearchText, setCitySearchText] = useState('');
@@ -2005,6 +2015,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                     ]}
                     defaultCropAspect={4 / 3}
                     defaultOutputWidth={2400}
+                    previewAspectRatio={4 / 3}
                   />
                   {collection.photos.length > 0 && (
                     <div className="cover-picker-grid">
@@ -2013,18 +2024,25 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                           type="button"
                           key={photo.id}
                           className="cover-picker-item"
-                          onClick={() => {
-                            const src = photo.url;
-                            autoCropToLandscape(src).then(landscape => {
-                              setCoverImage(landscape);
-                            }).catch(() => setCoverImage(src));
-                            autoCropToPortrait(src).then(portrait => {
-                              setCardCoverImage(portrait);
-                            }).catch(() => {});
+                          disabled={cropProcessing}
+                          onClick={async () => {
+                            setCropProcessing(true);
+                            try {
+                              const src = photo.url;
+                              const [landscape, portrait] = await Promise.allSettled([
+                                autoCropToLandscape(src),
+                                autoCropToPortrait(src),
+                              ]);
+                              setCoverImage(landscape.status === 'fulfilled' ? landscape.value : src);
+                              if (portrait.status === 'fulfilled') setCardCoverImage(portrait.value);
+                            } catch (err) {
+                              console.error('Cover crop failed:', err);
+                            }
+                            setCropProcessing(false);
                           }}
                         >
                           <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                          <span>设为封面</span>
+                          <span>{cropProcessing ? '处理中...' : '设为封面'}</span>
                         </button>
                       ))}
                     </div>
@@ -2053,6 +2071,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                     ]}
                     defaultCropAspect={3 / 4}
                     defaultOutputWidth={1200}
+                    previewAspectRatio={3 / 4}
                   />
                   {collection.photos.length > 0 && (
                     <div className="cover-picker-grid">
@@ -2061,14 +2080,21 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                           type="button"
                           key={photo.id}
                           className="cover-picker-item"
-                          onClick={() => {
-                            autoCropToPortrait(photo.url).then(portrait => {
+                          disabled={cropProcessing}
+                          onClick={async () => {
+                            setCropProcessing(true);
+                            try {
+                              const portrait = await autoCropToPortrait(photo.url);
                               setCardCoverImage(portrait);
-                            }).catch(() => {});
+                            } catch (err) {
+                              console.error('Portrait crop failed:', err);
+                              alert('裁剪失败，请重试');
+                            }
+                            setCropProcessing(false);
                           }}
                         >
                           <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                          <span>选择</span>
+                          <span>{cropProcessing ? '处理中...' : '选择'}</span>
                         </button>
                       ))}
                     </div>
