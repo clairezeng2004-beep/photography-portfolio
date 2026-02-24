@@ -31,18 +31,12 @@ function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number, label: string):
 }
 
 const READ_TIMEOUT = 8000;
-const WRITE_TIMEOUT = 15000;
+const WRITE_TIMEOUT = 12000;
 
-/**
- * Result from supabaseGet — distinguishes "key not found" from "network error".
- * - found=true, value=T  → key exists in cloud
- * - found=false           → key does not exist in cloud (but cloud IS reachable)
- * On network/timeout error the function throws.
- */
 export interface CloudGetResult<T> {
   found: boolean;
   value?: T;
-  updatedAt?: number; // epoch ms from cloud updated_at column
+  updatedAt?: number;
 }
 
 /** Read a value from Supabase app_data table */
@@ -54,7 +48,6 @@ export async function supabaseGet<T>(key: string): Promise<T | undefined> {
 /**
  * Detailed read — lets the caller distinguish "not found" from "unreachable".
  * Throws on network / timeout errors.
- * Also returns the cloud updated_at timestamp if available.
  */
 export async function supabaseGetDetailed<T>(key: string): Promise<CloudGetResult<T>> {
   const supabase = getSupabase();
@@ -65,11 +58,9 @@ export async function supabaseGetDetailed<T>(key: string): Promise<CloudGetResul
   );
 
   if (error) {
-    // PGRST116 = "JSON object requested, multiple (or no) rows returned" → row doesn't exist
     if (error.code === 'PGRST116') {
       return { found: false };
     }
-    // Any other error is a real failure (network, permission, etc.)
     throw error;
   }
 
@@ -78,56 +69,45 @@ export async function supabaseGetDetailed<T>(key: string): Promise<CloudGetResul
   return { found: true, value: data.value as T, updatedAt };
 }
 
-/** Write a value to Supabase app_data table (upsert) */
+/**
+ * Write a value to Supabase app_data table.
+ * Single upsert — simple and reliable. Throws on failure.
+ */
 export async function supabaseSet<T>(key: string, value: T): Promise<void> {
   const supabase = getSupabase();
   const now = new Date().toISOString();
   const row = { key, value: value as any, updated_at: now };
 
-  // Try upsert first
-  const { error: upsertError } = await withTimeout(
+  const { error } = await withTimeout(
     supabase.from('app_data').upsert(row, { onConflict: 'key' }),
     WRITE_TIMEOUT,
     `SET ${key}`
   );
 
-  if (!upsertError) {
-    // Upsert succeeded — done
-    return;
+  if (error) {
+    console.error(`[Supabase] upsert failed for "${key}":`, error.message, error.code);
+    throw error;
   }
+}
 
-  // Upsert failed — try explicit insert-or-update fallback
-  console.error(`[Supabase] upsert failed for "${key}":`, upsertError.message, upsertError.code);
-
-  const existing = await supabaseGetDetailed(key).catch(() => null);
-
-  if (existing && existing.found) {
-    // Row exists → update
-    const { error: updateError } = await withTimeout(
-      supabase.from('app_data')
-        .update({ value: value as any, updated_at: now })
-        .eq('key', key),
-      WRITE_TIMEOUT,
-      `UPDATE ${key}`
-    );
-    if (updateError) {
-      console.error(`[Supabase] update also failed for "${key}":`, updateError.message);
-      throw updateError;
+/**
+ * Write with retry. Tries up to `maxRetries` times with exponential backoff.
+ * Returns true if succeeded, false if all retries failed.
+ */
+export async function supabaseSetWithRetry<T>(key: string, value: T, maxRetries = 2): Promise<boolean> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      await supabaseSet(key, value);
+      return true;
+    } catch (e: any) {
+      console.warn(`[Supabase] write attempt ${attempt + 1}/${maxRetries + 1} failed for "${key}":`, e.message);
+      if (attempt < maxRetries) {
+        // Exponential backoff: 500ms, 1000ms
+        await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      }
     }
-    console.log(`[Supabase] saved "${key}" via UPDATE fallback`);
-  } else {
-    // Row doesn't exist → insert
-    const { error: insertError } = await withTimeout(
-      supabase.from('app_data').insert(row),
-      WRITE_TIMEOUT,
-      `INSERT ${key}`
-    );
-    if (insertError) {
-      console.error(`[Supabase] insert also failed for "${key}":`, insertError.message);
-      throw insertError;
-    }
-    console.log(`[Supabase] saved "${key}" via INSERT fallback`);
   }
+  return false;
 }
 
 /** Delete a key from Supabase app_data table */

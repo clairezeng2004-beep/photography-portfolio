@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage, AnimationConfig } from '../types';
 import { mockCollections } from '../data/mockData';
-import { dbGet, dbSet, dbSetWithMeta, dbGetMeta, dbGetPendingSyncKeys } from '../utils/storage';
-import { isSupabaseConfigured, supabaseGetDetailed, supabaseSet } from '../utils/supabase';
+import { dbGet, dbSet } from '../utils/storage';
+import { isSupabaseConfigured, supabaseGetDetailed, supabaseSetWithRetry } from '../utils/supabase';
 import { syncImgbbKeyFromCloud } from '../utils/imageHost';
 import { syncNewsletterKeyFromCloud } from '../utils/newsletter';
 
@@ -13,13 +13,13 @@ interface DataContextType {
   heroImages: HeroImage[];
   animationConfig: AnimationConfig;
   dataLoaded: boolean;
-  updateCollections: (collections: PhotoCollection[]) => Promise<void>;
-  updateAboutInfo: (aboutInfo: AboutInfo) => Promise<void>;
-  addPhoto: (collectionId: string, photo: Photo) => void;
-  removePhoto: (collectionId: string, photoId: string) => void;
-  updateLitCities: (cities: GeoInfo[]) => Promise<void>;
-  updateHeroImages: (images: HeroImage[]) => Promise<void>;
-  updateAnimationConfig: (config: AnimationConfig) => Promise<void>;
+  updateCollections: (collections: PhotoCollection[]) => Promise<boolean>;
+  updateAboutInfo: (aboutInfo: AboutInfo) => Promise<boolean>;
+  addPhoto: (collectionId: string, photo: Photo) => Promise<boolean>;
+  removePhoto: (collectionId: string, photoId: string) => Promise<boolean>;
+  updateLitCities: (cities: GeoInfo[]) => Promise<boolean>;
+  updateHeroImages: (images: HeroImage[]) => Promise<boolean>;
+  updateAnimationConfig: (config: AnimationConfig) => Promise<boolean>;
 }
 
 const defaultAboutInfo: AboutInfo = {
@@ -111,146 +111,60 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [animationConfig, setAnimationConfig] = useState<AnimationConfig>(defaultAnimationConfig);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Save to both Supabase (cloud) and IndexedDB (local cache)
-  // Strategy: save locally first (instant), then sync to cloud async.
-  // If cloud fails, mark as pending sync so next load can retry.
-  const saveToAll = useCallback(async <T,>(key: string, value: T) => {
-    const jsonSize = JSON.stringify(value).length;
-    console.log(`[saveToAll] saving "${key}" (${(jsonSize / 1024).toFixed(1)} KB)...`);
-    // Save locally with timestamp (always succeeds or throws)
-    const ts = await dbSetWithMeta(key, value, false);
-    // Then try cloud
-    if (isSupabaseConfigured()) {
-      try {
-        await supabaseSet(key, value);
-        // Mark as synced
-        await dbSetWithMeta(key, value, true).catch(() => {});
-        console.log(`[Supabase] saved "${key}" successfully`);
-      } catch (e) {
-        console.error(`[Supabase] save "${key}" failed (local ts=${ts}):`, e);
-      }
-    }
-  }, []);
-
   useEffect(() => {
     let cancelled = false;
 
     const loadData = async () => {
       const useCloud = isSupabaseConfigured();
-      let cloudReachable = false;
 
-      // Helper: load a key with timestamp-based conflict resolution.
-      // 1. Read cloud value + cloud updated_at
-      // 2. Read local value + local updatedAt from meta
-      // 3. If both exist, pick the one with the newer timestamp
-      // 4. Sync the winner to the other store
+      // Simple load strategy:
+      // 1. If cloud is configured, try cloud first (it's the authority for cross-device sync)
+      // 2. Fall back to IndexedDB (local cache)
+      // 3. Fall back to localStorage (legacy migration)
       async function loadKey<T>(key: string): Promise<T | undefined> {
-        let cloudVal: T | undefined;
-        let cloudTs = 0; // epoch ms from cloud updated_at
-        let cloudFound = false;
-        let cloudReached = false;
-        let localVal: T | undefined;
-        let localTs = 0;
-        let localCloudSynced = true;
-
         // 1. Try Supabase
         if (useCloud) {
           try {
             const result = await supabaseGetDetailed<T>(key);
-            cloudReached = true;
-            cloudReachable = true;
-            if (result.found) {
-              cloudFound = true;
-              cloudVal = result.value;
-              cloudTs = result.updatedAt || 0;
+            if (result.found && result.value !== undefined) {
+              // Cache to local
+              dbSet(key, result.value).catch(() => {});
+              return result.value;
             }
+            // Cloud reachable but key not found — fall through to local
           } catch (e) {
-            console.warn(`[DataContext] Supabase read failed for "${key}", falling back to local`, e);
+            console.warn(`[DataContext] Cloud read failed for "${key}", using local`, e);
           }
         }
 
         // 2. Try IndexedDB
         try {
-          localVal = await dbGet<T>(key);
-          const meta = await dbGetMeta(key);
-          if (meta) {
-            localTs = meta.updatedAt;
-            localCloudSynced = meta.cloudSynced;
+          const val = await dbGet<T>(key);
+          if (val !== undefined) {
+            // If cloud is configured and we're using local fallback, try to sync up
+            if (useCloud) {
+              supabaseSetWithRetry(key, val).catch(() => {});
+            }
+            return val;
           }
         } catch (e) {
           console.warn(`[DataContext] IndexedDB read failed for "${key}"`, e);
         }
 
         // 3. Try localStorage (migration)
-        if (localVal === undefined) {
-          const ls = localStorage.getItem(key);
-          if (ls) {
-            try { localVal = JSON.parse(ls) as T; } catch {}
+        const ls = localStorage.getItem(key);
+        if (ls) {
+          try {
+            const parsed = JSON.parse(ls) as T;
             localStorage.removeItem(key);
-          }
+            return parsed;
+          } catch {}
         }
 
-        // Decision logic with timestamp comparison:
-        if (cloudReached && cloudFound && localVal !== undefined) {
-          // Both exist — compare timestamps
-          if (localTs > 0 && cloudTs > 0) {
-            if (localTs > cloudTs + 2000) {
-              // Local is newer (2s grace for clock skew)
-              console.log(`[DataContext] "${key}": local is newer (local=${new Date(localTs).toISOString()}, cloud=${new Date(cloudTs).toISOString()}), using local`);
-              // Sync local to cloud in background
-              if (!localCloudSynced) {
-                supabaseSet(key, localVal).then(() => {
-                  dbSetWithMeta(key, localVal as T, true).catch(() => {});
-                  console.log(`[DataContext] synced "${key}" to cloud`);
-                }).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
-              }
-              return localVal;
-            } else {
-              // Cloud is same or newer — use cloud
-              console.log(`[DataContext] "${key}": using cloud data (cloud=${new Date(cloudTs).toISOString()}, local=${new Date(localTs).toISOString()})`);
-              dbSetWithMeta(key, cloudVal!, true).catch(() => {});
-              return cloudVal;
-            }
-          } else if (localTs > 0 && !localCloudSynced) {
-            // Local has timestamp but cloud doesn't — local was never synced
-            console.log(`[DataContext] "${key}": local has pending sync, using local`);
-            supabaseSet(key, localVal).then(() => {
-              dbSetWithMeta(key, localVal as T, true).catch(() => {});
-            }).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
-            return localVal;
-          } else {
-            // No timestamp info — cloud is authority (backward compat)
-            // But: if cloud is empty array and local has data, prefer local
-            if (Array.isArray(cloudVal) && cloudVal.length === 0 && Array.isArray(localVal) && localVal.length > 0) {
-              console.log(`[DataContext] "${key}": cloud is empty array but local has ${localVal.length} items, using local`);
-              supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
-              dbSet(key, localVal).catch(() => {});
-              return localVal;
-            }
-            dbSetWithMeta(key, cloudVal!, true).catch(() => {});
-            return cloudVal;
-          }
-        } else if (cloudReached && cloudFound) {
-          // Only cloud has data
-          dbSetWithMeta(key, cloudVal!, true).catch(() => {});
-          return cloudVal;
-        } else if (cloudReached && !cloudFound) {
-          // Cloud reachable but key not found
-          if (localVal !== undefined) {
-            console.log(`[DataContext] "${key}": cloud reachable but key not found, pushing local data to cloud`);
-            supabaseSet(key, localVal).then(() => {
-              dbSetWithMeta(key, localVal as T, true).catch(() => {});
-            }).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
-            return localVal;
-          }
-          return undefined;
-        } else {
-          // Cloud not reachable — use local
-          return localVal;
-        }
+        return undefined;
       }
 
-      // Load all keys in PARALLEL to avoid serial latency
+      // Load all keys in PARALLEL
       const [savedCollections, savedAbout, savedCities, savedHero, savedAnim] = await Promise.all([
         loadKey<PhotoCollection[]>('photo_collections'),
         loadKey<AboutInfo>('about_info'),
@@ -279,7 +193,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (savedAnim) setAnimationConfig(savedAnim);
 
       // Fall back to seed file only if nothing was found anywhere
-      const hasAnyData = savedCollections !== undefined || !!savedAbout || cloudReachable;
+      const hasAnyData = savedCollections !== undefined || !!savedAbout;
       if (!hasAnyData) {
         try {
           const res = await fetch('/portfolio-data.json');
@@ -289,55 +203,38 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (seed.collections && seed.collections.length > 0) {
               const fixed = fixDuplicatePhotoIds(seed.collections);
               setCollections(fixed);
-              saveToAll('photo_collections', fixed);
+              saveToCloud('photo_collections', fixed);
             }
-            if (seed.aboutInfo) { setAboutInfo(seed.aboutInfo); saveToAll('about_info', seed.aboutInfo); }
-            if (seed.litCities) { setLitCities(seed.litCities); saveToAll('lit_cities', seed.litCities); }
-            if (seed.heroImages && seed.heroImages.length > 0) { setHeroImages(seed.heroImages); saveToAll('hero_images', seed.heroImages); }
-            if (seed.animationConfig) { setAnimationConfig(seed.animationConfig); saveToAll('animation_config', seed.animationConfig); }
+            if (seed.aboutInfo) { setAboutInfo(seed.aboutInfo); saveToCloud('about_info', seed.aboutInfo); }
+            if (seed.litCities) { setLitCities(seed.litCities); saveToCloud('lit_cities', seed.litCities); }
+            if (seed.heroImages && seed.heroImages.length > 0) { setHeroImages(seed.heroImages); saveToCloud('hero_images', seed.heroImages); }
+            if (seed.animationConfig) { setAnimationConfig(seed.animationConfig); saveToCloud('animation_config', seed.animationConfig); }
             console.log('[DataContext] Loaded seed data from portfolio-data.json');
           }
         } catch (e) {
           if (cancelled) return;
           console.log('[DataContext] No seed data file found, using defaults');
           setCollections(mockCollections);
-          saveToAll('photo_collections', mockCollections);
-          saveToAll('about_info', defaultAboutInfo);
+          saveToCloud('photo_collections', mockCollections);
+          saveToCloud('about_info', defaultAboutInfo);
         }
       }
 
-      // Retry any pending cloud syncs (data saved locally but cloud write previously failed)
-      if (useCloud && cloudReachable) {
-        try {
-          const pendingKeys = await dbGetPendingSyncKeys();
-          if (pendingKeys.length > 0) {
-            console.log(`[DataContext] Retrying cloud sync for ${pendingKeys.length} keys:`, pendingKeys);
-            for (const pk of pendingKeys) {
-              try {
-                const val = await dbGet(pk);
-                if (val !== undefined) {
-                  await supabaseSet(pk, val);
-                  await dbSetWithMeta(pk, val, true);
-                  console.log(`[DataContext] Retry sync "${pk}" succeeded`);
-                }
-              } catch (e) {
-                console.warn(`[DataContext] Retry sync "${pk}" failed:`, e);
-              }
-            }
-          }
-        } catch (e) {
-          console.warn('[DataContext] Failed to check pending syncs:', e);
-        }
-      }
-
-      // Sync API keys (ImgBB, Newsletter) from cloud to local if missing
+      // Sync API keys
       await Promise.all([
         syncImgbbKeyFromCloud().catch(() => {}),
         syncNewsletterKeyFromCloud().catch(() => {}),
       ]);
     };
 
-    // Guarantee dataLoaded is set to true even if loadData throws/hangs
+    // Helper for seeding
+    async function saveToCloud<T>(key: string, value: T) {
+      dbSet(key, value).catch(() => {});
+      if (isSupabaseConfigured()) {
+        supabaseSetWithRetry(key, value).catch(() => {});
+      }
+    }
+
     const LOAD_TIMEOUT = 20000;
     let resolved = false;
 
@@ -369,89 +266,90 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save to both IndexedDB (local) and Supabase (cloud).
-  // Local save is instant and blocking. Cloud save is async — if it fails,
-  // the data is marked as "pending sync" and will be pushed to cloud on next load.
-  // This means the UI never blocks on slow cloud writes.
-  const saveStrict = useCallback(async <T,>(key: string, value: T) => {
+  /**
+   * Save to both IndexedDB AND Supabase. WAITS for cloud write to complete.
+   * Returns true if cloud write succeeded, false if it failed.
+   * Local write always happens regardless.
+   */
+  const save = useCallback(async <T,>(key: string, value: T): Promise<boolean> => {
     const jsonSize = JSON.stringify(value).length;
-    console.log(`[saveStrict] saving "${key}" (${(jsonSize / 1024).toFixed(1)} KB)...`);
-    // Local save — must succeed, with timestamp
-    const ts = await dbSetWithMeta(key, value, false);
-    console.log(`[saveStrict] local save done for "${key}" (ts=${ts})`);
-    // Cloud save — fire and forget (don't block UI)
+    console.log(`[save] "${key}" (${(jsonSize / 1024).toFixed(1)} KB)...`);
+
+    // Always save locally first
+    dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
+
+    // Save to cloud — AWAIT it, with retry
     if (isSupabaseConfigured()) {
-      supabaseSet(key, value).then(() => {
-        // Mark cloud as synced
-        dbSetWithMeta(key, value, true).catch(() => {});
-        console.log(`[Supabase] saved "${key}" successfully (${(jsonSize / 1024).toFixed(1)} KB)`);
-      }).catch((e: any) => {
-        console.error(`[Supabase] cloud save failed for "${key}" (will retry on next load):`, e);
-        // Data stays marked as cloudSynced=false, will be retried on next load
-      });
+      const ok = await supabaseSetWithRetry(key, value, 2);
+      if (ok) {
+        console.log(`[save] "${key}" cloud write OK`);
+        return true;
+      } else {
+        console.error(`[save] "${key}" cloud write FAILED after retries`);
+        return false;
+      }
     }
+
+    return true; // No cloud configured, local-only is fine
   }, []);
 
-  const updateCollections = useCallback(async (newCollections: PhotoCollection[]) => {
-    // Guard: don't allow saving before data is loaded — initial [] would overwrite cloud
+  const updateCollections = useCallback(async (newCollections: PhotoCollection[]): Promise<boolean> => {
     if (!dataLoaded) {
       console.warn('[updateCollections] blocked: dataLoaded is false');
-      return;
+      return false;
     }
     setCollections(newCollections);
-    await saveStrict('photo_collections', newCollections);
-  }, [saveStrict, dataLoaded]);
+    return save('photo_collections', newCollections);
+  }, [save, dataLoaded]);
 
-  const updateAboutInfo = useCallback(async (newAboutInfo: AboutInfo) => {
-    if (!dataLoaded) { console.warn('[updateAboutInfo] blocked: dataLoaded is false'); return; }
+  const updateAboutInfo = useCallback(async (newAboutInfo: AboutInfo): Promise<boolean> => {
+    if (!dataLoaded) return false;
     setAboutInfo(newAboutInfo);
-    await saveStrict('about_info', newAboutInfo);
-  }, [saveStrict, dataLoaded]);
+    return save('about_info', newAboutInfo);
+  }, [save, dataLoaded]);
 
-  // Keep a ref to the latest collections for addPhoto/removePhoto
-  // so they can compute the new value AND properly await saveStrict.
   const collectionsRef = React.useRef(collections);
   React.useEffect(() => { collectionsRef.current = collections; }, [collections]);
 
-  const addPhoto = useCallback(async (collectionId: string, photo: Photo) => {
-    if (!dataLoaded) return;
+  const addPhoto = useCallback(async (collectionId: string, photo: Photo): Promise<boolean> => {
+    if (!dataLoaded) return false;
     const updated = collectionsRef.current.map(c =>
       c.id === collectionId
         ? { ...c, photos: [...c.photos, photo] }
         : c
     );
     setCollections(updated);
-    await saveStrict('photo_collections', updated);
-  }, [saveStrict, dataLoaded]);
+    return save('photo_collections', updated);
+  }, [save, dataLoaded]);
 
-  const removePhoto = useCallback(async (collectionId: string, photoId: string) => {
-    if (!dataLoaded) return;
+  const removePhoto = useCallback(async (collectionId: string, photoId: string): Promise<boolean> => {
+    if (!dataLoaded) return false;
     const updated = collectionsRef.current.map(c =>
       c.id === collectionId
         ? { ...c, photos: c.photos.filter(p => p.id !== photoId) }
         : c
     );
     setCollections(updated);
-    await saveStrict('photo_collections', updated);
-  }, [saveStrict, dataLoaded]);
+    return save('photo_collections', updated);
+  }, [save, dataLoaded]);
 
-  const updateLitCities = useCallback(async (cities: GeoInfo[]) => {
-    if (!dataLoaded) return;
+  const updateLitCities = useCallback(async (cities: GeoInfo[]): Promise<boolean> => {
+    if (!dataLoaded) return false;
     setLitCities(cities);
-    await saveStrict('lit_cities', cities);
-  }, [saveStrict, dataLoaded]);
+    return save('lit_cities', cities);
+  }, [save, dataLoaded]);
 
-  const updateHeroImages = useCallback(async (images: HeroImage[]) => {
-    if (!dataLoaded) return;
+  const updateHeroImages = useCallback(async (images: HeroImage[]): Promise<boolean> => {
+    if (!dataLoaded) return false;
     setHeroImages(images);
-    await saveStrict('hero_images', images);
-  }, [saveStrict, dataLoaded]);
+    return save('hero_images', images);
+  }, [save, dataLoaded]);
 
-  const updateAnimationConfig = useCallback(async (config: AnimationConfig) => {
-    if (!dataLoaded) return;
+  const updateAnimationConfig = useCallback(async (config: AnimationConfig): Promise<boolean> => {
+    if (!dataLoaded) return false;
     setAnimationConfig(config);
-    await saveStrict('animation_config', config);
-  }, [saveStrict, dataLoaded]);
+    return save('animation_config', config);
+  }, [save, dataLoaded]);
 
   return (
     <DataContext.Provider value={{

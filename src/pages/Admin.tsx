@@ -535,20 +535,24 @@ const Admin: React.FC = () => {
         order: hasManualOrder ? (maxOrder as number) + 1 : undefined,
       };
 
-      await updateCollections([...collections, collection]);
-      setIsCreatingCollection(false);
-      showToast('作品集创建成功');
-      setNewCollection({
-        title: '',
-        location: '',
-        year: lastUsedYear,
-        description: '',
-        coverImage: '',
-        coverTitle: '',
-        hoverLocation: '',
-        photos: [],
-        geo: undefined,
-      });
+      const ok = await updateCollections([...collections, collection]);
+      if (ok) {
+        setIsCreatingCollection(false);
+        showToast('作品集创建成功');
+        setNewCollection({
+          title: '',
+          location: '',
+          year: lastUsedYear,
+          description: '',
+          coverImage: '',
+          coverTitle: '',
+          hoverLocation: '',
+          photos: [],
+          geo: undefined,
+        });
+      } else {
+        alert('云端保存失败，数据可能未同步到其他设备。请检查网络后重试。');
+      }
     } catch (e) {
       console.error('创建作品集失败:', e);
       alert('保存失败，请重试');
@@ -583,8 +587,8 @@ const Admin: React.FC = () => {
   };
 
   const handleSaveAbout = async () => {
-    await updateAboutInfo(editedAboutInfo);
-    showToast('关于我页面已保存');
+    const ok = await updateAboutInfo(editedAboutInfo);
+    showToast(ok ? '关于我页面已保存' : '云端保存失败，请重试');
   };
 
   // Track if about info has unsaved changes
