@@ -9,6 +9,8 @@ const Home: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => { document.title = '小冰块 - 摄影集'; }, []);
   const [heroLoaded, setHeroLoaded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);

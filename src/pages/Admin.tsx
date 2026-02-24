@@ -227,6 +227,8 @@ const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('home');
+
+  useEffect(() => { document.title = '小冰块 - 摄影集 - 管理后台'; }, []);
   const [editingCollection, setEditingCollection] = useState<string | null>(null);
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [isSavingCollection, setIsSavingCollection] = useState(false);

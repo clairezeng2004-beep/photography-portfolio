@@ -34,6 +34,12 @@ const Gallery: React.FC = () => {
 
   const collection = collections.find(c => c.id === id);
 
+  useEffect(() => {
+    document.title = collection
+      ? `小冰块 - 摄影集 - ${collection.title}`
+      : '小冰块 - 摄影集 - 作品';
+  }, [collection]);
+
   // Recommend other collections (exclude current, pick up to 6, shuffled)
   const recommendedCollections = useMemo(() => {
     const others = collections.filter(c => c.id !== id);

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import './About.css';
 
 const About: React.FC = () => {
   const { aboutInfo } = useData();
+
+  useEffect(() => { document.title = '小冰块 - 摄影集 - 关于'; }, []);
 
   return (
     <div className="about-page">

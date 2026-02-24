@@ -483,6 +483,8 @@ const PageTransitionPreview: React.FC<{ transition: PageTransition; playing: boo
 const AnimationPlayground: React.FC = () => {
   const { animationConfig, updateAnimationConfig } = useData();
 
+  useEffect(() => { document.title = '小冰块 - 摄影集 - 动画实验'; }, []);
+
   const [hero, setHero] = useState<HeroTransition>(animationConfig.heroTransition);
   const [intro, setIntro] = useState<IntroAnimation>(animationConfig.introAnimation);
   const [card, setCard] = useState<CardAnimation>(animationConfig.cardAnimation);
