@@ -300,31 +300,38 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const updateCollections = useCallback(async (newCollections: PhotoCollection[]) => {
+    // Guard: don't allow saving before data is loaded — initial [] would overwrite cloud
+    if (!dataLoaded) {
+      console.warn('[updateCollections] blocked: dataLoaded is false');
+      return;
+    }
     setCollections(newCollections);
     await saveStrict('photo_collections', newCollections);
-  }, [saveStrict]);
+  }, [saveStrict, dataLoaded]);
 
   const updateAboutInfo = useCallback(async (newAboutInfo: AboutInfo) => {
+    if (!dataLoaded) { console.warn('[updateAboutInfo] blocked: dataLoaded is false'); return; }
     setAboutInfo(newAboutInfo);
     await saveStrict('about_info', newAboutInfo);
-  }, [saveStrict]);
+  }, [saveStrict, dataLoaded]);
 
   const addPhoto = useCallback(async (collectionId: string, photo: Photo) => {
+    if (!dataLoaded) return;
     setCollections(prev => {
       const updated = prev.map(c =>
         c.id === collectionId
           ? { ...c, photos: [...c.photos, photo] }
           : c
       );
-      // Save to both in background — use saveStrict for cloud reliability
       saveStrict('photo_collections', updated).catch(e =>
         console.error('[addPhoto] save failed:', e)
       );
       return updated;
     });
-  }, [saveStrict]);
+  }, [saveStrict, dataLoaded]);
 
   const removePhoto = useCallback(async (collectionId: string, photoId: string) => {
+    if (!dataLoaded) return;
     setCollections(prev => {
       const updated = prev.map(c =>
         c.id === collectionId
@@ -336,22 +343,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       );
       return updated;
     });
-  }, [saveStrict]);
+  }, [saveStrict, dataLoaded]);
 
   const updateLitCities = useCallback(async (cities: GeoInfo[]) => {
+    if (!dataLoaded) return;
     setLitCities(cities);
     await saveStrict('lit_cities', cities);
-  }, [saveStrict]);
+  }, [saveStrict, dataLoaded]);
 
   const updateHeroImages = useCallback(async (images: HeroImage[]) => {
+    if (!dataLoaded) return;
     setHeroImages(images);
     await saveStrict('hero_images', images);
-  }, [saveStrict]);
+  }, [saveStrict, dataLoaded]);
 
   const updateAnimationConfig = useCallback(async (config: AnimationConfig) => {
+    if (!dataLoaded) return;
     setAnimationConfig(config);
     await saveStrict('animation_config', config);
-  }, [saveStrict]);
+  }, [saveStrict, dataLoaded]);
 
   return (
     <DataContext.Provider value={{
