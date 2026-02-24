@@ -299,14 +299,13 @@
 
 /* Country name labels */
 .country-label {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 9px;
   fill: #a09a90;
   text-anchor: middle;
   pointer-events: none;
   font-weight: 400;
-  font-style: italic;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   paint-order: stroke;
   stroke: rgba(250, 249, 247, 0.8);
   stroke-width: 3px;

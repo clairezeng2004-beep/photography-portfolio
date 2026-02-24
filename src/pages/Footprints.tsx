@@ -120,25 +120,108 @@ function filterOverlappingLabels(
 }
 
 /* ============================================================
+   Region filters: ISO numeric IDs for each TAB's visible area
+   ============================================================ */
+const REGION_COUNTRY_IDS: Record<Exclude<Continent, 'all'>, Set<string>> = {
+  china: new Set(['156']), // Only China itself
+  asia: new Set([
+    '156', // China
+    '392', // Japan
+    '410', // South Korea
+    '408', // North Korea
+    '764', // Thailand
+    '704', // Vietnam
+    '702', // Singapore
+    '458', // Malaysia
+    '360', // Indonesia
+    '608', // Philippines
+    '356', // India
+    '496', // Mongolia
+    '104', // Myanmar
+    '418', // Laos
+    '116', // Cambodia
+    '144', // Sri Lanka
+    '586', // Pakistan
+    '050', // Bangladesh
+    '524', // Nepal
+    '064', // Bhutan
+    '626', // East Timor
+    '096', // Brunei
+    '398', // Kazakhstan
+    '762', // Tajikistan
+    '417', // Kyrgyzstan
+    '860', // Uzbekistan
+    '795', // Turkmenistan
+    '004', // Afghanistan
+    '643', // Russia (shown partially)
+    '036', // Australia (shown partially for context)
+    '158', // Taiwan
+  ]),
+  europe: new Set([
+    '348', // Hungary
+    '250', // France
+    '826', // UK
+    '380', // Italy
+    '276', // Germany
+    '724', // Spain
+    '040', // Austria
+    '203', // Czechia
+    '528', // Netherlands
+    '056', // Belgium
+    '620', // Portugal
+    '756', // Switzerland
+    '616', // Poland
+    '300', // Greece
+    '752', // Sweden
+    '578', // Norway
+    '246', // Finland
+    '208', // Denmark
+    '642', // Romania
+    '792', // Turkey
+    '643', // Russia
+    '804', // Ukraine
+    '191', // Croatia
+    '008', // Albania
+    '070', // Bosnia
+    '100', // Bulgaria
+    '688', // Serbia
+    '498', // Moldova
+    '112', // Belarus
+    '440', // Lithuania
+    '428', // Latvia
+    '233', // Estonia
+    '372', // Ireland
+    '352', // Iceland
+    '807', // North Macedonia
+    '499', // Montenegro
+    '705', // Slovenia
+    '703', // Slovakia
+    '442', // Luxembourg
+    '470', // Malta
+    '196', // Cyprus
+  ]),
+};
+
+/* ============================================================
    ISO numeric → country English name (for map labels)
    ============================================================ */
 const COUNTRY_NUMERIC_TO_NAME: Record<string, string> = {
-  '156': 'China', '392': 'Japan', '410': 'Korea', '764': 'Thailand', '704': 'Vietnam',
-  '702': 'Singapore', '458': 'Malaysia', '360': 'Indonesia', '608': 'Philippines', '356': 'India',
-  '496': 'Mongolia', '348': 'Hungary', '250': 'France', '826': 'UK', '380': 'Italy',
-  '276': 'Germany', '724': 'Spain', '040': 'Austria', '203': 'Czechia', '528': 'Netherlands',
-  '056': 'Belgium', '620': 'Portugal', '756': 'Switzerland', '616': 'Poland', '300': 'Greece',
-  '752': 'Sweden', '578': 'Norway', '246': 'Finland', '208': 'Denmark', '642': 'Romania',
-  '792': 'Turkey', '643': 'Russia', '804': 'Ukraine', '191': 'Croatia',
-  '840': 'USA', '124': 'Canada', '036': 'Australia', '076': 'Brazil', '032': 'Argentina',
-  '484': 'Mexico', '818': 'Egypt', '710': 'South Africa', '682': 'Saudi Arabia', '784': 'UAE',
-  '404': 'Kenya', '566': 'Nigeria', '586': 'Pakistan', '050': 'Bangladesh',
-  '104': 'Myanmar', '418': 'Laos', '116': 'Cambodia', '144': 'Sri Lanka',
-  '408': 'N. Korea', '398': 'Kazakhstan', '860': 'Uzbekistan',
-  '364': 'Iran', '368': 'Iraq', '760': 'Syria', '400': 'Jordan', '376': 'Israel',
-  '008': 'Albania', '070': 'Bosnia', '100': 'Bulgaria', '688': 'Serbia',
-  '498': 'Moldova', '112': 'Belarus', '440': 'Lithuania', '428': 'Latvia', '233': 'Estonia',
-  '372': 'Ireland', '352': 'Iceland',
+  '156': '中国', '392': '日本', '410': '韩国', '764': '泰国', '704': '越南',
+  '702': '新加坡', '458': '马来西亚', '360': '印度尼西亚', '608': '菲律宾', '356': '印度',
+  '496': '蒙古', '348': '匈牙利', '250': '法国', '826': '英国', '380': '意大利',
+  '276': '德国', '724': '西班牙', '040': '奥地利', '203': '捷克', '528': '荷兰',
+  '056': '比利时', '620': '葡萄牙', '756': '瑞士', '616': '波兰', '300': '希腊',
+  '752': '瑞典', '578': '挪威', '246': '芬兰', '208': '丹麦', '642': '罗马尼亚',
+  '792': '土耳其', '643': '俄罗斯', '804': '乌克兰', '191': '克罗地亚',
+  '840': '美国', '124': '加拿大', '036': '澳大利亚', '076': '巴西', '032': '阿根廷',
+  '484': '墨西哥', '818': '埃及', '710': '南非', '682': '沙特阿拉伯', '784': '阿联酋',
+  '404': '肯尼亚', '566': '尼日利亚', '586': '巴基斯坦', '050': '孟加拉国',
+  '104': '缅甸', '418': '老挝', '116': '柬埔寨', '144': '斯里兰卡',
+  '408': '朝鲜', '398': '哈萨克斯坦', '860': '乌兹别克斯坦',
+  '364': '伊朗', '368': '伊拉克', '760': '叙利亚', '400': '约旦', '376': '以色列',
+  '008': '阿尔巴尼亚', '070': '波黑', '100': '保加利亚', '688': '塞尔维亚',
+  '498': '摩尔多瓦', '112': '白俄罗斯', '440': '立陶宛', '428': '拉脱维亚', '233': '爱沙尼亚',
+  '372': '爱尔兰', '352': '冰岛',
 };
 
 /* ============================================================
@@ -294,8 +377,12 @@ const Footprints: React.FC = () => {
 
   // Determine which features to show based on continent
   const visibleFeatures = useMemo(() => {
-    return (countriesGeo.features as any[]);
-  }, []);
+    const allFeatures = countriesGeo.features as any[];
+    if (activeContinent === 'all') return allFeatures;
+    const regionIds = REGION_COUNTRY_IDS[activeContinent];
+    if (!regionIds) return allFeatures;
+    return allFeatures.filter((f: any) => regionIds.has(String(f.id)));
+  }, [activeContinent]);
 
   // Zoom handlers
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -434,7 +521,7 @@ const Footprints: React.FC = () => {
             <p className="preview-location">{previewCollection.location} · {previewCollection.year}</p>
             {previewCollection.description && <p className="preview-desc">{previewCollection.description}</p>}
             <Link to={`/gallery/${previewCollection.id}`} className="preview-link" onClick={() => { setPreviewCollection(null); setSelectedCityGroup(null); }}>
-              View Full Gallery →
+              查看完整图集 →
             </Link>
           </div>
         </div>
@@ -483,7 +570,7 @@ const Footprints: React.FC = () => {
               <p className="preview-location">{geo.city}, {geo.country} · {c.year}</p>
               {c.description && <p className="preview-desc">{c.description}</p>}
               <Link to={`/gallery/${c.id}`} className="preview-link" onClick={() => setSelectedCityGroup(null)}>
-                View Full Gallery →
+                查看完整图集 →
               </Link>
             </div>
           </div>
@@ -669,26 +756,33 @@ const Footprints: React.FC = () => {
                 return lines;
               })()}
 
-              {/* Land mass */}
-              {landGeo.features.map((feature: any, i: number) => {
-                const d = pathGenerator(feature as GeoPermissibleObjects);
-                return d ? (
-                  <path key={`land-${i}`} d={d} className="land-shadow" filter="url(#landShadow)" />
-                ) : null;
-              })}
+              {/* Land mass — only region countries when not ALL */}
+              {activeContinent === 'all' ? (
+                landGeo.features.map((feature: any, i: number) => {
+                  const d = pathGenerator(feature as GeoPermissibleObjects);
+                  return d ? (
+                    <path key={`land-${i}`} d={d} className="land-shadow" filter="url(#landShadow)" />
+                  ) : null;
+                })
+              ) : activeContinent === 'china' && chinaGeoJson ? (
+                chinaGeoJson.features.map((feature: any, i: number) => {
+                  const d = pathGenerator(feature as GeoPermissibleObjects);
+                  return d ? (
+                    <path key={`land-${i}`} d={d} className="land-shadow" filter="url(#landShadow)" />
+                  ) : null;
+                })
+              ) : (
+                visibleFeatures.map((feature: any, i: number) => {
+                  const d = pathGenerator(feature as GeoPermissibleObjects);
+                  return d ? (
+                    <path key={`land-${i}`} d={d} className="land-shadow" filter="url(#landShadow)" />
+                  ) : null;
+                })
+              )}
 
               {/* Country shapes */}
               {activeContinent === 'china' && chinaGeoJson ? (
                 <>
-                  {/* Non-China countries (dimmed, no border) */}
-                  {visibleFeatures.map((feature: any, i: number) => {
-                    const d = pathGenerator(feature as GeoPermissibleObjects);
-                    if (!d) return null;
-                    const numId = feature.id;
-                    const code = COUNTRY_NUMERIC_TO_CODE[numId] || '';
-                    if (code === 'CN') return null;
-                    return <path key={`country-${i}`} d={d} className="country-path country-dim" style={{ opacity: 0.3 }} />;
-                  })}
                   {/* China province shapes */}
                   {chinaGeoJson.features.map((feature: any, i: number) => {
                     const d = pathGenerator(feature as GeoPermissibleObjects);
