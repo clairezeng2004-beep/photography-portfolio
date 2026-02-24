@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Photo } from '../types';
@@ -27,9 +27,6 @@ function groupPhotoRows(photos: Photo[]): PhotoRow[] {
 const Gallery: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { collections } = useData();
-  const [recVisible, setRecVisible] = useState(false);
-  const recObserverRef = useRef<IntersectionObserver | null>(null);
-  const recRef = useRef<HTMLDivElement>(null);
 
   const collection = collections.find(c => c.id === id);
 
@@ -48,28 +45,7 @@ const Gallery: React.FC = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setRecVisible(false);
   }, [id]);
-
-  useEffect(() => {
-    recObserverRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setRecVisible(true);
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -30px 0px' }
-    );
-    return () => recObserverRef.current?.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (recRef.current && recObserverRef.current) {
-      recObserverRef.current.observe(recRef.current);
-    }
-  }, [collection]);
 
   // useMemo must be called before any conditional return (rules of hooks)
   const hasAnnotations = collection?.photos.some(p => p.caption || p.footnote) ?? false;
@@ -162,11 +138,7 @@ const Gallery: React.FC = () => {
 
       {/* Recommendation Cards */}
       {recommendedCollections.length > 0 && (
-        <div
-          className={`gallery-recommendations ${recVisible ? 'visible' : ''}`}
-          ref={recRef}
-          data-index="__rec__"
-        >
+        <div className="gallery-recommendations">
           <div className="rec-header">
             <span className="rec-label">Explore More</span>
             <h2 className="rec-title">更多</h2>
@@ -177,7 +149,6 @@ const Gallery: React.FC = () => {
                 key={c.id}
                 to={`/gallery/${c.id}`}
                 className="rec-card"
-                style={{ transitionDelay: `${i * 0.08}s` }}
               >
                 <div className="rec-card-image">
                   <img src={c.photos?.[0]?.thumbnail || c.coverImage} alt={c.title} loading="lazy" />
