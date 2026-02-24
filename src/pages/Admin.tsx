@@ -1897,7 +1897,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   return (
     <div className={`collection-card ${isEditing ? 'editing' : ''}`}>
       <div className="card-image">
-        <img src={isEditing ? coverImage : collection.coverImage} alt={collection.title} />
+        <img src={isEditing ? (cardCoverImage || coverImage) : (collection.cardCoverImage || collection.coverImage)} alt={collection.title} />
         <div className="card-overlay">
           <button
             className="btn-icon"

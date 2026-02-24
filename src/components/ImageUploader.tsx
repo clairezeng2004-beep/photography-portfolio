@@ -358,6 +358,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const [uploadProgress, setUploadProgress] = useState('');
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previewImgRef = useRef<HTMLImageElement | null>(null);
 
   const maybeUploadToHost = async (
     imageBase64: string,
@@ -488,10 +490,28 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     setCropSource(imageUrl);
     setCroppedAreaPixels(null);
     setCropOpen(true);
+    // Pre-load full-res image for preview canvas
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imageUrl;
+    previewImgRef.current = img;
   };
 
   const onCropArea = useCallback((area: { x: number; y: number; width: number; height: number }) => {
     setCroppedAreaPixels(area);
+    // Render preview
+    const canvas = previewCanvasRef.current;
+    const img = previewImgRef.current;
+    if (!canvas || !img || !img.complete) return;
+    const previewW = 300;
+    const previewH = Math.round(previewW * (area.height / area.width));
+    canvas.width = previewW;
+    canvas.height = previewH;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, previewW, previewH);
+      ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, previewW, previewH);
+    }
   }, []);
 
   const handleApplyCrop = async () => {
@@ -717,6 +737,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                   </div>
                 </div>
                 <div className="crop-note">拖动裁剪框移动位置，拖拽四角调整大小</div>
+                <div className="crop-preview-section">
+                  <label>裁剪预览</label>
+                  <div className="crop-preview-container">
+                    <canvas ref={previewCanvasRef} />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="crop-footer">

@@ -800,7 +800,7 @@
 
 .card-image {
   position: relative;
-  height: 200px;
+  aspect-ratio: 3 / 4;
   overflow: hidden;
 }
 
