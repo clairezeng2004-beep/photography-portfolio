@@ -17,6 +17,10 @@ interface ImageUploaderProps {
   defaultOutputWidth?: number;
   allowUpload?: boolean;
   emptyHint?: string;
+  /** Max width for compression (default 2000) */
+  compressMaxWidth?: number;
+  /** JPEG quality for compression 0-1 (default 0.82) */
+  compressQuality?: number;
 }
 
 const DEFAULT_ASPECT_OPTIONS = [
@@ -25,6 +29,35 @@ const DEFAULT_ASPECT_OPTIONS = [
   { label: '1:1', value: 1 },
   { label: '9:16', value: 9 / 16 },
 ];
+
+/**
+ * Compress an image: resize to maxWidth and encode as JPEG with given quality.
+ * Returns a base64 data URL. If the image is already smaller than maxWidth, only re-encodes.
+ */
+function compressImage(
+  base64Data: string,
+  maxWidth: number,
+  quality: number
+): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      let w = img.width;
+      let h = img.height;
+      if (w > maxWidth) {
+        h = Math.round(h * (maxWidth / w));
+        w = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = base64Data;
+  });
+}
 
 /* ============================================================
    DragCropper: 锁定比例，拖拽裁剪框四角来调整大小和位置
@@ -305,7 +338,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   defaultCropAspect,
   defaultOutputWidth = 1600,
   allowUpload = true,
-  emptyHint = '请先选择图片'
+  emptyHint = '请先选择图片',
+  compressMaxWidth = 2000,
+  compressQuality = 0.82,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -427,7 +462,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
           canvas.height = outputHeight;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, outputWidth, outputHeight);
-          resolve(canvas.toDataURL('image/jpeg', 0.9));
+          resolve(canvas.toDataURL('image/jpeg', compressQuality));
         } catch (err) {
           reject(err);
         }
@@ -482,8 +517,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         return;
       }
       try {
-        const thumbnailBase64 = await createThumbnail(imageBase64);
-        const { imageUrl, thumbnailUrl } = await maybeUploadToHost(imageBase64, thumbnailBase64);
+        // Compress: respect compressMaxWidth and compressQuality props
+        const compressed = await compressImage(imageBase64, compressMaxWidth, compressQuality);
+        const thumbnailBase64 = await createThumbnail(compressed);
+        const { imageUrl, thumbnailUrl } = await maybeUploadToHost(compressed, thumbnailBase64);
         onImageUpload(imageUrl, thumbnailUrl);
       } catch (err) {
         console.error('Upload error:', err);
@@ -503,26 +540,16 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       const reader = new FileReader();
       reader.onload = async (e) => {
         const imageBase64 = e.target?.result as string;
-        const img = new window.Image();
-        img.onload = async () => {
-          const canvas = document.createElement('canvas');
-          const maxSize = 400;
-          let width = img.width;
-          let height = img.height;
-          if (width > height) {
-            if (width > maxSize) { height *= maxSize / width; width = maxSize; }
-          } else {
-            if (height > maxSize) { width *= maxSize / height; height = maxSize; }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          const thumbnailBase64 = canvas.toDataURL('image/jpeg', 0.8);
-          const result = await maybeUploadToHost(imageBase64, thumbnailBase64);
+        try {
+          // Compress: respect compressMaxWidth and compressQuality props
+          const compressed = await compressImage(imageBase64, compressMaxWidth, compressQuality);
+          const thumbnailBase64 = await createThumbnail(compressed);
+          const result = await maybeUploadToHost(compressed, thumbnailBase64);
           resolve(result);
-        };
-        img.src = imageBase64;
+        } catch (err) {
+          console.error('processOneFile error:', err);
+          resolve(null);
+        }
       };
       reader.readAsDataURL(file);
     });

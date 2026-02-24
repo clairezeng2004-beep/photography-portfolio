@@ -2407,6 +2407,8 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   ]}
                   defaultCropAspect={16 / 9}
                   defaultOutputWidth={1920}
+                  compressMaxWidth={2500}
+                  compressQuality={0.85}
                 />
               </div>
               <div className="hero-item-mobile-cover">
@@ -2429,6 +2431,8 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   ]}
                   defaultCropAspect={9 / 16}
                   defaultOutputWidth={1080}
+                  compressMaxWidth={1200}
+                  compressQuality={0.85}
                 />
                 <button
                   className="btn btn-secondary btn-sm"
@@ -2462,6 +2466,8 @@ const HeroManager: React.FC<HeroManagerProps> = ({
           ]}
           defaultCropAspect={16 / 9}
           defaultOutputWidth={1920}
+          compressMaxWidth={2500}
+          compressQuality={0.85}
         />
         <button
           className="btn btn-secondary"
