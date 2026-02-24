@@ -2309,12 +2309,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
       <div className="tab-header">
         <h1>首页管理</h1>
         <div className="hero-manager-actions">
-          <button
-            className="btn btn-secondary"
-            onClick={handleReset}
-          >
-            从作品集同步
-          </button>
           {hasChanges && (
             <button className="btn btn-primary" onClick={handleSave}>
               <Check size={16} />
@@ -2327,7 +2321,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
       <div className="hero-manager-hint">
         <p>
           管理首页封面轮播图。你可以调整顺序、替换图片、编辑标题，也可以上传自定义图片。
-          点击「从作品集同步」可重置为作品集的封面图。
         </p>
       </div>
 
