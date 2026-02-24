@@ -200,7 +200,8 @@ const DragCropper: React.FC<{
 
     setCrop(newCrop);
     reportCrop(newCrop);
-  }, [imgLayout, crop, aspect, clampCrop, reportCrop]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imgLayout, aspect, clampCrop, reportCrop]);
 
   const handlePointerUp = useCallback(() => {
     dragState.current = null;
