@@ -1774,6 +1774,10 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [year, setYear] = useState(collection.year);
   const [geo, setGeo] = useState<GeoInfo | undefined>(collection.geo);
 
+  // Collapsible section states
+  const [showPhotosSection, setShowPhotosSection] = useState(false);
+  const [showGeoSection, setShowGeoSection] = useState(false);
+
   // City search state
   const [citySearchText, setCitySearchText] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
@@ -1980,88 +1984,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               rows={3}
             />
 
-            <div className="photos-section">
-              <div className="photos-section-header">
-                <h5>照片管理</h5>
-                <span className="photo-count">{collection.photos.length} 张</span>
-              </div>
-
-              <ImageUploader
-                onImageUpload={(url, thumb) => onAddPhoto(url, thumb)}
-                onMultiImageUpload={onAddPhotos}
-                label="添加新照片"
-                multiple
-              />
-
-              <div className="photos-grid-extended">
-                {collection.photos.map((photo) => (
-                  <div key={photo.id} className="photo-card-extended">
-                    <div className="photo-card-thumb">
-                      <img src={photo.thumbnail} alt={photo.alt} />
-                      <button
-                        className="remove-photo-btn"
-                        onClick={() => onRemovePhoto(photo.id)}
-                      >
-                        <X size={14} />
-                      </button>
-                      <button
-                        className="set-cover-btn"
-                        onClick={() => {
-                          const originalUrl = photo.url;
-                          autoCropToLandscape(originalUrl).then(landscape => {
-                            setCoverImage(landscape);
-                          }).catch(() => {
-                            setCoverImage(originalUrl);
-                          });
-                          autoCropToPortrait(originalUrl).then(portrait => {
-                            setCardCoverImage(portrait);
-                          }).catch(() => {});
-                        }}
-                        title="设为封面"
-                      >
-                        <ImageIcon size={12} />
-                        <span>封面</span>
-                      </button>
-                    </div>
-                    <div className="photo-card-fields">
-                      <div className="photo-layout-toggle">
-                        <button
-                          type="button"
-                          className={`layout-btn ${(!photo.layout || photo.layout === 'full') ? 'active' : ''}`}
-                          onClick={() => onUpdatePhoto(photo.id, { layout: 'full' })}
-                          title="单张一行"
-                        >
-                          单张
-                        </button>
-                        <button
-                          type="button"
-                          className={`layout-btn ${photo.layout === 'half' ? 'active' : ''}`}
-                          onClick={() => onUpdatePhoto(photo.id, { layout: 'half' })}
-                          title="两张并排（需连续两张都设为并排）"
-                        >
-                          并排
-                        </button>
-                      </div>
-                      <textarea
-                        className="photo-caption-input"
-                        value={photo.caption || ''}
-                        onChange={(e) => onUpdatePhoto(photo.id, { caption: e.target.value })}
-                        placeholder="图片前配文（出现在图片上方，用于图片组间叙事）"
-                        rows={2}
-                      />
-                      <input
-                        type="text"
-                        className="photo-footnote-input"
-                        value={photo.footnote || ''}
-                        onChange={(e) => onUpdatePhoto(photo.id, { footnote: e.target.value })}
-                        placeholder="脚注（图片下方小字）"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+            {/* 封面编辑 — 默认展开 */}
             <div className="inline-edit-advanced">
                 <div className="form-group">
                   <label>封面图片（横版，用于首页轮播等）</label>
@@ -2143,13 +2066,128 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                     </div>
                   )}
                 </div>
-
-                <GeoPicker
-                  value={geo}
-                  onChange={(g) => setGeo(g)}
-                  locationHint={location}
-                />
               </div>
+
+            {/* 作品集图片 — 折叠 */}
+            <div className="collapsible-section">
+              <button
+                type="button"
+                className={`collapsible-toggle ${showPhotosSection ? 'open' : ''}`}
+                onClick={() => setShowPhotosSection(!showPhotosSection)}
+              >
+                <span className="collapsible-toggle-icon">
+                  <ChevronDown size={14} />
+                </span>
+                <span>作品集图片上传 / 删除</span>
+                <span className="photo-count">{collection.photos.length} 张</span>
+              </button>
+              {showPhotosSection && (
+                <div className="collapsible-body">
+                  <ImageUploader
+                    onImageUpload={(url, thumb) => onAddPhoto(url, thumb)}
+                    onMultiImageUpload={onAddPhotos}
+                    label="添加新照片"
+                    multiple
+                  />
+
+                  <div className="photos-grid-extended">
+                    {collection.photos.map((photo) => (
+                      <div key={photo.id} className="photo-card-extended">
+                        <div className="photo-card-thumb">
+                          <img src={photo.thumbnail} alt={photo.alt} />
+                          <button
+                            className="remove-photo-btn"
+                            onClick={() => onRemovePhoto(photo.id)}
+                          >
+                            <X size={14} />
+                          </button>
+                          <button
+                            className="set-cover-btn"
+                            onClick={() => {
+                              const originalUrl = photo.url;
+                              autoCropToLandscape(originalUrl).then(landscape => {
+                                setCoverImage(landscape);
+                              }).catch(() => {
+                                setCoverImage(originalUrl);
+                              });
+                              autoCropToPortrait(originalUrl).then(portrait => {
+                                setCardCoverImage(portrait);
+                              }).catch(() => {});
+                            }}
+                            title="设为封面"
+                          >
+                            <ImageIcon size={12} />
+                            <span>封面</span>
+                          </button>
+                        </div>
+                        <div className="photo-card-fields">
+                          <div className="photo-layout-toggle">
+                            <button
+                              type="button"
+                              className={`layout-btn ${(!photo.layout || photo.layout === 'full') ? 'active' : ''}`}
+                              onClick={() => onUpdatePhoto(photo.id, { layout: 'full' })}
+                              title="单张一行"
+                            >
+                              单张
+                            </button>
+                            <button
+                              type="button"
+                              className={`layout-btn ${photo.layout === 'half' ? 'active' : ''}`}
+                              onClick={() => onUpdatePhoto(photo.id, { layout: 'half' })}
+                              title="两张并排（需连续两张都设为并排）"
+                            >
+                              并排
+                            </button>
+                          </div>
+                          <textarea
+                            className="photo-caption-input"
+                            value={photo.caption || ''}
+                            onChange={(e) => onUpdatePhoto(photo.id, { caption: e.target.value })}
+                            placeholder="图片前配文（出现在图片上方，用于图片组间叙事）"
+                            rows={2}
+                          />
+                          <input
+                            type="text"
+                            className="photo-footnote-input"
+                            value={photo.footnote || ''}
+                            onChange={(e) => onUpdatePhoto(photo.id, { footnote: e.target.value })}
+                            placeholder="脚注（图片下方小字）"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 位置信息 — 折叠，放在最后 */}
+            <div className="collapsible-section">
+              <button
+                type="button"
+                className={`collapsible-toggle ${showGeoSection ? 'open' : ''}`}
+                onClick={() => setShowGeoSection(!showGeoSection)}
+              >
+                <span className="collapsible-toggle-icon">
+                  <ChevronDown size={14} />
+                </span>
+                <span>位置信息</span>
+                {geo && (
+                  <span className="geo-status-badge active" style={{ marginLeft: 8 }}>
+                    <Map size={12} /> {geo.city}, {geo.country}
+                  </span>
+                )}
+              </button>
+              {showGeoSection && (
+                <div className="collapsible-body">
+                  <GeoPicker
+                    value={geo}
+                    onChange={(g) => setGeo(g)}
+                    locationHint={location}
+                  />
+                </div>
+              )}
+            </div>
 
             <div className="inline-edit-actions">
               <button className="btn btn-primary btn-sm" onClick={handleSave}>

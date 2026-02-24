@@ -1167,6 +1167,54 @@
   margin-bottom: 16px;
 }
 
+/* ============ COLLAPSIBLE SECTIONS ============ */
+.collapsible-section {
+  border-top: 1px solid #e8e6e2;
+  margin-top: 12px;
+}
+
+.collapsible-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+}
+
+.collapsible-toggle:hover {
+  color: #333;
+}
+
+.collapsible-toggle-icon {
+  display: flex;
+  align-items: center;
+  transition: transform 0.25s ease;
+}
+
+.collapsible-toggle.open .collapsible-toggle-icon {
+  transform: rotate(180deg);
+}
+
+.collapsible-toggle .photo-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: #999;
+  font-weight: 400;
+}
+
+.collapsible-body {
+  padding-bottom: 8px;
+}
+
 .collection-card.editing .photos-section {
   border-top: 1px solid #e8e6e2;
   padding-top: 16px;
