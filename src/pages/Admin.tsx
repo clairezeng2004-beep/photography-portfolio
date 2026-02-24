@@ -17,6 +17,11 @@ import {
   lookupCity,
   CityEntry,
 } from '../data/geoData';
+import ImageUploader from '../components/ImageUploader';
+import { getImgbbApiKey, setImgbbApiKey, isImageHostConfigured, countBase64Images, migrateAllToImgbb, MigrationProgress } from '../utils/imageHost';
+import { getNewsletterApiKey, setNewsletterApiKey, isNewsletterConfigured } from '../utils/newsletter';
+import Toast from '../components/Toast';
+import './Admin.css';
 
 /* ============================================================
    Helper: Extract location/year from collection title
@@ -27,16 +32,13 @@ import {
 function extractFromTitle(title: string): { location?: string; year?: number } {
   const result: { location?: string; year?: number } = {};
 
-  // Extract 4-digit year (2000-2099)
   const yearMatch = title.match(/(20\d{2})/);
   if (yearMatch) {
     result.year = parseInt(yearMatch[1], 10);
   }
 
-  // Remove year and common decorative words to find city
   const cleaned = title.replace(/20\d{2}/g, '').replace(/[年之旅行日记纪手记游记春夏秋冬]/g, '').trim();
 
-  // Try to match any known city from CITY_DATABASE
   for (const entry of CITY_DATABASE) {
     if (title.includes(entry.city)) {
       result.location = entry.city;
@@ -44,11 +46,9 @@ function extractFromTitle(title: string): { location?: string; year?: number } {
     }
   }
 
-  // If no city match, also try country names
   if (!result.location) {
     for (const country of COUNTRY_LIST) {
       if (title.includes(country.name)) {
-        // Use the first city of that country as a hint
         const cities = CITY_DATABASE.filter(c => c.countryCode === country.code);
         result.location = cities.length > 0 ? cities[0].city : country.name;
         break;
@@ -56,18 +56,12 @@ function extractFromTitle(title: string): { location?: string; year?: number } {
     }
   }
 
-  // If still no match but cleaned string is non-empty, use it as-is
   if (!result.location && cleaned.length > 0 && cleaned.length <= 20) {
     result.location = cleaned;
   }
 
   return result;
 }
-import ImageUploader from '../components/ImageUploader';
-import { getImgbbApiKey, setImgbbApiKey, isImageHostConfigured, countBase64Images, migrateAllToImgbb, MigrationProgress } from '../utils/imageHost';
-import { getNewsletterApiKey, setNewsletterApiKey, isNewsletterConfigured } from '../utils/newsletter';
-import Toast from '../components/Toast';
-import './Admin.css';
 
 type TabType = 'home' | 'collections' | 'about' | 'map';
 
