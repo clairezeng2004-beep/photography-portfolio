@@ -1901,14 +1901,14 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
         <div className="card-overlay">
           <button
             className="btn-icon"
-            onClick={onToggleEdit}
+            onClick={(e) => { e.stopPropagation(); onToggleEdit(); }}
             title={isEditing ? '取消' : '编辑'}
           >
             {isEditing ? <X size={18} /> : <Edit size={18} />}
           </button>
           <button
             className="btn-icon danger"
-            onClick={onDelete}
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
             title="删除"
           >
             <Trash2 size={18} />
@@ -2015,6 +2015,15 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                       ))}
                     </div>
                   )}
+                  <div className="inline-cover-save">
+                    <button className="btn btn-primary btn-sm" onClick={handleSave}>
+                      <Check size={14} />
+                      完成
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
+                      取消
+                    </button>
+                  </div>
                 </div>
 
                 <div className="form-group">
@@ -2050,6 +2059,15 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                       ))}
                     </div>
                   )}
+                  <div className="inline-cover-save">
+                    <button className="btn btn-primary btn-sm" onClick={handleSave}>
+                      <Check size={14} />
+                      完成
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
+                      取消
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -2248,14 +2266,14 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
         ) : (
           <>
             <h3>{collection.title}</h3>
-            <div className="card-meta">
+            <div className="card-meta" onClick={() => { onToggleEdit(); setTimeout(() => setShowLocationTimeSection(true), 50); }} title="点击编辑地点时间">
               <MapPin size={14} />
               <span>{collection.location}</span>
               <Calendar size={14} />
               <span>{collection.year}{collection.month ? `.${collection.month}` : ''}</span>
             </div>
             {collection.geo && (
-              <div className="card-geo-badge">
+              <div className="card-geo-badge clickable" onClick={() => { onToggleEdit(); setTimeout(() => setShowLocationTimeSection(true), 50); }} title="点击编辑地点">
                 <Globe size={12} />
                 <span>{collection.geo.city}, {collection.geo.country}</span>
                 <span className="geo-continent-tag">
@@ -2264,13 +2282,13 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               </div>
             )}
             {!collection.geo && (
-              <div className="card-geo-badge unset">
+              <div className="card-geo-badge unset clickable" onClick={() => { onToggleEdit(); setTimeout(() => setShowLocationTimeSection(true), 50); }} title="点击设置地点">
                 <Globe size={12} />
                 <span>未定位</span>
               </div>
             )}
             <p className="card-description">{collection.description}</p>
-            <div className="card-stats">
+            <div className="card-stats" onClick={() => { onToggleEdit(); setTimeout(() => setShowPhotosSection(true), 50); }} title="点击管理照片">
               <ImageIcon size={14} />
               <span>{collection.photos.length} 张照片</span>
             </div>
