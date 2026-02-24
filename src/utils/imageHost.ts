@@ -1,112 +1,146 @@
 /**
- * Image hosting service — upload images to ImgBB and get permanent URLs.
+ * Image hosting service — upload images to Cloudflare R2 via Worker proxy.
  *
  * Setup:
- *   1. Go to https://api.imgbb.com/ and sign up (free)
- *   2. Click "Get API key" to get your key
- *   3. Paste it in Admin → Settings → ImgBB API Key
+ *   1. Deploy the Cloudflare Worker (see worker/r2-upload-worker.js)
+ *   2. In Admin → Settings → 图床设置, fill in:
+ *      - Worker URL (e.g. https://r2-upload-worker.xxx.workers.dev)
+ *      - Upload Secret (the UPLOAD_SECRET you set in Worker env vars)
  */
 
 import { isSupabaseConfigured, supabaseGet, supabaseSet } from './supabase';
 
-const IMGBB_API = 'https://api.imgbb.com/1/upload';
-const STORAGE_KEY = 'imgbb_api_key';
-const CLOUD_KEY = 'imgbb_api_key'; // Supabase app_data key
+const WORKER_URL_KEY = 'r2_worker_url';
+const SECRET_KEY = 'r2_upload_secret';
+const CLOUD_WORKER_URL_KEY = 'r2_worker_url';
+const CLOUD_SECRET_KEY = 'r2_upload_secret';
+
+// ---- Legacy ImgBB key support (for migration compatibility) ----
+const LEGACY_IMGBB_KEY = 'imgbb_api_key';
 
 export function getImgbbApiKey(): string {
-  return localStorage.getItem(STORAGE_KEY) || '';
+  return localStorage.getItem(LEGACY_IMGBB_KEY) || '';
 }
 
 export function setImgbbApiKey(key: string): void {
-  const trimmed = key.trim();
-  localStorage.setItem(STORAGE_KEY, trimmed);
-  // Sync to Supabase so other devices can pick it up
+  localStorage.setItem(LEGACY_IMGBB_KEY, key.trim());
+}
+
+// ---- R2 config ----
+
+export function getR2WorkerUrl(): string {
+  return localStorage.getItem(WORKER_URL_KEY) || '';
+}
+
+export function setR2WorkerUrl(url: string): void {
+  const trimmed = url.trim().replace(/\/+$/, ''); // remove trailing slash
+  localStorage.setItem(WORKER_URL_KEY, trimmed);
   if (isSupabaseConfigured()) {
-    supabaseSet(CLOUD_KEY, trimmed).catch(e =>
-      console.warn('[imageHost] Failed to sync ImgBB key to cloud:', e)
+    supabaseSet(CLOUD_WORKER_URL_KEY, trimmed).catch(e =>
+      console.warn('[imageHost] Failed to sync R2 worker URL to cloud:', e)
     );
   }
 }
 
-/** Load ImgBB key from Supabase if local is empty. Call once on app init. */
-export async function syncImgbbKeyFromCloud(): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-  const local = getImgbbApiKey();
-  if (local) {
-    // Local has a key — push to cloud in case cloud is empty
-    supabaseSet(CLOUD_KEY, local).catch(() => {});
-    return;
-  }
-  try {
-    const cloudKey = await supabaseGet<string>(CLOUD_KEY);
-    if (cloudKey) {
-      localStorage.setItem(STORAGE_KEY, cloudKey);
-      console.log('[imageHost] Synced ImgBB key from cloud');
-    }
-  } catch (e) {
-    console.warn('[imageHost] Failed to sync ImgBB key from cloud:', e);
+export function getR2Secret(): string {
+  return localStorage.getItem(SECRET_KEY) || '';
+}
+
+export function setR2Secret(secret: string): void {
+  const trimmed = secret.trim();
+  localStorage.setItem(SECRET_KEY, trimmed);
+  if (isSupabaseConfigured()) {
+    supabaseSet(CLOUD_SECRET_KEY, trimmed).catch(e =>
+      console.warn('[imageHost] Failed to sync R2 secret to cloud:', e)
+    );
   }
 }
+
+/** Load R2 config from Supabase if local is empty. Call once on app init. */
+export async function syncImageHostFromCloud(): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+
+  // Sync worker URL
+  const localUrl = getR2WorkerUrl();
+  if (localUrl) {
+    supabaseSet(CLOUD_WORKER_URL_KEY, localUrl).catch(() => {});
+  } else {
+    try {
+      const cloudUrl = await supabaseGet<string>(CLOUD_WORKER_URL_KEY);
+      if (cloudUrl) {
+        localStorage.setItem(WORKER_URL_KEY, cloudUrl);
+        console.log('[imageHost] Synced R2 worker URL from cloud');
+      }
+    } catch (e) {
+      console.warn('[imageHost] Failed to sync R2 worker URL from cloud:', e);
+    }
+  }
+
+  // Sync secret
+  const localSecret = getR2Secret();
+  if (localSecret) {
+    supabaseSet(CLOUD_SECRET_KEY, localSecret).catch(() => {});
+  } else {
+    try {
+      const cloudSecret = await supabaseGet<string>(CLOUD_SECRET_KEY);
+      if (cloudSecret) {
+        localStorage.setItem(SECRET_KEY, cloudSecret);
+        console.log('[imageHost] Synced R2 secret from cloud');
+      }
+    } catch (e) {
+      console.warn('[imageHost] Failed to sync R2 secret from cloud:', e);
+    }
+  }
+}
+
+/** Backward-compatible alias */
+export const syncImgbbKeyFromCloud = syncImageHostFromCloud;
 
 export function isImageHostConfigured(): boolean {
-  return getImgbbApiKey().length > 0;
-}
-
-interface ImgbbResponse {
-  data: {
-    url: string;        // full-size image URL
-    display_url: string;
-    thumb: {
-      url: string;      // thumbnail URL
-    };
-    medium?: {
-      url: string;
-    };
-  };
-  success: boolean;
-  status: number;
+  return getR2WorkerUrl().length > 0 && getR2Secret().length > 0;
 }
 
 /**
- * Upload a base64 image to ImgBB.
+ * Upload a base64 image to R2 via Cloudflare Worker.
  * Returns { imageUrl, thumbnailUrl } with permanent CDN URLs.
  */
-export async function uploadToImgbb(
+export async function uploadToR2(
   base64Data: string
 ): Promise<{ imageUrl: string; thumbnailUrl: string }> {
-  const apiKey = getImgbbApiKey();
-  if (!apiKey) {
-    throw new Error('ImgBB API key not configured');
+  const workerUrl = getR2WorkerUrl();
+  const secret = getR2Secret();
+  if (!workerUrl || !secret) {
+    throw new Error('R2 图床未配置（缺少 Worker URL 或 Secret）');
   }
 
-  // Strip the data:image/xxx;base64, prefix if present
-  const pure = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-
-  const formData = new FormData();
-  formData.append('key', apiKey);
-  formData.append('image', pure);
-
-  const res = await fetch(IMGBB_API, {
+  const res = await fetch(workerUrl, {
     method: 'POST',
-    body: formData,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image: base64Data,
+      secret: secret,
+    }),
   });
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`ImgBB upload failed (${res.status}): ${text}`);
+    throw new Error(`R2 上传失败 (${res.status}): ${text}`);
   }
 
-  const json: ImgbbResponse = await res.json();
+  const json = await res.json();
 
   if (!json.success) {
-    throw new Error('ImgBB upload returned unsuccessful response');
+    throw new Error(json.error || 'R2 upload returned unsuccessful response');
   }
 
   return {
-    imageUrl: json.data.url,
-    thumbnailUrl: json.data.thumb?.url || json.data.url,
+    imageUrl: json.url,
+    thumbnailUrl: json.url, // R2 doesn't auto-generate thumbnails; we use the same URL
   };
 }
+
+/** Backward-compatible alias — calls uploadToR2 */
+export const uploadToImgbb = uploadToR2;
 
 /**
  * Check if a string is a base64 data URL (not an external URL).
@@ -116,7 +150,7 @@ export function isBase64(str: string): boolean {
 }
 
 /* ============================================================
-   Batch migration — upload all base64 images in data to ImgBB
+   Batch migration — upload all base64 images in data to R2
    ============================================================ */
 
 export interface MigrationProgress {
@@ -129,7 +163,7 @@ export interface MigrationProgress {
 type ProgressCallback = (progress: MigrationProgress) => void;
 
 /**
- * Upload a single base64 string to ImgBB, returning the CDN URL.
+ * Upload a single base64 string to R2, returning the CDN URL.
  * If the string is NOT base64 (already a URL), returns it unchanged.
  * On failure, returns the original string so we don't lose data.
  */
@@ -145,7 +179,7 @@ async function migrateOne(
   progress.current = label;
   onProgress({ ...progress });
   try {
-    const { imageUrl } = await uploadToImgbb(src);
+    const { imageUrl } = await uploadToR2(src);
     progress.done++;
     onProgress({ ...progress });
     return { url: imageUrl, changed: true };
@@ -184,10 +218,10 @@ export function countBase64Images(
 }
 
 /**
- * Migrate ALL base64 images found in collections, heroImages and avatar to ImgBB.
+ * Migrate ALL base64 images found in collections, heroImages and avatar to R2.
  * Returns new copies of each with CDN URLs replacing base64 data.
  */
-export async function migrateAllToImgbb<
+export async function migrateAllToR2<
   C extends { id: string; coverImage: string; cardCoverImage?: string; photos: { id: string; url: string; thumbnail: string }[] },
   H extends { id: string; url: string; mobileUrl?: string },
 >(
@@ -287,3 +321,6 @@ export async function migrateAllToImgbb<
     totalChanged,
   };
 }
+
+/** Backward-compatible alias */
+export const migrateAllToImgbb = migrateAllToR2;

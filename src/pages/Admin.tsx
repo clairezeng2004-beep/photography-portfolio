@@ -21,7 +21,7 @@ import {
   CityEntry,
 } from '../data/geoData';
 import ImageUploader from '../components/ImageUploader';
-import { getImgbbApiKey, setImgbbApiKey, isImageHostConfigured, countBase64Images, migrateAllToImgbb, MigrationProgress } from '../utils/imageHost';
+import { getR2WorkerUrl, setR2WorkerUrl, getR2Secret, setR2Secret, isImageHostConfigured, countBase64Images, migrateAllToR2, MigrationProgress } from '../utils/imageHost';
 import { getNewsletterApiKey, setNewsletterApiKey, isNewsletterConfigured } from '../utils/newsletter';
 import Toast from '../components/Toast';
 import './Admin.css';
@@ -362,8 +362,9 @@ const Admin: React.FC = () => {
     setToastVisible(true);
   }, []);
 
-  // ImgBB API key state
-  const [imgbbKey, setImgbbKey] = useState(getImgbbApiKey());
+  // R2 图床 state
+  const [r2WorkerUrl, setR2WorkerUrlState] = useState(getR2WorkerUrl());
+  const [r2Secret, setR2SecretState] = useState(getR2Secret());
   const [showImgbbConfig, setShowImgbbConfig] = useState(false);
   const [imgbbConfigured, setImgbbConfigured] = useState(isImageHostConfigured());
 
@@ -382,7 +383,7 @@ const Admin: React.FC = () => {
 
   const handleMigrateAll = useCallback(async () => {
     if (!isImageHostConfigured()) {
-      alert('请先配置 ImgBB API Key');
+      alert('请先配置 R2 图床');
       return;
     }
 
@@ -419,7 +420,7 @@ const Admin: React.FC = () => {
     setIsMigrating(true);
     setMigrationProgress({ total: base64Count, done: 0, failed: 0, current: '准备中...' });
     try {
-      const result = await migrateAllToImgbb(
+      const result = await migrateAllToR2(
         collections,
         heroImages,
         aboutInfo.avatar,
@@ -855,7 +856,7 @@ const Admin: React.FC = () => {
           {showImgbbConfig && (
             <div className="imgbb-config-panel">
               <p className="imgbb-config-desc">
-                配置 <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer">ImgBB</a> 图床后，上传的图片将自动存储到 CDN，不再使用 base64。
+                配置 <a href="https://developers.cloudflare.com/r2/" target="_blank" rel="noreferrer">Cloudflare R2</a> 图床后，上传的图片将自动存储到 R2 CDN，不再使用 base64。
               </p>
               <div className="imgbb-config-status">
                 {imgbbConfigured
@@ -866,16 +867,25 @@ const Admin: React.FC = () => {
               <input
                 type="text"
                 className="imgbb-key-input"
-                value={imgbbKey}
-                onChange={(e) => setImgbbKey(e.target.value)}
-                placeholder="粘贴 ImgBB API Key..."
+                value={r2WorkerUrl}
+                onChange={(e) => setR2WorkerUrlState(e.target.value)}
+                placeholder="Worker URL (如 https://r2-upload-worker.xxx.workers.dev)"
+              />
+              <input
+                type="password"
+                className="imgbb-key-input"
+                value={r2Secret}
+                onChange={(e) => setR2SecretState(e.target.value)}
+                placeholder="Upload Secret"
+                style={{ marginTop: '8px' }}
               />
               <button
                 className="imgbb-save-btn"
                 onClick={() => {
-                  setImgbbApiKey(imgbbKey);
-                  setImgbbConfigured(!!imgbbKey.trim());
-                  showToast(imgbbKey ? '图床 API Key 已保存' : '已清除图床配置');
+                  setR2WorkerUrl(r2WorkerUrl);
+                  setR2Secret(r2Secret);
+                  setImgbbConfigured(!!r2WorkerUrl.trim() && !!r2Secret.trim());
+                  showToast(r2WorkerUrl && r2Secret ? 'R2 图床配置已保存' : '已清除图床配置');
                 }}
               >
                 保存
