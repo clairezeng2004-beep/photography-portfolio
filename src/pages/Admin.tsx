@@ -2300,6 +2300,8 @@ const HeroManager: React.FC<HeroManagerProps> = ({
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<number | 'add' | { type: 'mobile'; index: number }>('add');
   const [pickerFilter, setPickerFilter] = useState('');
+  const [pickerSelectedCollection, setPickerSelectedCollection] = useState<PhotoCollection | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   // Initialize local images: if heroImages is set, use it; otherwise derive from collections
   useEffect(() => {
@@ -2387,6 +2389,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
   const openPicker = (target: number | 'add' | { type: 'mobile'; index: number }) => {
     setPickerTarget(target);
     setPickerFilter('');
+    setPickerSelectedCollection(null);
     setShowPicker(true);
   };
 
@@ -2409,6 +2412,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     }
     setHasChanges(true);
     setShowPicker(false);
+    setPickerSelectedCollection(null);
   };
 
   const handleSave = async () => {
@@ -2438,127 +2442,152 @@ const HeroManager: React.FC<HeroManagerProps> = ({
       </div>
 
       <div className="hero-image-list">
-        {localImages.map((img, index) => (
-          <div key={img.id} className="hero-image-item">
-            <div className="hero-item-order">
-              <input
-                type="number"
-                className="hero-item-index-input"
-                value={index + 1}
-                min={1}
-                max={localImages.length}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value);
-                  if (Number.isFinite(val)) {
-                    moveToPosition(index, val);
-                  }
-                }}
-                title="输入数字调整排序"
-              />
-              <div className="hero-item-arrows">
-                <button
-                  className="btn-icon small"
-                  onClick={() => moveUp(index)}
-                  disabled={index === 0}
-                  title="上移"
-                >
-                  <ChevronUp size={16} />
-                </button>
-                <button
-                  className="btn-icon small"
-                  onClick={() => moveDown(index)}
-                  disabled={index === localImages.length - 1}
-                  title="下移"
-                >
-                  <ChevronDown size={16} />
-                </button>
-              </div>
-            </div>
-
-            <div className="hero-item-preview" onClick={() => openPicker(index)} title="点击从作品集更换">
-              {img.url ? (
-                <img src={img.url} alt={img.title || '封面图'} />
-              ) : (
-                <div className="hero-item-placeholder">
-                  <ImageIcon size={24} />
-                </div>
-              )}
-              <div className="hero-preview-overlay">更换</div>
-            </div>
-
-            <div className="hero-item-info">
-              <div className="form-group">
-                <label>标题</label>
+        {localImages.map((img, index) => {
+          const isExpanded = expandedIndex === index;
+          return (
+          <div key={img.id} className={`hero-image-item ${isExpanded ? 'expanded' : 'collapsed'}`}>
+            {/* Collapsed: compact row */}
+            <div className="hero-item-compact" onClick={() => setExpandedIndex(isExpanded ? null : index)}>
+              <div className="hero-item-order">
                 <input
-                  type="text"
-                  value={img.title}
-                  onChange={(e) => updateImageField(index, 'title', e.target.value)}
-                  placeholder="图片标题"
+                  type="number"
+                  className="hero-item-index-input"
+                  value={index + 1}
+                  min={1}
+                  max={localImages.length}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (Number.isFinite(val)) {
+                      moveToPosition(index, val);
+                    }
+                  }}
+                  title="输入数字调整排序"
                 />
-              </div>
-              <div className="form-group">
-                <label>地点</label>
-                <input
-                  type="text"
-                  value={img.location}
-                  onChange={(e) => updateImageField(index, 'location', e.target.value)}
-                  placeholder="地点"
-                />
-              </div>
-              <div className="hero-item-image-actions">
-                <div className="hero-custom-upload-hint">
-                  <ImageUploader
-                    onImageUpload={(url) => replaceImage(index, url)}
-                    currentImage={img.url}
-                    onRemove={() => replaceImage(index, '')}
-                    label="自定义图片"
-                    enableCrop
-                    cropAspectOptions={[
-                      { label: '16:9', value: 16 / 9 },
-                      { label: '4:3', value: 4 / 3 },
-                    ]}
-                    defaultCropAspect={16 / 9}
-                    defaultOutputWidth={1920}
-                    compressMaxWidth={2500}
-                    compressQuality={0.85}
-                  />
+                <div className="hero-item-arrows">
+                  <button
+                    className="btn-icon small"
+                    onClick={(e) => { e.stopPropagation(); moveUp(index); }}
+                    disabled={index === 0}
+                    title="上移"
+                  >
+                    <ChevronUp size={16} />
+                  </button>
+                  <button
+                    className="btn-icon small"
+                    onClick={(e) => { e.stopPropagation(); moveDown(index); }}
+                    disabled={index === localImages.length - 1}
+                    title="下移"
+                  >
+                    <ChevronDown size={16} />
+                  </button>
                 </div>
               </div>
-              <div className="hero-item-mobile-cover">
-                <label className="mobile-cover-label">
-                  <Smartphone size={12} style={{ marginRight: 4, verticalAlign: -1 }} />
-                  手机端封面（竖版）
-                </label>
-                <div className="mobile-cover-hint">
-                  横版图片在手机端显示效果不佳，建议上传竖版或方形图片
-                </div>
-                <ImageUploader
-                  onImageUpload={(url) => replaceMobileImage(index, url)}
-                  currentImage={img.mobileUrl}
-                  onRemove={() => replaceMobileImage(index, '')}
-                  label="上传手机端封面"
-                  enableCrop
-                  cropAspectOptions={[
-                    { label: '9:16', value: 9 / 16 },
-                    { label: '3:4', value: 3 / 4 },
-                  ]}
-                  defaultCropAspect={9 / 16}
-                  defaultOutputWidth={1080}
-                  compressMaxWidth={1200}
-                  compressQuality={0.85}
-                />
+              <div className="hero-item-thumb">
+                {img.url ? (
+                  <img src={img.url} alt={img.title || '封面图'} />
+                ) : (
+                  <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
+                )}
               </div>
+              <div className="hero-item-summary">
+                <span className="hero-item-summary-title">{img.title || '未命名'}</span>
+                <span className="hero-item-summary-location">{img.location || ''}</span>
+              </div>
+              <span className="hero-item-expand-icon">
+                <ChevronDown size={16} />
+              </span>
+              <button
+                className="btn-icon danger"
+                onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                title="删除"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
 
-            <button
-              className="btn-icon danger"
-              onClick={() => removeImage(index)}
-              title="删除"
-            >
-              <Trash2 size={16} />
-            </button>
+            {/* Expanded: full editing */}
+            {isExpanded && (
+              <div className="hero-item-detail">
+                <div className="hero-item-preview" onClick={() => openPicker(index)} title="点击从作品集更换">
+                  {img.url ? (
+                    <img src={img.url} alt={img.title || '封面图'} />
+                  ) : (
+                    <div className="hero-item-placeholder">
+                      <ImageIcon size={24} />
+                    </div>
+                  )}
+                  <div className="hero-preview-overlay">从作品集更换</div>
+                </div>
+
+                <div className="hero-item-info">
+                  <div className="form-group">
+                    <label>标题</label>
+                    <input
+                      type="text"
+                      value={img.title}
+                      onChange={(e) => updateImageField(index, 'title', e.target.value)}
+                      placeholder="图片标题"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>地点</label>
+                    <input
+                      type="text"
+                      value={img.location}
+                      onChange={(e) => updateImageField(index, 'location', e.target.value)}
+                      placeholder="地点"
+                    />
+                  </div>
+                  <div className="hero-item-image-actions">
+                    <div className="hero-custom-upload-hint">
+                      <ImageUploader
+                        onImageUpload={(url) => replaceImage(index, url)}
+                        currentImage={img.url}
+                        onRemove={() => replaceImage(index, '')}
+                        label="自定义图片"
+                        enableCrop
+                        cropAspectOptions={[
+                          { label: '16:9', value: 16 / 9 },
+                          { label: '4:3', value: 4 / 3 },
+                        ]}
+                        defaultCropAspect={16 / 9}
+                        defaultOutputWidth={1920}
+                        compressMaxWidth={2500}
+                        compressQuality={0.85}
+                      />
+                    </div>
+                  </div>
+                  <div className="hero-item-mobile-cover">
+                    <label className="mobile-cover-label">
+                      <Smartphone size={12} style={{ marginRight: 4, verticalAlign: -1 }} />
+                      手机端封面（竖版）
+                    </label>
+                    <div className="mobile-cover-hint">
+                      横版图片在手机端显示效果不佳，建议上传竖版或方形图片
+                    </div>
+                    <ImageUploader
+                      onImageUpload={(url) => replaceMobileImage(index, url)}
+                      currentImage={img.mobileUrl}
+                      onRemove={() => replaceMobileImage(index, '')}
+                      label="上传手机端封面"
+                      enableCrop
+                      cropAspectOptions={[
+                        { label: '9:16', value: 9 / 16 },
+                        { label: '3:4', value: 3 / 4 },
+                      ]}
+                      defaultCropAspect={9 / 16}
+                      defaultOutputWidth={1080}
+                      compressMaxWidth={1200}
+                      compressQuality={0.85}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="hero-add-section">
@@ -2604,43 +2633,89 @@ const HeroManager: React.FC<HeroManagerProps> = ({
         </div>
       )}
 
-      {/* Photo Picker Modal — rendered via portal to body */}
+      {/* Photo Picker Modal — two-level: select collection then pick photo */}
       {showPicker && createPortal(
-        <div className="picker-overlay" onClick={() => setShowPicker(false)}>
+        <div className="picker-overlay" onClick={() => { setShowPicker(false); setPickerSelectedCollection(null); }}>
           <div className="picker-modal" onClick={(e) => e.stopPropagation()}>
             <div className="picker-header">
-              <h3>从作品集选择封面</h3>
-              <button className="btn-icon" onClick={() => setShowPicker(false)}>
+              {pickerSelectedCollection ? (
+                <>
+                  <button className="btn-icon" onClick={() => setPickerSelectedCollection(null)} title="返回">
+                    <ChevronUp size={18} style={{ transform: 'rotate(-90deg)' }} />
+                  </button>
+                  <h3>{pickerSelectedCollection.title} — 选择图片</h3>
+                </>
+              ) : (
+                <h3>选择作品集</h3>
+              )}
+              <button className="btn-icon" onClick={() => { setShowPicker(false); setPickerSelectedCollection(null); }}>
                 <X size={20} />
               </button>
             </div>
-            <div className="picker-filter">
-              <input
-                type="text"
-                placeholder="搜索作品集..."
-                value={pickerFilter}
-                onChange={(e) => setPickerFilter(e.target.value)}
-              />
-            </div>
-            <div className="picker-collections">
-              {collections
-                .filter(c => !pickerFilter || c.title.toLowerCase().includes(pickerFilter.toLowerCase()) || c.location.toLowerCase().includes(pickerFilter.toLowerCase()))
-                .map(c => (
-                <div
-                  key={c.id}
-                  className="picker-collection-card"
-                  onClick={() => handlePickImage(c.coverImage, c.title, c.location, c.cardCoverImage || c.coverImage)}
-                >
-                  <div className="picker-card-cover">
-                    <img src={c.coverImage} alt={c.title} />
-                  </div>
-                  <div className="picker-card-info">
-                    <div className="picker-card-title">{c.title}</div>
-                    <div className="picker-card-sub">{c.location}，{c.year}</div>
-                  </div>
+
+            {!pickerSelectedCollection ? (
+              <>
+                <div className="picker-filter">
+                  <input
+                    type="text"
+                    placeholder="搜索作品集..."
+                    value={pickerFilter}
+                    onChange={(e) => setPickerFilter(e.target.value)}
+                  />
                 </div>
-              ))}
-            </div>
+                <div className="picker-collections">
+                  {collections
+                    .filter(c => !pickerFilter || c.title.toLowerCase().includes(pickerFilter.toLowerCase()) || c.location.toLowerCase().includes(pickerFilter.toLowerCase()))
+                    .map(c => (
+                    <div
+                      key={c.id}
+                      className="picker-collection-card"
+                      onClick={() => setPickerSelectedCollection(c)}
+                    >
+                      <div className="picker-card-cover">
+                        <img src={c.coverImage} alt={c.title} />
+                      </div>
+                      <div className="picker-card-info">
+                        <div className="picker-card-title">{c.title}</div>
+                        <div className="picker-card-sub">{c.location}，{c.year}</div>
+                        <div className="picker-card-count">{c.photos.length} 张照片</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="picker-photos-grid">
+                {/* Cover image option */}
+                <div
+                  className="picker-photo-item picker-photo-cover"
+                  onClick={() => handlePickImage(
+                    pickerSelectedCollection.coverImage,
+                    pickerSelectedCollection.title,
+                    pickerSelectedCollection.location,
+                    pickerSelectedCollection.cardCoverImage || pickerSelectedCollection.coverImage
+                  )}
+                >
+                  <img src={pickerSelectedCollection.coverImage} alt="当前封面" />
+                  <span className="picker-photo-label">当前封面</span>
+                </div>
+                {/* All photos in collection */}
+                {pickerSelectedCollection.photos.map(photo => (
+                  <div
+                    key={photo.id}
+                    className="picker-photo-item"
+                    onClick={() => handlePickImage(
+                      photo.url,
+                      pickerSelectedCollection.title,
+                      pickerSelectedCollection.location,
+                      photo.url
+                    )}
+                  >
+                    <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>,
         document.body
