@@ -1028,6 +1028,40 @@
   color: #2a2a2a;
 }
 
+/* Year stepper with arrows */
+.year-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.year-stepper-arrows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.year-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  border-radius: 3px;
+  cursor: pointer;
+  color: #888;
+  transition: all 0.15s ease;
+}
+
+.year-arrow:hover {
+  background: #eee;
+  color: #333;
+  border-color: #bbb;
+}
+
 /* City search dropdown in inline edit */
 .inline-city-search {
   position: relative;

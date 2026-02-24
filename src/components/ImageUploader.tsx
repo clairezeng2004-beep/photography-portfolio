@@ -449,26 +449,38 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     area: { x: number; y: number; width: number; height: number },
     outputWidth: number
   ): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new window.Image();
-      if (!imageUrl.startsWith('data:')) {
-        img.crossOrigin = 'anonymous';
-      }
-      img.onload = () => {
-        try {
-          const outputHeight = Math.round(outputWidth * (area.height / area.width));
-          const canvas = document.createElement('canvas');
-          canvas.width = outputWidth;
-          canvas.height = outputHeight;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, outputWidth, outputHeight);
-          resolve(canvas.toDataURL('image/jpeg', compressQuality));
-        } catch (err) {
-          reject(err);
+    return new Promise(async (resolve, reject) => {
+      try {
+        let src = imageUrl;
+        if (!imageUrl.startsWith('data:') && !imageUrl.startsWith('blob:')) {
+          const res = await fetch(imageUrl);
+          const blob = await res.blob();
+          src = URL.createObjectURL(blob);
         }
-      };
-      img.onerror = reject;
-      img.src = imageUrl;
+        const img = new window.Image();
+        img.onload = () => {
+          try {
+            const outputHeight = Math.round(outputWidth * (area.height / area.width));
+            const canvas = document.createElement('canvas');
+            canvas.width = outputWidth;
+            canvas.height = outputHeight;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, outputWidth, outputHeight);
+            resolve(canvas.toDataURL('image/jpeg', compressQuality));
+          } catch (err) {
+            reject(err);
+          } finally {
+            if (src !== imageUrl) URL.revokeObjectURL(src);
+          }
+        };
+        img.onerror = (e) => {
+          if (src !== imageUrl) URL.revokeObjectURL(src);
+          reject(e);
+        };
+        img.src = src;
+      } catch (err) {
+        reject(err);
+      }
     });
   };
 

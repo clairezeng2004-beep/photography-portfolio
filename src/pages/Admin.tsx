@@ -75,18 +75,26 @@ function extractFromTitle(title: string): { location?: string; year?: number } {
 }
 
 /* ============================================================
+   Helper: Load image URL as blob to bypass CORS tainted canvas
+   ============================================================ */
+async function toBlobUrl(url: string): Promise<string> {
+  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
+/* ============================================================
    Helper: Auto-crop an image to a given aspect ratio from center
    ============================================================ */
-function autoCropToAspect(
+async function autoCropToAspect(
   imageUrl: string,
   targetAspect: number,
   outputWidth: number = 1600
 ): Promise<string> {
+  const blobUrl = await toBlobUrl(imageUrl);
   return new Promise((resolve, reject) => {
     const img = new window.Image();
-    if (!imageUrl.startsWith('data:')) {
-      img.crossOrigin = 'anonymous';
-    }
     img.onload = () => {
       try {
         const outputHeight = Math.round(outputWidth / targetAspect);
@@ -113,10 +121,15 @@ function autoCropToAspect(
         resolve(canvas.toDataURL('image/jpeg', 0.9));
       } catch (err) {
         reject(err);
+      } finally {
+        if (blobUrl !== imageUrl) URL.revokeObjectURL(blobUrl);
       }
     };
-    img.onerror = reject;
-    img.src = imageUrl;
+    img.onerror = (e) => {
+      if (blobUrl !== imageUrl) URL.revokeObjectURL(blobUrl);
+      reject(e);
+    };
+    img.src = blobUrl;
   });
 }
 
@@ -1076,18 +1089,36 @@ const Admin: React.FC = () => {
                       <div className="form-row">
                         <div className="form-group">
                           <label>年份</label>
-                          <input
-                            type="number"
-                            value={newCollection.year}
-                            onChange={(e) => {
-                              const yearValue = parseInt(e.target.value) || lastUsedYear;
-                              setNewCollection({
-                                ...newCollection,
-                                year: yearValue
-                              });
-                              setLastUsedYear(yearValue);
-                            }}
-                          />
+                          <div className="year-stepper">
+                            <input
+                              type="number"
+                              value={newCollection.year}
+                              onChange={(e) => {
+                                const yearValue = parseInt(e.target.value) || lastUsedYear;
+                                setNewCollection({
+                                  ...newCollection,
+                                  year: yearValue
+                                });
+                                setLastUsedYear(yearValue);
+                              }}
+                            />
+                            <div className="year-stepper-arrows">
+                              <button type="button" className="year-arrow" onClick={() => {
+                                const v = (newCollection.year || lastUsedYear) + 1;
+                                setNewCollection({ ...newCollection, year: v });
+                                setLastUsedYear(v);
+                              }} title="年份+1">
+                                <ChevronUp size={12} />
+                              </button>
+                              <button type="button" className="year-arrow" onClick={() => {
+                                const v = (newCollection.year || lastUsedYear) - 1;
+                                setNewCollection({ ...newCollection, year: v });
+                                setLastUsedYear(v);
+                              }} title="年份-1">
+                                <ChevronDown size={12} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
                         
 
@@ -1924,12 +1955,22 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                 </>
               )}
               <Calendar size={14} />
-              <input
-                type="number"
-                className="inline-edit-year"
-                value={year}
-                onChange={(e) => setYear(parseInt(e.target.value) || collection.year)}
-              />
+              <div className="year-stepper">
+                <input
+                  type="number"
+                  className="inline-edit-year"
+                  value={year}
+                  onChange={(e) => setYear(parseInt(e.target.value) || collection.year)}
+                />
+                <div className="year-stepper-arrows">
+                  <button type="button" className="year-arrow" onClick={() => setYear(y => y + 1)} title="年份+1">
+                    <ChevronUp size={12} />
+                  </button>
+                  <button type="button" className="year-arrow" onClick={() => setYear(y => y - 1)} title="年份-1">
+                    <ChevronDown size={12} />
+                  </button>
+                </div>
+              </div>
             </div>
             <textarea
               className="inline-edit-description"
@@ -2265,21 +2306,21 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     setShowPicker(true);
   };
 
-  const handlePickImage = (url: string, collectionTitle: string, collectionLocation: string) => {
+  const handlePickImage = (url: string, collectionTitle: string, collectionLocation: string, mobileUrl?: string) => {
     if (typeof pickerTarget === 'object' && pickerTarget.type === 'mobile') {
       replaceMobileImage(pickerTarget.index, url);
     } else if (pickerTarget === 'add') {
       const newImage: HeroImage = {
         id: Date.now().toString(),
         url,
+        mobileUrl: mobileUrl || url,
         title: collectionTitle,
         location: collectionLocation,
       };
       setLocalImages(prev => [...prev, newImage]);
     } else {
-      // Replace image and auto-fill title & location
       setLocalImages(prev => prev.map((img, i) =>
-        i === pickerTarget ? { ...img, url, title: collectionTitle, location: collectionLocation } : img
+        i === pickerTarget ? { ...img, url, mobileUrl: mobileUrl || url, title: collectionTitle, location: collectionLocation } : img
       ));
     }
     setHasChanges(true);
@@ -2518,7 +2559,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                 <div
                   key={c.id}
                   className="picker-collection-card"
-                  onClick={() => handlePickImage(c.coverImage, c.title, c.location)}
+                  onClick={() => handlePickImage(c.coverImage, c.title, c.location, c.cardCoverImage || c.coverImage)}
                 >
                   <div className="picker-card-cover">
                     <img src={c.coverImage} alt={c.title} />
