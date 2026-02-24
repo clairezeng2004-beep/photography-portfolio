@@ -407,8 +407,8 @@
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -421,9 +421,10 @@
   transform: translateY(50px);
   transition: opacity 0.8s ease, transform 0.8s ease;
 }
-.card.card-anim-flip:nth-child(3n+1) { transition-delay: 0s; }
-.card.card-anim-flip:nth-child(3n+2) { transition-delay: 0.35s; }
-.card.card-anim-flip:nth-child(3n+3) { transition-delay: 0s; }
+.card.card-anim-flip:nth-child(4n+1) { transition-delay: 0s; }
+.card.card-anim-flip:nth-child(4n+2) { transition-delay: 0.2s; }
+.card.card-anim-flip:nth-child(4n+3) { transition-delay: 0.4s; }
+.card.card-anim-flip:nth-child(4n+4) { transition-delay: 0.15s; }
 .card.card-anim-flip.visible {
   opacity: 1;
   transform: translateY(0);
@@ -435,9 +436,10 @@
   transform: translateY(60px);
   transition: opacity 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-.card.card-anim-float-flip:nth-child(3n+1) { transition-delay: 0s; }
-.card.card-anim-float-flip:nth-child(3n+2) { transition-delay: 0.4s; }
-.card.card-anim-float-flip:nth-child(3n+3) { transition-delay: 0s; }
+.card.card-anim-float-flip:nth-child(4n+1) { transition-delay: 0s; }
+.card.card-anim-float-flip:nth-child(4n+2) { transition-delay: 0.25s; }
+.card.card-anim-float-flip:nth-child(4n+3) { transition-delay: 0.5s; }
+.card.card-anim-float-flip:nth-child(4n+4) { transition-delay: 0.2s; }
 .card.card-anim-float-flip.visible {
   opacity: 1;
   transform: translateY(0);
@@ -499,7 +501,7 @@
 
 .overlay-card-title {
   font-family: 'Playfair Display', serif;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 400;
   color: #2a2a2a;
   letter-spacing: 0.1em;
@@ -740,9 +742,10 @@
   transform: translateY(50px);
   transition: opacity 0.7s ease, transform 0.7s ease, box-shadow 0.3s ease;
 }
-.card.card-anim-fade-up:nth-child(3n+1) { transition-delay: 0s; }
-.card.card-anim-fade-up:nth-child(3n+2) { transition-delay: 0.35s; }
-.card.card-anim-fade-up:nth-child(3n+3) { transition-delay: 0s; }
+.card.card-anim-fade-up:nth-child(4n+1) { transition-delay: 0s; }
+.card.card-anim-fade-up:nth-child(4n+2) { transition-delay: 0.2s; }
+.card.card-anim-fade-up:nth-child(4n+3) { transition-delay: 0.4s; }
+.card.card-anim-fade-up:nth-child(4n+4) { transition-delay: 0.15s; }
 .card.card-anim-fade-up.visible {
   opacity: 1;
   transform: translateY(0);
@@ -758,9 +761,10 @@
   transform: scale(0.88);
   transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.3s ease;
 }
-.card.card-anim-scale-up:nth-child(3n+1) { transition-delay: 0s; }
-.card.card-anim-scale-up:nth-child(3n+2) { transition-delay: 0.35s; }
-.card.card-anim-scale-up:nth-child(3n+3) { transition-delay: 0s; }
+.card.card-anim-scale-up:nth-child(4n+1) { transition-delay: 0s; }
+.card.card-anim-scale-up:nth-child(4n+2) { transition-delay: 0.2s; }
+.card.card-anim-scale-up:nth-child(4n+3) { transition-delay: 0.4s; }
+.card.card-anim-scale-up:nth-child(4n+4) { transition-delay: 0.15s; }
 .card.card-anim-scale-up.visible {
   opacity: 1;
   transform: scale(1);
@@ -792,9 +796,10 @@
   transform: perspective(800px) rotateX(6deg) translateY(30px);
   transition: opacity 0.7s ease, transform 0.7s ease, box-shadow 0.3s ease;
 }
-.card.card-anim-tilt-reveal:nth-child(3n+1) { transition-delay: 0s; }
-.card.card-anim-tilt-reveal:nth-child(3n+2) { transition-delay: 0.35s; }
-.card.card-anim-tilt-reveal:nth-child(3n+3) { transition-delay: 0s; }
+.card.card-anim-tilt-reveal:nth-child(4n+1) { transition-delay: 0s; }
+.card.card-anim-tilt-reveal:nth-child(4n+2) { transition-delay: 0.2s; }
+.card.card-anim-tilt-reveal:nth-child(4n+3) { transition-delay: 0.4s; }
+.card.card-anim-tilt-reveal:nth-child(4n+4) { transition-delay: 0.15s; }
 .card.card-anim-tilt-reveal.visible {
   opacity: 1;
   transform: perspective(800px) rotateX(0) translateY(0);
@@ -805,6 +810,13 @@
 }
 
 /* ============ RESPONSIVE ============ */
+@media (max-width: 1200px) {
+  .cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
 @media (max-width: 1024px) {
   .cards-grid {
     grid-template-columns: repeat(2, 1fr);
