@@ -685,18 +685,23 @@ const Footprints: React.FC = () => {
               return g.geo.continent === activeContinent;
             })
             .sort((a, b) => b.totalPhotos - a.totalPhotos)
-            .map(group => (
-              <div key={group.key} className="city-card" onClick={() => { setSelectedCityGroup(group); setPreviewCollection(null); setPreviewPage(0); }}>
-                <div className="city-card-image">
-                  <img src={group.collections[0].photos?.[0]?.thumbnail || group.collections[0].coverImage} alt={group.geo.city} loading="lazy" />
-                  <div className="city-card-overlay" />
+            .map(group => {
+              const cardImage = group.collections[0].cardCoverImage || group.collections[0].photos?.[0]?.thumbnail || group.collections[0].coverImage;
+              return (
+                <div key={group.key} className="city-card" onClick={() => { setSelectedCityGroup(group); setPreviewCollection(null); setPreviewPage(0); }}>
+                  <div className="city-card-inner">
+                    <img src={cardImage} alt={group.geo.city} className="city-card-image" loading="lazy" draggable={false} />
+                    <div className="city-card-info">
+                      <h4 className="city-card-name">{group.geo.city}</h4>
+                      <p className="city-card-country">{group.geo.country} · {group.totalPhotos} photos</p>
+                    </div>
+                    <div className="city-card-hover-loc">
+                      <span>{group.geo.country} · {group.totalPhotos} photos</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="city-card-info">
-                  <h4 className="city-card-name">{group.geo.city}</h4>
-                  <p className="city-card-country">{group.geo.country} · {group.totalPhotos} photos</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
         </div>
       </section>
 
