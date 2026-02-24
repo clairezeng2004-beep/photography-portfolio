@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit, Trash2, Save, X,
   User, Image as ImageIcon, Settings, LogOut,
@@ -224,9 +224,22 @@ const GeoPicker: React.FC<GeoPickerProps> = ({ value, onChange, locationHint }) 
    ============================================================ */
 const Admin: React.FC = () => {
   const { collections, aboutInfo, litCities, heroImages, animationConfig, dataLoaded, cloudSyncStatus, pendingSyncKeys, retrySyncAll, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages, updateAnimationConfig } = useData();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState<TabType>('home');
+
+  // Restore tab from URL hash (e.g. /admin#collections)
+  const validTabs: TabType[] = ['home', 'collections', 'about', 'map'];
+  const hashTab = location.hash.replace('#', '') as TabType;
+  const initialTab = validTabs.includes(hashTab) ? hashTab : 'home';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  // Sync tab to URL hash
+  const handleTabChange = useCallback((tab: TabType) => {
+    setActiveTab(tab);
+    navigate(`/admin#${tab}`, { replace: true });
+  }, [navigate]);
 
   useEffect(() => { document.title = '小冰块 - 摄影集 - 管理后台'; }, []);
   const [editingCollection, setEditingCollection] = useState<string | null>(null);
@@ -690,28 +703,28 @@ const Admin: React.FC = () => {
           <nav className="sidebar-nav">
             <button
               className={`nav-item ${activeTab === 'home' ? 'active' : ''}`}
-              onClick={() => setActiveTab('home')}
+              onClick={() => handleTabChange('home')}
             >
               <Home size={20} />
               <span>首页管理</span>
             </button>
             <button
               className={`nav-item ${activeTab === 'collections' ? 'active' : ''}`}
-              onClick={() => setActiveTab('collections')}
+              onClick={() => handleTabChange('collections')}
             >
               <Folder size={20} />
               <span>作品集管理</span>
             </button>
             <button
               className={`nav-item ${activeTab === 'about' ? 'active' : ''}`}
-              onClick={() => setActiveTab('about')}
+              onClick={() => handleTabChange('about')}
             >
               <User size={20} />
               <span>关于我编辑</span>
             </button>
             <button
               className={`nav-item ${activeTab === 'map' ? 'active' : ''}`}
-              onClick={() => setActiveTab('map')}
+              onClick={() => handleTabChange('map')}
             >
               <Globe size={20} />
               <span>地图管理</span>
