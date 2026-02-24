@@ -462,7 +462,7 @@ const Home: React.FC = () => {
         <div className={`hero-overlay ${heroLoaded ? 'loaded' : ''}`} onClick={handleHeroClick}>
           <div className="hero-info-strip">
             <span className="hero-location">{heroImages[((currentSlide % heroImages.length) + heroImages.length) % heroImages.length]?.title}</span>
-            <span className="hero-sep">—</span>
+            <span className="hero-sep">——</span>
             <span className="hero-title-text">{heroImages[((currentSlide % heroImages.length) + heroImages.length) % heroImages.length]?.location}，{heroImages[((currentSlide % heroImages.length) + heroImages.length) % heroImages.length]?.year}</span>
           </div>
         </div>

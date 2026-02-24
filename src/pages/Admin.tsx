@@ -2404,23 +2404,26 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   onClick={() => openPicker(index)}
                   style={{ marginBottom: 8 }}
                 >
-                  从作品集选图
+                  从作品集同步
                 </button>
-                <ImageUploader
-                  onImageUpload={(url) => replaceImage(index, url)}
-                  currentImage={img.url}
-                  onRemove={() => replaceImage(index, '')}
-                  label="上传图片"
-                  enableCrop
-                  cropAspectOptions={[
-                    { label: '16:9', value: 16 / 9 },
-                    { label: '4:3', value: 4 / 3 },
-                  ]}
-                  defaultCropAspect={16 / 9}
-                  defaultOutputWidth={1920}
-                  compressMaxWidth={2500}
-                  compressQuality={0.85}
-                />
+                <div className="hero-custom-upload-hint">
+                  <span>或</span>
+                  <ImageUploader
+                    onImageUpload={(url) => replaceImage(index, url)}
+                    currentImage={img.url}
+                    onRemove={() => replaceImage(index, '')}
+                    label="自定义图片"
+                    enableCrop
+                    cropAspectOptions={[
+                      { label: '16:9', value: 16 / 9 },
+                      { label: '4:3', value: 4 / 3 },
+                    ]}
+                    defaultCropAspect={16 / 9}
+                    defaultOutputWidth={1920}
+                    compressMaxWidth={2500}
+                    compressQuality={0.85}
+                  />
+                </div>
               </div>
               <div className="hero-item-mobile-cover">
                 <label className="mobile-cover-label">
@@ -2534,14 +2537,14 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                 <div
                   key={c.id}
                   className="picker-collection-card"
-                  onClick={() => handlePickImage(c.coverImage, c.title, `${c.location} · ${c.year}`)}
+                  onClick={() => handlePickImage(c.coverImage, c.title, c.location)}
                 >
                   <div className="picker-card-cover">
                     <img src={c.coverImage} alt={c.title} />
                   </div>
                   <div className="picker-card-info">
                     <div className="picker-card-title">{c.title}</div>
-                    <div className="picker-card-sub">{c.location} · {c.year}</div>
+                    <div className="picker-card-sub">{c.location}，{c.year}</div>
                   </div>
                 </div>
               ))}
