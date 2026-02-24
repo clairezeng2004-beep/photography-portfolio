@@ -27,9 +27,8 @@ function groupPhotoRows(photos: Photo[]): PhotoRow[] {
 const Gallery: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { collections } = useData();
-  const [visiblePhotos, setVisiblePhotos] = useState<Set<number>>(new Set());
   const [recVisible, setRecVisible] = useState(false);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const recObserverRef = useRef<IntersectionObserver | null>(null);
   const recRef = useRef<HTMLDivElement>(null);
 
   const collection = collections.find(c => c.id === id);
@@ -49,40 +48,28 @@ const Gallery: React.FC = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setVisiblePhotos(new Set());
     setRecVisible(false);
   }, [id]);
 
   useEffect(() => {
-    observerRef.current = new IntersectionObserver(
+    recObserverRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const index = entry.target.getAttribute('data-index');
-            if (index === '__rec__') {
-              setRecVisible(true);
-            } else {
-              setVisiblePhotos((prev) => new Set(prev).add(Number(index)));
-            }
+            setRecVisible(true);
           }
         });
       },
       { threshold: 0.1, rootMargin: '0px 0px -30px 0px' }
     );
-    return () => observerRef.current?.disconnect();
+    return () => recObserverRef.current?.disconnect();
   }, []);
 
   useEffect(() => {
-    if (recRef.current && observerRef.current) {
-      observerRef.current.observe(recRef.current);
+    if (recRef.current && recObserverRef.current) {
+      recObserverRef.current.observe(recRef.current);
     }
   }, [collection]);
-
-  const photoRef = (el: HTMLElement | null) => {
-    if (el && observerRef.current) {
-      observerRef.current.observe(el);
-    }
-  };
 
   // useMemo must be called before any conditional return (rules of hooks)
   const hasAnnotations = collection?.photos.some(p => p.caption || p.footnote) ?? false;
@@ -136,9 +123,7 @@ const Gallery: React.FC = () => {
             return (
               <div
                 key={photo.id}
-                className={`gallery-photo-item full ${visiblePhotos.has(index) ? 'visible' : ''} ${photo.caption ? 'has-caption-before' : ''}`}
-                data-index={index}
-                ref={photoRef}
+                className={`gallery-photo-item full ${photo.caption ? 'has-caption-before' : ''}`}
               >
                 {photo.caption && (
                   <div className="photo-caption-block">
@@ -153,13 +138,10 @@ const Gallery: React.FC = () => {
           } else {
             const [p1, p2] = row.photos;
             const [i1, i2] = row.indices;
-            const isVisible = visiblePhotos.has(i1) || visiblePhotos.has(i2);
             return (
               <div
                 key={`${p1.id}-${p2.id}`}
-                className={`gallery-photo-item pair ${isVisible ? 'visible' : ''} ${p1.caption ? 'has-caption-before' : ''}`}
-                data-index={i1}
-                ref={photoRef}
+                className={`gallery-photo-item pair ${p1.caption ? 'has-caption-before' : ''}`}
               >
                 {p1.caption && (
                   <div className="photo-caption-block">
