@@ -226,85 +226,39 @@
 
 .crop-handle {
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.crop-handle::after {
-  content: '';
-  position: absolute;
-  background: #fff;
-  border-radius: 1px;
+.crop-handle svg {
+  width: 16px;
+  height: 16px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+  pointer-events: none;
 }
 
 .crop-handle-nw {
-  top: -2px; left: -2px;
+  top: -12px; left: -12px;
   cursor: nw-resize;
-}
-.crop-handle-nw::after {
-  top: 0; left: 0;
-  width: 16px; height: 3px;
-  box-shadow: 0 0 0 0 #fff;
-}
-.crop-handle-nw::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 3px; height: 16px;
-  background: #fff;
-  border-radius: 1px;
 }
 
 .crop-handle-ne {
-  top: -2px; right: -2px;
+  top: -12px; right: -12px;
   cursor: ne-resize;
-}
-.crop-handle-ne::after {
-  top: 0; right: 0;
-  width: 16px; height: 3px;
-}
-.crop-handle-ne::before {
-  content: '';
-  position: absolute;
-  top: 0; right: 0;
-  width: 3px; height: 16px;
-  background: #fff;
-  border-radius: 1px;
 }
 
 .crop-handle-sw {
-  bottom: -2px; left: -2px;
+  bottom: -12px; left: -12px;
   cursor: sw-resize;
-}
-.crop-handle-sw::after {
-  bottom: 0; left: 0;
-  width: 16px; height: 3px;
-}
-.crop-handle-sw::before {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0;
-  width: 3px; height: 16px;
-  background: #fff;
-  border-radius: 1px;
 }
 
 .crop-handle-se {
-  bottom: -2px; right: -2px;
+  bottom: -12px; right: -12px;
   cursor: se-resize;
-}
-.crop-handle-se::after {
-  bottom: 0; right: 0;
-  width: 16px; height: 3px;
-}
-.crop-handle-se::before {
-  content: '';
-  position: absolute;
-  bottom: 0; right: 0;
-  width: 3px; height: 16px;
-  background: #fff;
-  border-radius: 1px;
 }
 
 .crop-controls .form-group {

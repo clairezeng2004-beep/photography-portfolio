@@ -258,11 +258,35 @@ const DragCropper: React.FC<{
         <div style={{ position: 'absolute', top: '33.3%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.4)' }} />
         <div style={{ position: 'absolute', top: '66.6%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.4)' }} />
 
-        {/* Corner handles */}
-        <div className="crop-handle crop-handle-nw" onPointerDown={(e) => handlePointerDown(e, 'nw')} />
-        <div className="crop-handle crop-handle-ne" onPointerDown={(e) => handlePointerDown(e, 'ne')} />
-        <div className="crop-handle crop-handle-sw" onPointerDown={(e) => handlePointerDown(e, 'sw')} />
-        <div className="crop-handle crop-handle-se" onPointerDown={(e) => handlePointerDown(e, 'se')} />
+        {/* Corner handles with double-headed diagonal arrows */}
+        <div className="crop-handle crop-handle-nw" onPointerDown={(e) => handlePointerDown(e, 'nw')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(0deg)' }}>
+            <line x1="3" y1="3" x2="13" y2="13" />
+            <polyline points="3 8 3 3 8 3" />
+            <polyline points="13 8 13 13 8 13" />
+          </svg>
+        </div>
+        <div className="crop-handle crop-handle-ne" onPointerDown={(e) => handlePointerDown(e, 'ne')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(90deg)' }}>
+            <line x1="3" y1="3" x2="13" y2="13" />
+            <polyline points="3 8 3 3 8 3" />
+            <polyline points="13 8 13 13 8 13" />
+          </svg>
+        </div>
+        <div className="crop-handle crop-handle-sw" onPointerDown={(e) => handlePointerDown(e, 'sw')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-90deg)' }}>
+            <line x1="3" y1="3" x2="13" y2="13" />
+            <polyline points="3 8 3 3 8 3" />
+            <polyline points="13 8 13 13 8 13" />
+          </svg>
+        </div>
+        <div className="crop-handle crop-handle-se" onPointerDown={(e) => handlePointerDown(e, 'se')}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(180deg)' }}>
+            <line x1="3" y1="3" x2="13" y2="13" />
+            <polyline points="3 8 3 3 8 3" />
+            <polyline points="13 8 13 13 8 13" />
+          </svg>
+        </div>
       </div>
     </div>
   );

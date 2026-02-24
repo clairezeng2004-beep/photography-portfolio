@@ -628,14 +628,6 @@ const Footprints: React.FC = () => {
                     const d = pathGenerator(feature as GeoPermissibleObjects);
                     return d ? <path key={`prov-border-${i}`} d={d} className="province-border" /> : null;
                   })}
-                  {/* Single clean China national outline from world-atlas (low-detail, smooth) */}
-                  {visibleFeatures.map((feature: any, i: number) => {
-                    const numId = feature.id;
-                    const code = COUNTRY_NUMERIC_TO_CODE[numId] || '';
-                    if (code !== 'CN') return null;
-                    const d = pathGenerator(feature as GeoPermissibleObjects);
-                    return d ? <path key={`cn-outline-${i}`} d={d} className="country-border" /> : null;
-                  })}
                 </>
               ) : (
                 <>
