@@ -297,6 +297,28 @@
   fill: #3a352e;
 }
 
+/* ============ PROVINCE PATHS (China tab) ============ */
+.province-path {
+  stroke: none;
+  transition: fill 0.4s ease;
+}
+
+.province-lit {
+  fill: #c4b596;
+}
+
+.province-dim {
+  fill: #d8d2c8;
+}
+
+.province-border {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
 /* ============ PROVINCE LABELS (China tab) ============ */
 .province-label {
   font-family: 'Noto Serif SC', serif;
@@ -321,13 +343,6 @@
   fill: #b5b0a5;
   font-weight: 400;
   font-size: 9.5px;
-}
-
-/* China highlighted country shape */
-.country-china-main {
-  fill: #c4b596 !important;
-  stroke: #a89870;
-  stroke-width: 0.8;
 }
 
 /* Map tooltip */

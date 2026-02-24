@@ -28,6 +28,22 @@ const countriesGeo = topojson.feature(worldTopo, worldTopo.objects.countries) as
 const landGeo = topojson.feature(worldTopo, worldTopo.objects.land) as any;
 
 /* ============================================================
+   China province GeoJSON full-name → short-name mapping
+   ============================================================ */
+const PROVINCE_NAME_MAP: Record<string, string> = {
+  '北京市': '北京', '天津市': '天津', '上海市': '上海', '重庆市': '重庆',
+  '河北省': '河北', '山西省': '山西', '辽宁省': '辽宁', '吉林省': '吉林',
+  '黑龙江省': '黑龙江', '江苏省': '江苏', '浙江省': '浙江', '安徽省': '安徽',
+  '福建省': '福建', '江西省': '江西', '山东省': '山东', '河南省': '河南',
+  '湖北省': '湖北', '湖南省': '湖南', '广东省': '广东', '海南省': '海南',
+  '四川省': '四川', '贵州省': '贵州', '云南省': '云南', '陕西省': '陕西',
+  '甘肃省': '甘肃', '青海省': '青海', '台湾省': '台湾',
+  '内蒙古自治区': '内蒙古', '广西壮族自治区': '广西', '西藏自治区': '西藏',
+  '宁夏回族自治区': '宁夏', '新疆维吾尔自治区': '新疆',
+  '香港特别行政区': '香港', '澳门特别行政区': '澳门',
+};
+
+/* ============================================================
    Projection configs per continent view
    ============================================================ */
 interface ViewConfig {
@@ -113,6 +129,16 @@ const Footprints: React.FC = () => {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  // China province GeoJSON (loaded on demand)
+  const [chinaGeoJson, setChinaGeoJson] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/china-provinces.json')
+      .then(r => r.json())
+      .then(data => setChinaGeoJson(data))
+      .catch(() => {});
+  }, []);
 
   // Reset zoom on tab change
   useEffect(() => {
@@ -570,36 +596,67 @@ const Footprints: React.FC = () => {
               })}
 
               {/* Country shapes */}
+              {activeContinent === 'china' && chinaGeoJson ? (
+                <>
+                  {/* Non-China countries (dimmed) */}
+                  {visibleFeatures.map((feature: any, i: number) => {
+                    const d = pathGenerator(feature as GeoPermissibleObjects);
+                    if (!d) return null;
+                    const numId = feature.id;
+                    const code = COUNTRY_NUMERIC_TO_CODE[numId] || '';
+                    if (code === 'CN') return null;
+                    return <path key={`country-${i}`} d={d} className="country-path country-dim" style={{ opacity: 0.3 }} />;
+                  })}
+                  {/* China province shapes */}
+                  {chinaGeoJson.features.map((feature: any, i: number) => {
+                    const d = pathGenerator(feature as GeoPermissibleObjects);
+                    if (!d) return null;
+                    const fullName = feature.properties?.name || '';
+                    const shortName = PROVINCE_NAME_MAP[fullName] || fullName;
+                    const isLit = litProvinces.has(shortName);
+                    return (
+                      <path
+                        key={`province-${i}`}
+                        d={d}
+                        className={`province-path ${isLit ? 'province-lit' : 'province-dim'}`}
+                      />
+                    );
+                  })}
+                  {/* Province borders */}
+                  {chinaGeoJson.features.map((feature: any, i: number) => {
+                    const d = pathGenerator(feature as GeoPermissibleObjects);
+                    return d ? <path key={`prov-border-${i}`} d={d} className="province-border" /> : null;
+                  })}
+                </>
+              ) : (
+                <>
+                  {visibleFeatures.map((feature: any, i: number) => {
+                    const d = pathGenerator(feature as GeoPermissibleObjects);
+                    if (!d) return null;
+                    const numId = feature.id;
+                    const code = COUNTRY_NUMERIC_TO_CODE[numId] || '';
+                    const isLit = litCountryCodes.has(code);
+                    return (
+                      <path
+                        key={`country-${i}`}
+                        d={d}
+                        className={`country-path ${isLit ? 'country-lit' : 'country-dim'}`}
+                      />
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Country borders (skip China in China tab since province borders handle it) */}
               {visibleFeatures.map((feature: any, i: number) => {
                 const d = pathGenerator(feature as GeoPermissibleObjects);
                 if (!d) return null;
-                const numId = feature.id;
-                const code = COUNTRY_NUMERIC_TO_CODE[numId] || '';
-                const isLit = litCountryCodes.has(code);
-
-                // For China tab: highlight China specially, dim all others
-                if (activeContinent === 'china') {
-                  if (code === 'CN') {
-                    return <path key={`country-${i}`} d={d} className="country-path country-lit country-china-main" />;
-                  }
-                  return <path key={`country-${i}`} d={d} className="country-path country-dim" style={{ opacity: 0.3 }} />;
+                if (activeContinent === 'china' && chinaGeoJson) {
+                  const numId = feature.id;
+                  const code = COUNTRY_NUMERIC_TO_CODE[numId] || '';
+                  if (code === 'CN') return null;
                 }
-
-                return (
-                  <path
-                    key={`country-${i}`}
-                    d={d}
-                    className={`country-path ${isLit ? 'country-lit' : 'country-dim'}`}
-                  />
-                );
-              })}
-
-              {/* Country borders */}
-              {visibleFeatures.map((feature: any, i: number) => {
-                const d = pathGenerator(feature as GeoPermissibleObjects);
-                return d ? (
-                  <path key={`border-${i}`} d={d} className="country-border" />
-                ) : null;
+                return <path key={`border-${i}`} d={d} className="country-border" />;
               })}
 
               {/* China province labels (only in China tab) */}
