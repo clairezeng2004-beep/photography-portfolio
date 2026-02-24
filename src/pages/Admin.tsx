@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit, Trash2, Save, X,
   User, Image as ImageIcon, Settings, LogOut,
-  Folder, Camera, MapPin, Calendar, Globe, Map,
+  Folder, Camera, MapPin, Calendar, Globe,
   ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload
 } from 'lucide-react';
 import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage } from '../types';
@@ -12,8 +12,6 @@ import { useData } from '../context/DataContext';
 import {
   CITY_DATABASE,
   COUNTRY_LIST,
-  getCitiesByCountry,
-  getCitiesByContinent,
   resolveGeoFromCity,
   lookupCity,
   searchCities,
@@ -158,192 +156,6 @@ function autoCropToPortrait(
 }
 
 type TabType = 'home' | 'collections' | 'about' | 'map';
-
-/* ============================================================
-   Geo Picker sub-component
-   ============================================================ */
-interface GeoPickerProps {
-  value: GeoInfo | undefined;
-  onChange: (geo: GeoInfo | undefined) => void;
-  locationHint?: string; // auto-detect from the location field
-}
-
-const GeoPicker: React.FC<GeoPickerProps> = ({ value, onChange, locationHint }) => {
-  const [continent, setContinent] = useState<'asia' | 'europe'>(value?.continent || 'asia');
-  const [countryCode, setCountryCode] = useState(value?.countryCode || '');
-  const [cityName, setCityName] = useState(value?.city || '');
-  const [searchText, setSearchText] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
-
-  // Auto-detect from locationHint
-  useEffect(() => {
-    if (locationHint && !value) {
-      const resolved = resolveGeoFromCity(locationHint);
-      if (resolved) {
-        setContinent(resolved.continent);
-        setCountryCode(resolved.countryCode);
-        setCityName(resolved.city);
-        onChange(resolved);
-      }
-    }
-  }, [locationHint]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const countriesForContinent = useMemo(() =>
-    COUNTRY_LIST.filter(c => c.continent === continent), [continent]);
-
-  const citiesForCountry = useMemo(() =>
-    countryCode ? getCitiesByCountry(countryCode) : [], [countryCode]);
-
-  const filteredCities = useMemo(() => {
-    if (!searchText) return getCitiesByContinent(continent);
-    return searchCities(searchText);
-  }, [searchText, continent]);
-
-  const handleContinentChange = (c: 'asia' | 'europe') => {
-    setContinent(c);
-    setCountryCode('');
-    setCityName('');
-    setSearchText('');
-    onChange(undefined);
-  };
-
-  const handleCountryChange = (code: string) => {
-    setCountryCode(code);
-    setCityName('');
-    // If country has exactly 1 city entry, auto-select it
-    const cities = getCitiesByCountry(code);
-    if (cities.length === 1) {
-      handleCitySelect(cities[0]);
-    } else {
-      onChange(undefined);
-    }
-  };
-
-  const handleCitySelect = (entry: CityEntry) => {
-    setCityName(entry.city);
-    setContinent(entry.continent);
-    setCountryCode(entry.countryCode);
-    setSearchText('');
-    setShowDropdown(false);
-    onChange({
-      continent: entry.continent,
-      country: entry.country,
-      countryCode: entry.countryCode,
-      city: entry.city,
-      lat: entry.lat,
-      lng: entry.lng,
-    });
-  };
-
-  return (
-    <div className="geo-picker">
-      <div className="geo-picker-header">
-        <Globe size={16} />
-        <span>地图定位</span>
-        {value && (
-          <span className="geo-status-badge active">
-            <Map size={12} /> 已定位
-          </span>
-        )}
-      </div>
-
-      {/* Continent selector */}
-      <div className="geo-row">
-        <label>大洲</label>
-        <div className="geo-continent-btns">
-          <button
-            type="button"
-            className={`geo-continent-btn ${continent === 'asia' ? 'active' : ''}`}
-            onClick={() => handleContinentChange('asia')}
-          >
-            亚洲
-          </button>
-          <button
-            type="button"
-            className={`geo-continent-btn ${continent === 'europe' ? 'active' : ''}`}
-            onClick={() => handleContinentChange('europe')}
-          >
-            欧洲
-          </button>
-        </div>
-      </div>
-
-      {/* Country selector */}
-      <div className="geo-row">
-        <label>国家</label>
-        <select
-          value={countryCode}
-          onChange={(e) => handleCountryChange(e.target.value)}
-          className="geo-select"
-        >
-          <option value="">选择国家...</option>
-          {countriesForContinent.map(c => (
-            <option key={c.code} value={c.code}>{c.name}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* City selector - searchable */}
-      <div className="geo-row">
-        <label>城市</label>
-        <div className="geo-city-search">
-          <input
-            type="text"
-            value={searchText || cityName}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setCityName('');
-              setShowDropdown(true);
-            }}
-            onFocus={() => setShowDropdown(true)}
-            placeholder="搜索或选择城市..."
-            className="geo-search-input"
-          />
-          {showDropdown && (
-            <div className="geo-dropdown">
-              {(searchText ? filteredCities : citiesForCountry.length > 0 ? citiesForCountry : getCitiesByContinent(continent)).map((entry, i) => (
-                <button
-                  key={`${entry.city}-${i}`}
-                  type="button"
-                  className={`geo-dropdown-item ${entry.city === cityName ? 'selected' : ''}`}
-                  onClick={() => handleCitySelect(entry)}
-                >
-                  <span className="geo-dropdown-city">{entry.city}</span>
-                  <span className="geo-dropdown-country">{entry.country}</span>
-                </button>
-              ))}
-              {(searchText ? filteredCities : citiesForCountry).length === 0 && searchText && (
-                <div className="geo-dropdown-empty">
-                  未找到匹配城市
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Preview */}
-      {value && (
-        <div className="geo-preview">
-          <MapPin size={14} />
-          <span>{value.city}, {value.country} ({value.continent === 'asia' ? '亚洲' : '欧洲'})</span>
-          <button
-            type="button"
-            className="geo-clear-btn"
-            onClick={() => {
-              onChange(undefined);
-              setCityName('');
-              setCountryCode('');
-              setSearchText('');
-            }}
-          >
-            <X size={12} />
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
 
 /* ============================================================
    Click-outside hook for closing dropdown
@@ -1285,13 +1097,6 @@ const Admin: React.FC = () => {
                           rows={4}
                         />
                       </div>
-
-                      {/* Geo Picker */}
-                      <GeoPicker
-                        value={newCollection.geo}
-                        onChange={(geo) => setNewCollection({ ...newCollection, geo })}
-                        locationHint={newCollection.location}
-                      />
                     </div>
                     
                     <div className="modal-footer">
@@ -1826,6 +1631,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
   // Collapsible section states
   const [showCoverSection, setShowCoverSection] = useState(false);
+  const [showDescriptionSection, setShowDescriptionSection] = useState(false);
   const [showPhotosSection, setShowPhotosSection] = useState(false);
   const [showLocationTimeSection, setShowLocationTimeSection] = useState(false);
   const [cropProcessing, setCropProcessing] = useState(false);
@@ -1978,13 +1784,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="作品集标题"
             />
-            <textarea
-              className="inline-edit-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="描述这个作品集的故事..."
-              rows={3}
-            />
 
             {/* 封面编辑 — 折叠 */}
             <div className="collapsible-section">
@@ -2125,6 +1924,36 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                 </div>
               </div>
               </div>
+              )}
+            </div>
+
+            {/* 作品描述 — 折叠 */}
+            <div className="collapsible-section">
+              <button
+                type="button"
+                className={`collapsible-toggle ${showDescriptionSection ? 'open' : ''}`}
+                onClick={() => setShowDescriptionSection(!showDescriptionSection)}
+              >
+                <span className="collapsible-toggle-icon">
+                  <ChevronDown size={14} />
+                </span>
+                <span>作品描述</span>
+                {description && !showDescriptionSection && (
+                  <span className="collapsible-toggle-summary">
+                    {description.length > 30 ? description.slice(0, 30) + '...' : description}
+                  </span>
+                )}
+              </button>
+              {showDescriptionSection && (
+                <div className="collapsible-body">
+                  <textarea
+                    className="inline-edit-description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="描述这个作品集的故事..."
+                    rows={3}
+                  />
+                </div>
               )}
             </div>
 
@@ -2301,11 +2130,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                       ))}
                     </select>
                   </div>
-                  <GeoPicker
-                    value={geo}
-                    onChange={(g) => setGeo(g)}
-                    locationHint={location}
-                  />
                 </div>
               )}
             </div>
@@ -2323,29 +2147,26 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
         ) : (
           <>
             <h3>{collection.title}</h3>
-            <div className="card-meta" onClick={() => { setShowCoverSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点时间">
+            <div className="card-meta" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点时间">
               <MapPin size={14} />
               <span>{collection.location}</span>
               <Calendar size={14} />
               <span>{collection.year}{collection.month ? `.${collection.month}` : ''}</span>
             </div>
             {collection.geo && (
-              <div className="card-geo-badge clickable" onClick={() => { setShowCoverSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点">
+              <div className="card-geo-badge clickable" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点">
                 <Globe size={12} />
                 <span>{collection.geo.city}, {collection.geo.country}</span>
-                <span className="geo-continent-tag">
-                  {collection.geo.continent === 'asia' ? '亚洲' : '欧洲'}
-                </span>
               </div>
             )}
             {!collection.geo && (
-              <div className="card-geo-badge unset clickable" onClick={() => { setShowCoverSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击设置地点">
+              <div className="card-geo-badge unset clickable" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击设置地点">
                 <Globe size={12} />
                 <span>未定位</span>
               </div>
             )}
-            <p className="card-description">{collection.description}</p>
-            <div className="card-stats" onClick={() => { setShowCoverSection(false); setShowLocationTimeSection(false); setShowPhotosSection(true); onToggleEdit(); }} title="点击管理照片">
+            <p className="card-description" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(true); setShowPhotosSection(false); setShowLocationTimeSection(false); onToggleEdit(); }} title="点击编辑描述" style={{ cursor: 'pointer' }}>{collection.description}</p>
+            <div className="card-stats" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowLocationTimeSection(false); setShowPhotosSection(true); onToggleEdit(); }} title="点击管理照片">
               <ImageIcon size={14} />
               <span>{collection.photos.length} 张照片</span>
             </div>

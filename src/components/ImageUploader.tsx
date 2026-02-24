@@ -134,41 +134,48 @@ const DragCropper: React.FC<{
     if (!img || !container) return;
     const nat = { w: img.naturalWidth, h: img.naturalHeight };
     setNaturalSize(nat);
-    // Wait for layout
+    // Double RAF to ensure layout is fully settled
     requestAnimationFrame(() => {
-      const imgRect = img.getBoundingClientRect();
-      const contRect = container.getBoundingClientRect();
-      const layout = {
-        w: imgRect.width,
-        h: imgRect.height,
-        x: imgRect.left - contRect.left,
-        y: imgRect.top - contRect.top,
-      };
-      setImgLayout(layout);
-
-      let rect: CropRect;
-      if (initialCropPixels) {
-        // Convert natural pixel coords to display coords
-        const scaleX = layout.w / nat.w;
-        const scaleY = layout.h / nat.h;
-        rect = {
-          x: initialCropPixels.x * scaleX,
-          y: initialCropPixels.y * scaleY,
-          w: initialCropPixels.width * scaleX,
-          h: initialCropPixels.height * scaleY,
+      requestAnimationFrame(() => {
+        const imgRect = img.getBoundingClientRect();
+        const contRect = container.getBoundingClientRect();
+        const layout = {
+          w: imgRect.width,
+          h: imgRect.height,
+          x: imgRect.left - contRect.left,
+          y: imgRect.top - contRect.top,
         };
-        setCrop(rect);
-      } else {
-        rect = initCrop(layout.w, layout.h);
-      }
-      // Report initial crop
-      const scaleX = nat.w / layout.w;
-      const scaleY = nat.h / layout.h;
-      onCropArea({
-        x: Math.round(rect.x * scaleX),
-        y: Math.round(rect.y * scaleY),
-        width: Math.round(rect.w * scaleX),
-        height: Math.round(rect.h * scaleY),
+        setImgLayout(layout);
+
+        let rect: CropRect;
+        if (initialCropPixels) {
+          // Convert natural pixel coords to display coords
+          const scaleX = layout.w / nat.w;
+          const scaleY = layout.h / nat.h;
+          rect = {
+            x: initialCropPixels.x * scaleX,
+            y: initialCropPixels.y * scaleY,
+            w: initialCropPixels.width * scaleX,
+            h: initialCropPixels.height * scaleY,
+          };
+          // Clamp to image bounds
+          rect.x = Math.max(0, Math.min(rect.x, layout.w - rect.w));
+          rect.y = Math.max(0, Math.min(rect.y, layout.h - rect.h));
+          if (rect.w > layout.w) { rect.w = layout.w; rect.h = rect.w / aspect; }
+          if (rect.h > layout.h) { rect.h = layout.h; rect.w = rect.h * aspect; }
+          setCrop(rect);
+        } else {
+          rect = initCrop(layout.w, layout.h);
+        }
+        // Report initial crop
+        const scaleX2 = nat.w / layout.w;
+        const scaleY2 = nat.h / layout.h;
+        onCropArea({
+          x: Math.round(rect.x * scaleX2),
+          y: Math.round(rect.y * scaleY2),
+          width: Math.round(rect.w * scaleX2),
+          height: Math.round(rect.h * scaleY2),
+        });
       });
     });
   };
@@ -192,7 +199,6 @@ const DragCropper: React.FC<{
   const handlePointerDown = (e: React.PointerEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
     e.preventDefault();
     e.stopPropagation();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     dragState.current = {
       type,
       startX: e.clientX,
@@ -201,66 +207,73 @@ const DragCropper: React.FC<{
     };
   };
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragState.current || !imgLayout) return;
-    const { type, startX, startY, startCrop } = dragState.current;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+  // Use document-level listeners so dragging works even when pointer leaves crop area
+  useEffect(() => {
+    const handleMove = (e: PointerEvent) => {
+      if (!dragState.current || !imgLayout) return;
+      const { type, startX, startY, startCrop } = dragState.current;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
 
-    let newCrop: CropRect;
+      let newCrop: CropRect;
 
-    if (type === 'move') {
-      newCrop = clampCrop({
-        x: startCrop.x + dx,
-        y: startCrop.y + dy,
-        w: startCrop.w,
-        h: startCrop.h,
-      });
-    } else {
-      // Corner resize with locked aspect
-      let newW = startCrop.w;
-      let newH = startCrop.h;
-      let newX = startCrop.x;
-      let newY = startCrop.y;
+      if (type === 'move') {
+        newCrop = clampCrop({
+          x: startCrop.x + dx,
+          y: startCrop.y + dy,
+          w: startCrop.w,
+          h: startCrop.h,
+        });
+      } else {
+        let newW = startCrop.w;
+        let newH = startCrop.h;
+        let newX = startCrop.x;
+        let newY = startCrop.y;
 
-      if (type === 'se') {
-        newW = Math.max(30, startCrop.w + dx);
-        newH = newW / aspect;
-        // Clamp to image bounds
-        if (newX + newW > imgLayout.w) { newW = imgLayout.w - newX; newH = newW / aspect; }
-        if (newY + newH > imgLayout.h) { newH = imgLayout.h - newY; newW = newH * aspect; }
-      } else if (type === 'sw') {
-        newW = Math.max(30, startCrop.w - dx);
-        newH = newW / aspect;
-        newX = startCrop.x + startCrop.w - newW;
-        if (newX < 0) { newX = 0; newW = startCrop.x + startCrop.w; newH = newW / aspect; }
-        if (newY + newH > imgLayout.h) { newH = imgLayout.h - newY; newW = newH * aspect; newX = startCrop.x + startCrop.w - newW; }
-      } else if (type === 'ne') {
-        newW = Math.max(30, startCrop.w + dx);
-        newH = newW / aspect;
-        newY = startCrop.y + startCrop.h - newH;
-        if (newX + newW > imgLayout.w) { newW = imgLayout.w - newX; newH = newW / aspect; newY = startCrop.y + startCrop.h - newH; }
-        if (newY < 0) { newY = 0; newH = startCrop.y + startCrop.h; newW = newH * aspect; }
-      } else if (type === 'nw') {
-        newW = Math.max(30, startCrop.w - dx);
-        newH = newW / aspect;
-        newX = startCrop.x + startCrop.w - newW;
-        newY = startCrop.y + startCrop.h - newH;
-        if (newX < 0) { newX = 0; newW = startCrop.x + startCrop.w; newH = newW / aspect; newY = startCrop.y + startCrop.h - newH; }
-        if (newY < 0) { newY = 0; newH = startCrop.y + startCrop.h; newW = newH * aspect; newX = startCrop.x + startCrop.w - newW; }
+        if (type === 'se') {
+          newW = Math.max(30, startCrop.w + dx);
+          newH = newW / aspect;
+          if (newX + newW > imgLayout.w) { newW = imgLayout.w - newX; newH = newW / aspect; }
+          if (newY + newH > imgLayout.h) { newH = imgLayout.h - newY; newW = newH * aspect; }
+        } else if (type === 'sw') {
+          newW = Math.max(30, startCrop.w - dx);
+          newH = newW / aspect;
+          newX = startCrop.x + startCrop.w - newW;
+          if (newX < 0) { newX = 0; newW = startCrop.x + startCrop.w; newH = newW / aspect; }
+          if (newY + newH > imgLayout.h) { newH = imgLayout.h - newY; newW = newH * aspect; newX = startCrop.x + startCrop.w - newW; }
+        } else if (type === 'ne') {
+          newW = Math.max(30, startCrop.w + dx);
+          newH = newW / aspect;
+          newY = startCrop.y + startCrop.h - newH;
+          if (newX + newW > imgLayout.w) { newW = imgLayout.w - newX; newH = newW / aspect; newY = startCrop.y + startCrop.h - newH; }
+          if (newY < 0) { newY = 0; newH = startCrop.y + startCrop.h; newW = newH * aspect; }
+        } else if (type === 'nw') {
+          newW = Math.max(30, startCrop.w - dx);
+          newH = newW / aspect;
+          newX = startCrop.x + startCrop.w - newW;
+          newY = startCrop.y + startCrop.h - newH;
+          if (newX < 0) { newX = 0; newW = startCrop.x + startCrop.w; newH = newW / aspect; newY = startCrop.y + startCrop.h - newH; }
+          if (newY < 0) { newY = 0; newH = startCrop.y + startCrop.h; newW = newH * aspect; newX = startCrop.x + startCrop.w - newW; }
+        }
+
+        newCrop = { x: newX, y: newY, w: newW, h: newH };
       }
 
-      newCrop = { x: newX, y: newY, w: newW, h: newH };
-    }
+      setCrop(newCrop);
+      reportCrop(newCrop);
+    };
 
-    setCrop(newCrop);
-    reportCrop(newCrop);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const handleUp = () => {
+      dragState.current = null;
+    };
+
+    document.addEventListener('pointermove', handleMove);
+    document.addEventListener('pointerup', handleUp);
+    return () => {
+      document.removeEventListener('pointermove', handleMove);
+      document.removeEventListener('pointerup', handleUp);
+    };
   }, [imgLayout, aspect, clampCrop, reportCrop]);
-
-  const handlePointerUp = useCallback(() => {
-    dragState.current = null;
-  }, []);
 
   if (!imgLayout) {
     return (
@@ -277,8 +290,6 @@ const DragCropper: React.FC<{
     <div
       className="crop-canvas-container"
       ref={containerRef}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
     >
       <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" />
       {/* Dark overlay masks */}
