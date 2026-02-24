@@ -297,6 +297,23 @@
   fill: #3a352e;
 }
 
+/* Country name labels */
+.country-label {
+  font-family: 'Playfair Display', serif;
+  font-size: 9px;
+  fill: #a09a90;
+  text-anchor: middle;
+  pointer-events: none;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  paint-order: stroke;
+  stroke: rgba(250, 249, 247, 0.8);
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* ============ PROVINCE PATHS (China tab) ============ */
 .province-path {
   stroke: none;
@@ -828,6 +845,7 @@
   .preview-info { padding: 20px 24px 28px; }
   .preview-title { font-size: 18px; }
   .city-label { font-size: 7px; }
+  .country-label { font-size: 7px; }
   .province-label-lit { font-size: 9px; }
   .province-label-dim { font-size: 8px; }
   .map-zoom-controls { top: 10px; right: 10px; }
@@ -845,6 +863,7 @@
   .city-list { grid-template-columns: 1fr; }
   .filter-btn { padding: 8px 16px; font-size: 11px; }
   .city-label { font-size: 6px; }
+  .country-label { font-size: 6px; }
   .province-label-lit { font-size: 8px; }
   .province-label-dim { font-size: 7px; }
 }

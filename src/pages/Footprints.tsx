@@ -82,21 +82,31 @@ const COUNTRY_NUMERIC_TO_CODE: Record<string, string> = {
    ============================================================ */
 
 /* ============================================================
-   Label overlap detection: only show labels that don't overlap,
-   prioritizing cities with more photos.
+   Label overlap detection: only show labels that don't overlap.
+   Items are sorted by priority desc then totalPhotos desc.
    ============================================================ */
+interface LabelItem {
+  key: string;
+  x: number;
+  y: number;
+  priority: number;   // higher = placed first (e.g. city > province)
+  totalPhotos: number;
+  label: string;
+}
+
 function filterOverlappingLabels(
-  items: { key: string; x: number; y: number; totalPhotos: number; label: string }[],
-  minDistX: number,
+  items: LabelItem[],
+  charWidth: number,
   minDistY: number
 ): Set<string> {
-  // Sort by totalPhotos desc
-  const sorted = [...items].sort((a, b) => b.totalPhotos - a.totalPhotos);
+  const sorted = [...items].sort((a, b) =>
+    b.priority !== a.priority ? b.priority - a.priority : b.totalPhotos - a.totalPhotos
+  );
   const visible = new Set<string>();
   const placed: { x: number; y: number; w: number }[] = [];
 
   for (const item of sorted) {
-    const estWidth = item.label.length * minDistX * 0.5;
+    const estWidth = item.label.length * charWidth;
     const overlaps = placed.some(p =>
       Math.abs(p.x - item.x) < (estWidth + p.w) * 0.5 &&
       Math.abs(p.y - item.y) < minDistY
@@ -108,6 +118,28 @@ function filterOverlappingLabels(
   }
   return visible;
 }
+
+/* ============================================================
+   ISO numeric → country English name (for map labels)
+   ============================================================ */
+const COUNTRY_NUMERIC_TO_NAME: Record<string, string> = {
+  '156': 'China', '392': 'Japan', '410': 'Korea', '764': 'Thailand', '704': 'Vietnam',
+  '702': 'Singapore', '458': 'Malaysia', '360': 'Indonesia', '608': 'Philippines', '356': 'India',
+  '496': 'Mongolia', '348': 'Hungary', '250': 'France', '826': 'UK', '380': 'Italy',
+  '276': 'Germany', '724': 'Spain', '040': 'Austria', '203': 'Czechia', '528': 'Netherlands',
+  '056': 'Belgium', '620': 'Portugal', '756': 'Switzerland', '616': 'Poland', '300': 'Greece',
+  '752': 'Sweden', '578': 'Norway', '246': 'Finland', '208': 'Denmark', '642': 'Romania',
+  '792': 'Turkey', '643': 'Russia', '804': 'Ukraine', '191': 'Croatia',
+  '840': 'USA', '124': 'Canada', '036': 'Australia', '076': 'Brazil', '032': 'Argentina',
+  '484': 'Mexico', '818': 'Egypt', '710': 'South Africa', '682': 'Saudi Arabia', '784': 'UAE',
+  '404': 'Kenya', '566': 'Nigeria', '586': 'Pakistan', '050': 'Bangladesh',
+  '104': 'Myanmar', '418': 'Laos', '116': 'Cambodia', '144': 'Sri Lanka',
+  '408': 'N. Korea', '398': 'Kazakhstan', '860': 'Uzbekistan',
+  '364': 'Iran', '368': 'Iraq', '760': 'Syria', '400': 'Jordan', '376': 'Israel',
+  '008': 'Albania', '070': 'Bosnia', '100': 'Bulgaria', '688': 'Serbia',
+  '498': 'Moldova', '112': 'Belarus', '440': 'Lithuania', '428': 'Latvia', '233': 'Estonia',
+  '372': 'Ireland', '352': 'Iceland',
+};
 
 /* ============================================================
    Component
@@ -295,27 +327,75 @@ const Footprints: React.FC = () => {
     setPan({ x: 0, y: 0 });
   }, []);
 
-  // Compute visible labels (no overlap, prioritize by photo count)
+  // Compute visible labels (unified overlap detection for city + province/country labels)
   const visibleLabelKeys = useMemo(() => {
-    const items: { key: string; x: number; y: number; totalPhotos: number; label: string }[] = [];
+    const items: LabelItem[] = [];
+
+    // City labels (highest priority — always try to show)
     filteredGeos.forEach(({ geo, cityGroup }) => {
-      if (!cityGroup) return; // only label cities with photos
+      if (!cityGroup) return;
       const { lat, lng } = geo.lat && geo.lng ? geo : (CITY_DATABASE.find(c => c.city === geo.city && c.continent === geo.continent) || { lat: 0, lng: 0 });
       const pos = projection([lng, lat]);
       if (!pos) return;
       items.push({
-        key: `${geo.continent}-${geo.city}`,
+        key: `city-${geo.continent}-${geo.city}`,
         x: pos[0],
-        y: pos[1],
+        y: pos[1] - 9, // city labels are rendered above marker
+        priority: 10,
         totalPhotos: cityGroup.totalPhotos,
         label: geo.city,
       });
     });
-    // Scale thresholds by zoom
-    const baseDistX = activeContinent === 'china' ? 5 : 6;
-    const baseDistY = activeContinent === 'china' ? 12 : 14;
-    return filterOverlappingLabels(items, baseDistX / zoom, baseDistY / zoom);
-  }, [filteredGeos, projection, zoom, activeContinent]);
+
+    if (activeContinent === 'china') {
+      // Province labels (lower priority than city)
+      CHINA_PROVINCES.forEach(prov => {
+        const pos = projection([prov.lng, prov.lat]);
+        if (!pos) return;
+        items.push({
+          key: `prov-${prov.name}`,
+          x: pos[0],
+          y: pos[1],
+          priority: 1,
+          totalPhotos: 0,
+          label: prov.name,
+        });
+      });
+    } else {
+      // Country labels (lower priority than city)
+      visibleFeatures.forEach((feature: any) => {
+        const numId = feature.id;
+        const name = COUNTRY_NUMERIC_TO_NAME[numId];
+        if (!name) return;
+        // Compute centroid and bounding box area of the country
+        const bounds = pathGenerator.bounds(feature as GeoPermissibleObjects);
+        if (!bounds) return;
+        const [[x0, y0], [x1, y1]] = bounds;
+        const bboxW = x1 - x0;
+        const bboxH = y1 - y0;
+        const area = bboxW * bboxH;
+        // Skip countries too small on screen at current zoom
+        const minArea = activeContinent === 'all' ? 400 : 800;
+        if (area < minArea / (zoom * zoom)) return;
+        const cx = (x0 + x1) / 2;
+        const cy = (y0 + y1) / 2;
+        // Skip if centroid outside viewport
+        if (cx < -50 || cx > vc.width + 50 || cy < -50 || cy > vc.height + 50) return;
+        items.push({
+          key: `country-${numId}`,
+          x: cx,
+          y: cy,
+          priority: 1,
+          totalPhotos: 0,
+          label: name,
+        });
+      });
+    }
+
+    const charWidth = activeContinent === 'china' ? 5 / zoom : 5.5 / zoom;
+    const minY = activeContinent === 'china' ? 12 / zoom : 13 / zoom;
+    return filterOverlappingLabels(items, charWidth, minY);
+  }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures]);
 
   /* ============ City preview modal ============ */
   const renderCollectionPreview = () => {
@@ -462,6 +542,7 @@ const Footprints: React.FC = () => {
   const renderChinaProvinceLabels = () => {
     if (activeContinent !== 'china') return null;
     return CHINA_PROVINCES.map(prov => {
+      if (!visibleLabelKeys.has(`prov-${prov.name}`)) return null;
       const pos = projection([prov.lng, prov.lat]);
       if (!pos) return null;
       const isLit = litProvinces.has(prov.name);
@@ -658,6 +739,29 @@ const Footprints: React.FC = () => {
               {/* China province labels (only in China tab) */}
               {renderChinaProvinceLabels()}
 
+              {/* Country name labels (non-China tabs) */}
+              {activeContinent !== 'china' && visibleFeatures.map((feature: any) => {
+                const numId = feature.id;
+                if (!visibleLabelKeys.has(`country-${numId}`)) return null;
+                const name = COUNTRY_NUMERIC_TO_NAME[numId];
+                if (!name) return null;
+                const bounds = pathGenerator.bounds(feature as GeoPermissibleObjects);
+                if (!bounds) return null;
+                const [[x0, y0], [x1, y1]] = bounds;
+                const cx = (x0 + x1) / 2;
+                const cy = (y0 + y1) / 2;
+                return (
+                  <text
+                    key={`country-label-${numId}`}
+                    x={cx}
+                    y={cy}
+                    className="country-label"
+                  >
+                    {name}
+                  </text>
+                );
+              })}
+
               {/* City markers */}
               {filteredGeos.map(({ geo, cityGroup }) => {
                 const { lat, lng } = getLatLng(geo);
@@ -667,7 +771,7 @@ const Footprints: React.FC = () => {
                 const hasPhoto = !!cityGroup;
                 const isHovered = hoveredCity === geo.city;
                 const cityKey = `${geo.continent}-${geo.city}`;
-                const showLabel = visibleLabelKeys.has(cityKey);
+                const showLabel = visibleLabelKeys.has(`city-${cityKey}`);
 
                 if (x < -20 || x > vc.width + 20 || y < -20 || y > vc.height + 20) return null;
 
