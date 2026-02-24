@@ -73,7 +73,10 @@ function autoCropToPortrait(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new window.Image();
-    img.crossOrigin = 'anonymous';
+    // Only set crossOrigin for remote URLs, not for base64 data URLs
+    if (!imageUrl.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => {
       try {
         const targetAspect = 3 / 4;
@@ -1092,10 +1095,17 @@ const Admin: React.FC = () => {
                         <label>封面图片（横版，用于首页轮播等）</label>
                         <ImageUploader
                           onImageUpload={(url) => {
-                            setNewCollection(prev => ({ ...prev, coverImage: url }));
+                            setNewCollection(prev => {
+                              const updated = { ...prev, coverImage: url };
+                              // Also auto-generate portrait from the cropped cover
+                              autoCropToPortrait(url).then(portrait => {
+                                setNewCollection(p => ({ ...p, cardCoverImage: portrait }));
+                              }).catch(() => {});
+                              return updated;
+                            });
                           }}
                           onCropOriginal={(originalUrl) => {
-                            // Auto-generate portrait cover from original image
+                            // Override portrait with better quality crop from original
                             autoCropToPortrait(originalUrl).then(portrait => {
                               setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
                             }).catch(() => {});
@@ -1120,7 +1130,6 @@ const Admin: React.FC = () => {
                                 className={`cover-picker-item ${newCollection.coverImage === photo.url ? 'active' : ''}`}
                                 onClick={() => {
                                   setNewCollection(prev => ({ ...prev, coverImage: photo.url }));
-                                  // Use original photo for portrait crop
                                   autoCropToPortrait(photo.url).then(portrait => {
                                     setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
                                   }).catch(() => {});
@@ -1886,9 +1895,11 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   <ImageUploader
                     onImageUpload={(url) => {
                       setCoverImage(url);
+                      // Also auto-generate portrait from the cropped cover
+                      autoCropToPortrait(url).then(setCardCoverImage).catch(() => {});
                     }}
                     onCropOriginal={(originalUrl) => {
-                      // Auto-generate portrait crop from original image
+                      // Override portrait with better quality crop from original
                       autoCropToPortrait(originalUrl).then(setCardCoverImage).catch(() => {});
                     }}
                     currentImage={coverImage}

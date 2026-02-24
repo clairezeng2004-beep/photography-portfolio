@@ -392,7 +392,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new window.Image();
-      img.crossOrigin = 'anonymous';
+      if (!imageUrl.startsWith('data:')) {
+        img.crossOrigin = 'anonymous';
+      }
       img.onload = () => {
         try {
           const outputHeight = Math.round(outputWidth * (area.height / area.width));
