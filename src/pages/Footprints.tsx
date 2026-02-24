@@ -92,6 +92,9 @@ interface LabelItem {
   priority: number;   // higher = placed first (e.g. city > province)
   totalPhotos: number;
   label: string;
+  bboxW?: number;     // bounding box width of the region on screen (for overflow check)
+  markerX?: number;   // city marker actual position (for avoidance with region labels)
+  markerY?: number;
 }
 
 function filterOverlappingLabels(
@@ -103,18 +106,35 @@ function filterOverlappingLabels(
     b.priority !== a.priority ? b.priority - a.priority : b.totalPhotos - a.totalPhotos
   );
   const visible = new Set<string>();
-  const placed: { x: number; y: number; w: number }[] = [];
+  const placed: { x: number; y: number; w: number; markerX?: number; markerY?: number }[] = [];
 
   for (const item of sorted) {
     const estWidth = item.label.length * charWidth;
-    const overlaps = placed.some(p =>
+
+    // Check if label text overflows the region's bounding box width
+    if (item.bboxW !== undefined && estWidth > item.bboxW * 0.85) {
+      continue; // skip — text wider than the region on screen
+    }
+
+    // Check overlap with already-placed labels
+    const overlapsLabel = placed.some(p =>
       Math.abs(p.x - item.x) < (estWidth + p.w) * 0.5 &&
       Math.abs(p.y - item.y) < minDistY
     );
-    if (!overlaps) {
-      visible.add(item.key);
-      placed.push({ x: item.x, y: item.y, w: estWidth });
+    if (overlapsLabel) continue;
+
+    // For region labels (priority <= 5), also check against city marker positions
+    if (item.priority <= 5) {
+      const overlapsMarker = placed.some(p => {
+        if (p.markerX === undefined || p.markerY === undefined) return false;
+        return Math.abs(p.markerX - item.x) < estWidth * 0.5 + 8 &&
+               Math.abs(p.markerY - item.y) < minDistY * 1.2;
+      });
+      if (overlapsMarker) continue;
     }
+
+    visible.add(item.key);
+    placed.push({ x: item.x, y: item.y, w: estWidth, markerX: item.markerX, markerY: item.markerY });
   }
   return visible;
 }
@@ -154,7 +174,6 @@ const REGION_COUNTRY_IDS: Record<Exclude<Continent, 'all'>, Set<string>> = {
     '795', // Turkmenistan
     '004', // Afghanistan
     '643', // Russia (shown partially)
-    '036', // Australia (shown partially for context)
     '158', // Taiwan
   ]),
   europe: new Set([
@@ -431,11 +450,26 @@ const Footprints: React.FC = () => {
         priority: 10,
         totalPhotos: cityGroup.totalPhotos,
         label: geo.city,
+        markerX: pos[0],  // actual marker position for avoidance
+        markerY: pos[1],
       });
     });
 
     if (activeContinent === 'china') {
-      // Province labels (lower priority than city)
+      // Province labels — compute bboxW from chinaGeoJson features for overflow check
+      const provBBoxMap = new Map<string, number>();
+      if (chinaGeoJson) {
+        chinaGeoJson.features.forEach((feature: any) => {
+          const fullName = feature.properties?.name || '';
+          const shortName = PROVINCE_NAME_MAP[fullName] || fullName;
+          const bounds = pathGenerator.bounds(feature as GeoPermissibleObjects);
+          if (bounds) {
+            const [[x0], [x1]] = bounds;
+            provBBoxMap.set(shortName, x1 - x0);
+          }
+        });
+      }
+
       CHINA_PROVINCES.forEach(prov => {
         const pos = projection([prov.lng, prov.lat]);
         if (!pos) return;
@@ -446,6 +480,7 @@ const Footprints: React.FC = () => {
           priority: 1,
           totalPhotos: 0,
           label: prov.name,
+          bboxW: provBBoxMap.get(prov.name),
         });
       });
     } else {
@@ -475,6 +510,7 @@ const Footprints: React.FC = () => {
           priority: 1,
           totalPhotos: 0,
           label: name,
+          bboxW: bboxW, // pass bounding box width for overflow check
         });
       });
     }
@@ -482,7 +518,7 @@ const Footprints: React.FC = () => {
     const charWidth = activeContinent === 'china' ? 5 / zoom : 5.5 / zoom;
     const minY = activeContinent === 'china' ? 12 / zoom : 13 / zoom;
     return filterOverlappingLabels(items, charWidth, minY);
-  }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures]);
+  }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures, chinaGeoJson]);
 
   /* ============ City preview modal ============ */
   const renderCollectionPreview = () => {
