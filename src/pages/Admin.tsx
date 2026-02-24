@@ -16,6 +16,8 @@ import {
   getCitiesByContinent,
   resolveGeoFromCity,
   lookupCity,
+  searchCities,
+  resolveLandmarkToCity,
   CityEntry,
 } from '../data/geoData';
 import ImageUploader from '../components/ImageUploader';
@@ -44,6 +46,14 @@ function extractFromTitle(title: string): { location?: string; year?: number } {
     if (title.includes(entry.city)) {
       result.location = entry.city;
       break;
+    }
+  }
+
+  // Try landmark → city resolution (e.g. "埃菲尔铁塔" → 巴黎)
+  if (!result.location) {
+    const landmarkEntry = resolveLandmarkToCity(title);
+    if (landmarkEntry) {
+      result.location = landmarkEntry.city;
     }
   }
 
@@ -163,11 +173,7 @@ const GeoPicker: React.FC<GeoPickerProps> = ({ value, onChange, locationHint }) 
 
   const filteredCities = useMemo(() => {
     if (!searchText) return getCitiesByContinent(continent);
-    const q = searchText.toLowerCase();
-    return CITY_DATABASE.filter(c =>
-      c.city.toLowerCase().includes(q) ||
-      c.country.toLowerCase().includes(q)
-    );
+    return searchCities(searchText);
   }, [searchText, continent]);
 
   const handleContinentChange = (c: 'asia' | 'europe') => {
@@ -1554,16 +1560,16 @@ const MapManager: React.FC<MapManagerProps> = ({ litCities, updateLitCities, col
 
   // All cities from database, filtered
   const filteredCities = useMemo(() => {
+    if (searchText) {
+      const results = searchCities(searchText);
+      if (filterContinent !== 'all') {
+        return results.filter(c => c.continent === filterContinent);
+      }
+      return results;
+    }
     let cities = CITY_DATABASE;
     if (filterContinent !== 'all') {
       cities = cities.filter(c => c.continent === filterContinent);
-    }
-    if (searchText) {
-      const q = searchText.toLowerCase();
-      cities = cities.filter(c =>
-        c.city.toLowerCase().includes(q) ||
-        c.country.toLowerCase().includes(q)
-      );
     }
     return cities;
   }, [filterContinent, searchText]);
@@ -1755,18 +1761,15 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
   const filteredCityResults = useMemo(() => {
     if (!citySearchText) return [];
-    const q = citySearchText.toLowerCase();
-    return CITY_DATABASE.filter(c =>
-      c.city.toLowerCase().includes(q)
-    ).slice(0, 10);
+    return searchCities(citySearchText).slice(0, 10);
   }, [citySearchText]);
 
   const handleCityInputChange = (val: string) => {
     setCitySearchText(val);
     setLocation(val);
     setShowCityDropdown(true);
-    // Check if exact match
-    const entry = lookupCity(val);
+    // Check if exact city match or landmark match
+    const entry = lookupCity(val) || resolveLandmarkToCity(val);
     if (entry) {
       setMatchedCountry(entry.country);
     } else {
