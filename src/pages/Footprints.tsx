@@ -2,13 +2,13 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { PhotoCollection, GeoInfo } from '../types';
-import { CITY_DATABASE } from '../data/geoData';
+import { CITY_DATABASE, CHINA_PROVINCES } from '../data/geoData';
 import * as topojson from 'topojson-client';
 import { geoMercator, geoPath, GeoPermissibleObjects } from 'd3-geo';
 import worldData from 'world-atlas/countries-110m.json';
 import './Footprints.css';
 
-type Continent = 'all' | 'asia' | 'europe';
+type Continent = 'all' | 'china' | 'asia' | 'europe';
 
 /* ============================================================
    City group: aggregate collections by city
@@ -39,9 +39,58 @@ interface ViewConfig {
 
 const VIEW_CONFIGS: Record<Continent, ViewConfig> = {
   all:    { center: [60, 30],  scale: 280, width: 960, height: 500 },
+  china:  { center: [104, 35], scale: 680, width: 960, height: 700 },
   asia:   { center: [105, 28], scale: 500, width: 960, height: 580 },
   europe: { center: [15, 52],  scale: 700, width: 960, height: 600 },
 };
+
+/* ============================================================
+   ISO 3166-1 numeric to alpha-2 mapping
+   ============================================================ */
+const COUNTRY_NUMERIC_TO_CODE: Record<string, string> = {
+  '156': 'CN', '392': 'JP', '410': 'KR', '764': 'TH', '704': 'VN',
+  '702': 'SG', '458': 'MY', '360': 'ID', '608': 'PH', '356': 'IN',
+  '496': 'MN', '348': 'HU', '250': 'FR', '826': 'GB', '380': 'IT',
+  '276': 'DE', '724': 'ES', '040': 'AT', '203': 'CZ', '528': 'NL',
+  '056': 'BE', '620': 'PT', '756': 'CH', '616': 'PL', '300': 'GR',
+  '752': 'SE', '578': 'NO', '246': 'FI', '208': 'DK', '642': 'RO',
+  '792': 'TR', '643': 'RU', '804': 'UA', '191': 'HR',
+  '840': 'US', '124': 'CA', '036': 'AU', '076': 'BR', '032': 'AR',
+  '484': 'MX', '818': 'EG', '710': 'ZA', '682': 'SA', '784': 'AE',
+};
+
+/* ============================================================
+   China province ISO 3166-2 numeric IDs from world-atlas
+   Used to match provinces in the TopoJSON subdivisions
+   ============================================================ */
+
+/* ============================================================
+   Label overlap detection: only show labels that don't overlap,
+   prioritizing cities with more photos.
+   ============================================================ */
+function filterOverlappingLabels(
+  items: { key: string; x: number; y: number; totalPhotos: number; label: string }[],
+  minDistX: number,
+  minDistY: number
+): Set<string> {
+  // Sort by totalPhotos desc
+  const sorted = [...items].sort((a, b) => b.totalPhotos - a.totalPhotos);
+  const visible = new Set<string>();
+  const placed: { x: number; y: number; w: number }[] = [];
+
+  for (const item of sorted) {
+    const estWidth = item.label.length * minDistX * 0.5;
+    const overlaps = placed.some(p =>
+      Math.abs(p.x - item.x) < (estWidth + p.w) * 0.5 &&
+      Math.abs(p.y - item.y) < minDistY
+    );
+    if (!overlaps) {
+      visible.add(item.key);
+      placed.push({ x: item.x, y: item.y, w: estWidth });
+    }
+  }
+  return visible;
+}
 
 /* ============================================================
    Component
@@ -59,11 +108,41 @@ const Footprints: React.FC = () => {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; city: string; country: string; hasPhoto: boolean } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // Zoom/pan state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const isPanning = useRef(false);
+  const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  // Reset zoom on tab change
+  useEffect(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, [activeContinent]);
+
   const litCountryCodes = useMemo(() => {
     const codes = new Set<string>();
     collections.forEach(c => { if (c.geo) codes.add(c.geo.countryCode); });
     litCities.forEach(g => codes.add(g.countryCode));
     return codes;
+  }, [collections, litCities]);
+
+  // Lit provinces for China tab
+  const litProvinces = useMemo(() => {
+    const provinces = new Set<string>();
+    collections.forEach(c => {
+      if (c.geo && c.geo.countryCode === 'CN') {
+        const entry = CITY_DATABASE.find(e => e.city === c.geo!.city && e.countryCode === 'CN');
+        if (entry?.province) provinces.add(entry.province);
+      }
+    });
+    litCities.forEach(g => {
+      if (g.countryCode === 'CN') {
+        const entry = CITY_DATABASE.find(e => e.city === g.city && e.countryCode === 'CN');
+        if (entry?.province) provinces.add(entry.province);
+      }
+    });
+    return provinces;
   }, [collections, litCities]);
 
   // Group collections by city
@@ -97,10 +176,11 @@ const Footprints: React.FC = () => {
     return geos;
   }, [cityGroups, litCities]);
 
-  const filteredGeos = useMemo(() =>
-    activeContinent === 'all' ? allLitCityGeos : allLitCityGeos.filter(g => g.geo.continent === activeContinent),
-    [allLitCityGeos, activeContinent]
-  );
+  const filteredGeos = useMemo(() => {
+    if (activeContinent === 'all') return allLitCityGeos;
+    if (activeContinent === 'china') return allLitCityGeos.filter(g => g.geo.countryCode === 'CN');
+    return allLitCityGeos.filter(g => g.geo.continent === activeContinent);
+  }, [allLitCityGeos, activeContinent]);
 
   const totalCities = allLitCityGeos.length;
   const totalCountries = litCountryCodes.size;
@@ -129,26 +209,6 @@ const Footprints: React.FC = () => {
 
   const pathGenerator = useMemo(() => geoPath().projection(projection), [projection]);
 
-  // Map country numeric IDs to our country codes for highlighting
-  // The world-atlas uses numeric IDs (ISO 3166-1 numeric)
-  // We'll match by checking if a city with that country code is lit
-  const countryNumericToCode: Record<string, string> = useMemo(() => {
-    // ISO 3166-1 numeric to alpha-2 mapping for countries we care about
-    const mapping: Record<string, string> = {
-      '156': 'CN', '392': 'JP', '410': 'KR', '764': 'TH', '704': 'VN',
-      '702': 'SG', '458': 'MY', '360': 'ID', '608': 'PH', '356': 'IN',
-      '496': 'MN', '348': 'HU', '250': 'FR', '826': 'GB', '380': 'IT',
-      '276': 'DE', '724': 'ES', '040': 'AT', '203': 'CZ', '528': 'NL',
-      '056': 'BE', '620': 'PT', '756': 'CH', '616': 'PL', '300': 'GR',
-      '752': 'SE', '578': 'NO', '246': 'FI', '208': 'DK', '642': 'RO',
-      '792': 'TR', '643': 'RU', '804': 'UA', '191': 'HR',
-      // Extra for context
-      '840': 'US', '124': 'CA', '036': 'AU', '076': 'BR', '032': 'AR',
-      '484': 'MX', '818': 'EG', '710': 'ZA', '682': 'SA', '784': 'AE',
-    };
-    return mapping;
-  }, []);
-
   const getLatLng = useCallback((geo: GeoInfo): { lat: number; lng: number } => {
     if (geo.lat && geo.lng) return { lat: geo.lat, lng: geo.lng };
     const entry = CITY_DATABASE.find(c => c.city === geo.city && c.continent === geo.continent);
@@ -175,14 +235,60 @@ const Footprints: React.FC = () => {
 
   // Determine which features to show based on continent
   const visibleFeatures = useMemo(() => {
-    const features = countriesGeo.features as any[];
-    if (activeContinent === 'all') {
-      // Show Asia + Europe region roughly
-      return features;
-    }
-    // Filter to approximate bounding boxes
-    return features;
-  }, [activeContinent]);
+    return (countriesGeo.features as any[]);
+  }, []);
+
+  // Zoom handlers
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = -e.deltaY * 0.001;
+    setZoom(prev => Math.max(0.5, Math.min(5, prev + delta * prev)));
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    isPanning.current = true;
+    panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  }, [pan]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isPanning.current) return;
+    const dx = e.clientX - panStart.current.x;
+    const dy = e.clientY - panStart.current.y;
+    setPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy });
+  }, []);
+
+  const handlePointerUp = useCallback(() => {
+    isPanning.current = false;
+  }, []);
+
+  const handleResetZoom = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  // Compute visible labels (no overlap, prioritize by photo count)
+  const visibleLabelKeys = useMemo(() => {
+    const items: { key: string; x: number; y: number; totalPhotos: number; label: string }[] = [];
+    filteredGeos.forEach(({ geo, cityGroup }) => {
+      if (!cityGroup) return; // only label cities with photos
+      const { lat, lng } = geo.lat && geo.lng ? geo : (CITY_DATABASE.find(c => c.city === geo.city && c.continent === geo.continent) || { lat: 0, lng: 0 });
+      const pos = projection([lng, lat]);
+      if (!pos) return;
+      items.push({
+        key: `${geo.continent}-${geo.city}`,
+        x: pos[0],
+        y: pos[1],
+        totalPhotos: cityGroup.totalPhotos,
+        label: geo.city,
+      });
+    });
+    // Scale thresholds by zoom
+    const baseDistX = activeContinent === 'china' ? 5 : 6;
+    const baseDistY = activeContinent === 'china' ? 12 : 14;
+    return filterOverlappingLabels(items, baseDistX / zoom, baseDistY / zoom);
+  }, [filteredGeos, projection, zoom, activeContinent]);
 
   /* ============ City preview modal ============ */
   const renderCollectionPreview = () => {
@@ -234,7 +340,6 @@ const Footprints: React.FC = () => {
     const { geo, collections: cityCollections, totalPhotos } = selectedCityGroup;
     const isSingle = cityCollections.length === 1;
 
-    // If only one collection in this city, show the old-style single preview directly
     if (isSingle) {
       const c = cityCollections[0];
       const allImages = [
@@ -279,7 +384,6 @@ const Footprints: React.FC = () => {
       );
     }
 
-    // Multiple collections in this city — show city-level list
     return (
       <>
         <div className="preview-overlay" onClick={() => setSelectedCityGroup(null)}>
@@ -327,6 +431,30 @@ const Footprints: React.FC = () => {
     );
   };
 
+  /* ============ China province rendering ============ */
+  const renderChinaProvinceLabels = () => {
+    if (activeContinent !== 'china') return null;
+    return CHINA_PROVINCES.map(prov => {
+      const pos = projection([prov.lng, prov.lat]);
+      if (!pos) return null;
+      const isLit = litProvinces.has(prov.name);
+      return (
+        <text
+          key={prov.name}
+          x={pos[0]}
+          y={pos[1]}
+          className={`province-label ${isLit ? 'province-label-lit' : 'province-label-dim'}`}
+        >
+          {prov.name}
+        </text>
+      );
+    });
+  };
+
+  /* ============ SVG transform for zoom/pan ============ */
+  const svgTransform = `translate(${pan.x}, ${pan.y}) scale(${zoom})`;
+  const svgTransformOrigin = `${vc.width / 2}px ${vc.height / 2}px`;
+
   return (
     <div className="footprints-page">
       <div className="footprints-header">
@@ -342,17 +470,44 @@ const Footprints: React.FC = () => {
             <span className="stat-number">{totalCities}</span>
             <span className="stat-label">cities</span>
           </div>
+          {activeContinent === 'china' && (
+            <>
+              <div className="stat-divider" />
+              <div className="stat-item">
+                <span className="stat-number">{litProvinces.size}</span>
+                <span className="stat-label">provinces</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       <div className="continent-filter">
         <button className={`filter-btn ${activeContinent === 'all' ? 'active' : ''}`} onClick={() => setActiveContinent('all')}>All</button>
+        <button className={`filter-btn ${activeContinent === 'china' ? 'active' : ''}`} onClick={() => setActiveContinent('china')}>China · 中国</button>
         <button className={`filter-btn ${activeContinent === 'asia' ? 'active' : ''}`} onClick={() => setActiveContinent('asia')}>Asia · 亚洲</button>
         <button className={`filter-btn ${activeContinent === 'europe' ? 'active' : ''}`} onClick={() => setActiveContinent('europe')}>Europe · 欧洲</button>
       </div>
 
       <div className="map-section visible">
-        <div className="svg-map-container">
+        <div
+          className="svg-map-container"
+          onWheel={handleWheel}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+          style={{ cursor: isPanning.current ? 'grabbing' : 'grab', touchAction: 'none' }}
+        >
+          {/* Zoom controls */}
+          <div className="map-zoom-controls">
+            <button className="zoom-btn" onClick={() => setZoom(z => Math.min(5, z * 1.3))} title="放大">+</button>
+            <button className="zoom-btn" onClick={() => setZoom(z => Math.max(0.5, z / 1.3))} title="缩小">−</button>
+            {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
+              <button className="zoom-btn zoom-reset" onClick={handleResetZoom} title="重置">⟳</button>
+            )}
+          </div>
+
           <svg
             ref={svgRef}
             viewBox={`0 0 ${vc.width} ${vc.height}`}
@@ -376,113 +531,126 @@ const Footprints: React.FC = () => {
               </filter>
             </defs>
 
-            {/* Ocean background */}
-            <rect x="0" y="0" width={vc.width} height={vc.height} fill="url(#oceanGradient)" />
+            <g style={{ transform: svgTransform, transformOrigin: svgTransformOrigin }}>
+              {/* Ocean background */}
+              <rect x="-500" y="-500" width={vc.width + 1000} height={vc.height + 1000} fill="url(#oceanGradient)" />
 
-            {/* Graticule */}
-            {(() => {
-              const lines: JSX.Element[] = [];
-              // Longitude lines
-              for (let lng = -180; lng <= 180; lng += 30) {
-                const pts: string[] = [];
-                for (let lat = -85; lat <= 85; lat += 1) {
-                  const p = projection([lng, lat]);
-                  if (p) pts.push(`${p[0]},${p[1]}`);
+              {/* Graticule */}
+              {(() => {
+                const lines: JSX.Element[] = [];
+                for (let lng = -180; lng <= 180; lng += 30) {
+                  const pts: string[] = [];
+                  for (let lat = -85; lat <= 85; lat += 1) {
+                    const p = projection([lng, lat]);
+                    if (p) pts.push(`${p[0]},${p[1]}`);
+                  }
+                  if (pts.length > 1) {
+                    lines.push(<polyline key={`lng-${lng}`} points={pts.join(' ')} className="graticule-line" />);
+                  }
                 }
-                if (pts.length > 1) {
-                  lines.push(<polyline key={`lng-${lng}`} points={pts.join(' ')} className="graticule-line" />);
+                for (let lat = -60; lat <= 80; lat += 30) {
+                  const pts: string[] = [];
+                  for (let lng = -180; lng <= 180; lng += 1) {
+                    const p = projection([lng, lat]);
+                    if (p) pts.push(`${p[0]},${p[1]}`);
+                  }
+                  if (pts.length > 1) {
+                    lines.push(<polyline key={`lat-${lat}`} points={pts.join(' ')} className="graticule-line" />);
+                  }
                 }
-              }
-              // Latitude lines
-              for (let lat = -60; lat <= 80; lat += 30) {
-                const pts: string[] = [];
-                for (let lng = -180; lng <= 180; lng += 1) {
-                  const p = projection([lng, lat]);
-                  if (p) pts.push(`${p[0]},${p[1]}`);
+                return lines;
+              })()}
+
+              {/* Land mass */}
+              {landGeo.features.map((feature: any, i: number) => {
+                const d = pathGenerator(feature as GeoPermissibleObjects);
+                return d ? (
+                  <path key={`land-${i}`} d={d} className="land-shadow" filter="url(#landShadow)" />
+                ) : null;
+              })}
+
+              {/* Country shapes */}
+              {visibleFeatures.map((feature: any, i: number) => {
+                const d = pathGenerator(feature as GeoPermissibleObjects);
+                if (!d) return null;
+                const numId = feature.id;
+                const code = COUNTRY_NUMERIC_TO_CODE[numId] || '';
+                const isLit = litCountryCodes.has(code);
+
+                // For China tab: highlight China specially, dim all others
+                if (activeContinent === 'china') {
+                  if (code === 'CN') {
+                    return <path key={`country-${i}`} d={d} className="country-path country-lit country-china-main" />;
+                  }
+                  return <path key={`country-${i}`} d={d} className="country-path country-dim" style={{ opacity: 0.3 }} />;
                 }
-                if (pts.length > 1) {
-                  lines.push(<polyline key={`lat-${lat}`} points={pts.join(' ')} className="graticule-line" />);
-                }
-              }
-              return lines;
-            })()}
 
-            {/* Land mass (merged outline for subtle shadow) */}
-            {landGeo.features.map((feature: any, i: number) => {
-              const d = pathGenerator(feature as GeoPermissibleObjects);
-              return d ? (
-                <path key={`land-${i}`} d={d} className="land-shadow" filter="url(#landShadow)" />
-              ) : null;
-            })}
-
-            {/* Country shapes */}
-            {visibleFeatures.map((feature: any, i: number) => {
-              const d = pathGenerator(feature as GeoPermissibleObjects);
-              if (!d) return null;
-              const numId = feature.id;
-              const code = countryNumericToCode[numId] || '';
-              const isLit = litCountryCodes.has(code);
-              return (
-                <path
-                  key={`country-${i}`}
-                  d={d}
-                  className={`country-path ${isLit ? 'country-lit' : 'country-dim'}`}
-                />
-              );
-            })}
-
-            {/* Country borders */}
-            {visibleFeatures.map((feature: any, i: number) => {
-              const d = pathGenerator(feature as GeoPermissibleObjects);
-              return d ? (
-                <path key={`border-${i}`} d={d} className="country-border" />
-              ) : null;
-            })}
-
-            {/* City markers */}
-            {filteredGeos.map(({ geo, cityGroup }) => {
-              const { lat, lng } = getLatLng(geo);
-              const pos = projectCity(lat, lng);
-              if (!pos) return null;
-              const { x, y } = pos;
-              const hasPhoto = !!cityGroup;
-              const isHovered = hoveredCity === geo.city;
-
-              // Check if within viewBox
-              if (x < -20 || x > vc.width + 20 || y < -20 || y > vc.height + 20) return null;
-
-              return (
-                <g key={`${geo.continent}-${geo.city}`}>
-                  {hasPhoto && (
-                    <>
-                      <circle cx={x} cy={y} r={20} className="marker-pulse-outer" />
-                      <circle cx={x} cy={y} r={14} className="marker-pulse-inner" />
-                    </>
-                  )}
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={hasPhoto ? (isHovered ? 6.5 : 5) : (isHovered ? 4 : 3)}
-                    className={`city-marker ${hasPhoto ? 'marker-photo' : 'marker-nophoto'} ${isHovered ? 'marker-hovered' : ''}`}
-                    onMouseEnter={(e) => handleMarkerHover(e, geo.city, geo.country, hasPhoto)}
-                    onMouseMove={(e) => handleMarkerHover(e, geo.city, geo.country, hasPhoto)}
-                    onMouseLeave={() => { setTooltip(null); setHoveredCity(null); }}
-                    onClick={() => {
-                      if (cityGroup) { setSelectedCityGroup(cityGroup); setPreviewCollection(null); setPreviewPage(0); }
-                    }}
+                return (
+                  <path
+                    key={`country-${i}`}
+                    d={d}
+                    className={`country-path ${isLit ? 'country-lit' : 'country-dim'}`}
                   />
-                  {hasPhoto && (
-                    <text
-                      x={x}
-                      y={y - (isHovered ? 11 : 9)}
-                      className={`city-label ${isHovered ? 'city-label-hover' : ''}`}
-                    >
-                      {geo.city}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
+                );
+              })}
+
+              {/* Country borders */}
+              {visibleFeatures.map((feature: any, i: number) => {
+                const d = pathGenerator(feature as GeoPermissibleObjects);
+                return d ? (
+                  <path key={`border-${i}`} d={d} className="country-border" />
+                ) : null;
+              })}
+
+              {/* China province labels (only in China tab) */}
+              {renderChinaProvinceLabels()}
+
+              {/* City markers */}
+              {filteredGeos.map(({ geo, cityGroup }) => {
+                const { lat, lng } = getLatLng(geo);
+                const pos = projectCity(lat, lng);
+                if (!pos) return null;
+                const { x, y } = pos;
+                const hasPhoto = !!cityGroup;
+                const isHovered = hoveredCity === geo.city;
+                const cityKey = `${geo.continent}-${geo.city}`;
+                const showLabel = visibleLabelKeys.has(cityKey);
+
+                if (x < -20 || x > vc.width + 20 || y < -20 || y > vc.height + 20) return null;
+
+                return (
+                  <g key={cityKey}>
+                    {hasPhoto && (
+                      <>
+                        <circle cx={x} cy={y} r={20} className="marker-pulse-outer" />
+                        <circle cx={x} cy={y} r={14} className="marker-pulse-inner" />
+                      </>
+                    )}
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={hasPhoto ? (isHovered ? 6.5 : 5) : (isHovered ? 4 : 3)}
+                      className={`city-marker ${hasPhoto ? 'marker-photo' : 'marker-nophoto'} ${isHovered ? 'marker-hovered' : ''}`}
+                      onMouseEnter={(e) => handleMarkerHover(e, geo.city, geo.country, hasPhoto)}
+                      onMouseMove={(e) => handleMarkerHover(e, geo.city, geo.country, hasPhoto)}
+                      onMouseLeave={() => { setTooltip(null); setHoveredCity(null); }}
+                      onClick={() => {
+                        if (cityGroup) { setSelectedCityGroup(cityGroup); setPreviewCollection(null); setPreviewPage(0); }
+                      }}
+                    />
+                    {hasPhoto && showLabel && (
+                      <text
+                        x={x}
+                        y={y - (isHovered ? 11 : 9)}
+                        className={`city-label ${isHovered ? 'city-label-hover' : ''}`}
+                      >
+                        {geo.city}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
           </svg>
 
           {/* Tooltip */}
@@ -504,11 +672,19 @@ const Footprints: React.FC = () => {
 
       <section className="city-list-section">
         <h2 className="city-list-title">
-          {activeContinent === 'all' ? 'All Cities' : activeContinent === 'asia' ? 'Asia · 亚洲' : 'Europe · 欧洲'}
+          {activeContinent === 'all' ? 'All Cities'
+            : activeContinent === 'china' ? 'China · 中国'
+            : activeContinent === 'asia' ? 'Asia · 亚洲'
+            : 'Europe · 欧洲'}
         </h2>
         <div className="city-list">
           {Array.from(cityGroups.values())
-            .filter(g => activeContinent === 'all' || g.geo.continent === activeContinent)
+            .filter(g => {
+              if (activeContinent === 'all') return true;
+              if (activeContinent === 'china') return g.geo.countryCode === 'CN';
+              return g.geo.continent === activeContinent;
+            })
+            .sort((a, b) => b.totalPhotos - a.totalPhotos)
             .map(group => (
               <div key={group.key} className="city-card" onClick={() => { setSelectedCityGroup(group); setPreviewCollection(null); setPreviewPage(0); }}>
                 <div className="city-card-image">
@@ -517,7 +693,7 @@ const Footprints: React.FC = () => {
                 </div>
                 <div className="city-card-info">
                   <h4 className="city-card-name">{group.geo.city}</h4>
-                  <p className="city-card-country">{group.geo.country}</p>
+                  <p className="city-card-country">{group.geo.country} · {group.totalPhotos} photos</p>
                 </div>
               </div>
             ))}

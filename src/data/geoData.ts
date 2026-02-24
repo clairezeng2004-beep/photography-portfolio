@@ -14,27 +14,28 @@ export interface CityEntry {
   lng: number;
   mapX: number;  // x coordinate on SVG map
   mapY: number;  // y coordinate on SVG map
+  province?: string; // province for Chinese cities
 }
 
 // All known cities with their geo & map coordinates
 export const CITY_DATABASE: CityEntry[] = [
   // ============ Asia ============
-  { city: '上海', country: '中国', countryCode: 'CN', continent: 'asia', lat: 31.2304, lng: 121.4737, mapX: 570, mapY: 275 },
-  { city: '北京', country: '中国', countryCode: 'CN', continent: 'asia', lat: 39.9042, lng: 116.4074, mapX: 530, mapY: 215 },
-  { city: '广州', country: '中国', countryCode: 'CN', continent: 'asia', lat: 23.1291, lng: 113.2644, mapX: 540, mapY: 310 },
-  { city: '成都', country: '中国', countryCode: 'CN', continent: 'asia', lat: 30.5728, lng: 104.0668, mapX: 480, mapY: 280 },
-  { city: '杭州', country: '中国', countryCode: 'CN', continent: 'asia', lat: 30.2741, lng: 120.1551, mapX: 560, mapY: 280 },
-  { city: '西安', country: '中国', countryCode: 'CN', continent: 'asia', lat: 34.3416, lng: 108.9398, mapX: 500, mapY: 255 },
-  { city: '重庆', country: '中国', countryCode: 'CN', continent: 'asia', lat: 29.4316, lng: 106.9123, mapX: 490, mapY: 290 },
-  { city: '深圳', country: '中国', countryCode: 'CN', continent: 'asia', lat: 22.5431, lng: 114.0579, mapX: 545, mapY: 315 },
-  { city: '南京', country: '中国', countryCode: 'CN', continent: 'asia', lat: 32.0603, lng: 118.7969, mapX: 555, mapY: 265 },
-  { city: '苏州', country: '中国', countryCode: 'CN', continent: 'asia', lat: 31.2990, lng: 120.5853, mapX: 562, mapY: 272 },
-  { city: '大理', country: '中国', countryCode: 'CN', continent: 'asia', lat: 25.6065, lng: 100.2676, mapX: 460, mapY: 300 },
-  { city: '丽江', country: '中国', countryCode: 'CN', continent: 'asia', lat: 26.8721, lng: 100.2299, mapX: 458, mapY: 295 },
-  { city: '厦门', country: '中国', countryCode: 'CN', continent: 'asia', lat: 24.4798, lng: 118.0894, mapX: 555, mapY: 308 },
-  { city: '拉萨', country: '中国', countryCode: 'CN', continent: 'asia', lat: 29.6500, lng: 91.1000, mapX: 420, mapY: 280 },
-  { city: '香港', country: '中国', countryCode: 'CN', continent: 'asia', lat: 22.3193, lng: 114.1694, mapX: 546, mapY: 318 },
-  { city: '台北', country: '中国', countryCode: 'CN', continent: 'asia', lat: 25.0330, lng: 121.5654, mapX: 575, mapY: 305 },
+  { city: '上海', country: '中国', countryCode: 'CN', continent: 'asia', lat: 31.2304, lng: 121.4737, mapX: 570, mapY: 275, province: '上海' },
+  { city: '北京', country: '中国', countryCode: 'CN', continent: 'asia', lat: 39.9042, lng: 116.4074, mapX: 530, mapY: 215, province: '北京' },
+  { city: '广州', country: '中国', countryCode: 'CN', continent: 'asia', lat: 23.1291, lng: 113.2644, mapX: 540, mapY: 310, province: '广东' },
+  { city: '成都', country: '中国', countryCode: 'CN', continent: 'asia', lat: 30.5728, lng: 104.0668, mapX: 480, mapY: 280, province: '四川' },
+  { city: '杭州', country: '中国', countryCode: 'CN', continent: 'asia', lat: 30.2741, lng: 120.1551, mapX: 560, mapY: 280, province: '浙江' },
+  { city: '西安', country: '中国', countryCode: 'CN', continent: 'asia', lat: 34.3416, lng: 108.9398, mapX: 500, mapY: 255, province: '陕西' },
+  { city: '重庆', country: '中国', countryCode: 'CN', continent: 'asia', lat: 29.4316, lng: 106.9123, mapX: 490, mapY: 290, province: '重庆' },
+  { city: '深圳', country: '中国', countryCode: 'CN', continent: 'asia', lat: 22.5431, lng: 114.0579, mapX: 545, mapY: 315, province: '广东' },
+  { city: '南京', country: '中国', countryCode: 'CN', continent: 'asia', lat: 32.0603, lng: 118.7969, mapX: 555, mapY: 265, province: '江苏' },
+  { city: '苏州', country: '中国', countryCode: 'CN', continent: 'asia', lat: 31.2990, lng: 120.5853, mapX: 562, mapY: 272, province: '江苏' },
+  { city: '大理', country: '中国', countryCode: 'CN', continent: 'asia', lat: 25.6065, lng: 100.2676, mapX: 460, mapY: 300, province: '云南' },
+  { city: '丽江', country: '中国', countryCode: 'CN', continent: 'asia', lat: 26.8721, lng: 100.2299, mapX: 458, mapY: 295, province: '云南' },
+  { city: '厦门', country: '中国', countryCode: 'CN', continent: 'asia', lat: 24.4798, lng: 118.0894, mapX: 555, mapY: 308, province: '福建' },
+  { city: '拉萨', country: '中国', countryCode: 'CN', continent: 'asia', lat: 29.6500, lng: 91.1000, mapX: 420, mapY: 280, province: '西藏' },
+  { city: '香港', country: '中国', countryCode: 'CN', continent: 'asia', lat: 22.3193, lng: 114.1694, mapX: 546, mapY: 318, province: '香港' },
+  { city: '台北', country: '中国', countryCode: 'CN', continent: 'asia', lat: 25.0330, lng: 121.5654, mapX: 575, mapY: 305, province: '台湾' },
   { city: '京都', country: '日本', countryCode: 'JP', continent: 'asia', lat: 35.0116, lng: 135.7681, mapX: 652, mapY: 235 },
   { city: '东京', country: '日本', countryCode: 'JP', continent: 'asia', lat: 35.6762, lng: 139.6503, mapX: 660, mapY: 220 },
   { city: '大阪', country: '日本', countryCode: 'JP', continent: 'asia', lat: 34.6937, lng: 135.5023, mapX: 650, mapY: 240 },
@@ -228,3 +229,55 @@ export const EUROPE_COUNTRY_PATHS: CountryPath[] = [
   { code: 'DK', name: '丹麦', continent: 'europe', d: 'M355,195 L370,188 L382,195 L380,210 L370,218 L358,215 L352,205 Z' },
   { code: 'HR', name: '克罗地亚', continent: 'europe', d: 'M420,330 L440,325 L455,335 L450,350 L438,355 L425,348 L418,340 Z' },
 ];
+
+/* ============================================================
+   China province data: name → center lat/lng for label placement
+   ============================================================ */
+export interface ProvinceEntry {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+export const CHINA_PROVINCES: ProvinceEntry[] = [
+  { name: '北京', lat: 39.90, lng: 116.41 },
+  { name: '天津', lat: 39.13, lng: 117.20 },
+  { name: '河北', lat: 38.04, lng: 114.51 },
+  { name: '山西', lat: 37.87, lng: 112.55 },
+  { name: '内蒙古', lat: 40.82, lng: 111.65 },
+  { name: '辽宁', lat: 41.80, lng: 123.43 },
+  { name: '吉林', lat: 43.88, lng: 125.32 },
+  { name: '黑龙江', lat: 45.75, lng: 126.65 },
+  { name: '上海', lat: 31.23, lng: 121.47 },
+  { name: '江苏', lat: 32.06, lng: 118.80 },
+  { name: '浙江', lat: 30.27, lng: 120.15 },
+  { name: '安徽', lat: 31.86, lng: 117.28 },
+  { name: '福建', lat: 26.08, lng: 119.30 },
+  { name: '江西', lat: 28.68, lng: 115.89 },
+  { name: '山东', lat: 36.67, lng: 116.98 },
+  { name: '河南', lat: 34.77, lng: 113.65 },
+  { name: '湖北', lat: 30.60, lng: 114.34 },
+  { name: '湖南', lat: 28.23, lng: 112.94 },
+  { name: '广东', lat: 23.13, lng: 113.26 },
+  { name: '广西', lat: 22.84, lng: 108.32 },
+  { name: '海南', lat: 20.02, lng: 110.35 },
+  { name: '重庆', lat: 29.43, lng: 106.91 },
+  { name: '四川', lat: 30.57, lng: 104.07 },
+  { name: '贵州', lat: 26.65, lng: 106.71 },
+  { name: '云南', lat: 25.04, lng: 102.71 },
+  { name: '西藏', lat: 29.65, lng: 91.10 },
+  { name: '陕西', lat: 34.34, lng: 108.94 },
+  { name: '甘肃', lat: 36.06, lng: 103.83 },
+  { name: '青海', lat: 36.62, lng: 101.78 },
+  { name: '宁夏', lat: 38.47, lng: 106.27 },
+  { name: '新疆', lat: 43.79, lng: 87.63 },
+  { name: '香港', lat: 22.32, lng: 114.17 },
+  { name: '澳门', lat: 22.20, lng: 113.55 },
+  { name: '台湾', lat: 25.03, lng: 121.57 },
+];
+
+// Get province name for a Chinese city
+export function getProvinceForCity(cityName: string): string | undefined {
+  const entry = CITY_DATABASE.find(c => c.city === cityName && c.countryCode === 'CN');
+  return entry?.province;
+}
