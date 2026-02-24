@@ -2292,18 +2292,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     showToast('首页封面已保存');
   };
 
-  const handleReset = () => {
-    const derived = collections.map(c => ({
-      id: c.id,
-      url: c.coverImage,
-      mobileUrl: c.coverImage,
-      title: c.title,
-      location: c.location,
-    }));
-    setLocalImages(derived);
-    setHasChanges(true);
-  };
-
   return (
     <div className="tab-content">
       <div className="tab-header">
