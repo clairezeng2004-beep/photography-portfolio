@@ -149,6 +149,7 @@ const Gallery: React.FC = () => {
                 key={c.id}
                 to={`/gallery/${c.id}`}
                 className="rec-card"
+                
               >
                 <div className="rec-card-image">
                   <img src={c.photos?.[0]?.thumbnail || c.coverImage} alt={c.title} loading="lazy" />
