@@ -2407,12 +2407,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     setHasChanges(true);
   };
 
-  const replaceImage = (index: number, url: string) => {
-    setLocalImages(prev => prev.map((img, i) =>
-      i === index ? { ...img, url } : img
-    ));
-    setHasChanges(true);
-  };
 
   const replaceMobileImage = (index: number, mobileUrl: string) => {
     setLocalImages(prev => prev.map((img, i) =>
