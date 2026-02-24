@@ -30,8 +30,8 @@ function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number, label: string):
   });
 }
 
-const READ_TIMEOUT = 8000;
-const WRITE_TIMEOUT = 12000;
+const READ_TIMEOUT = 15000;
+const WRITE_TIMEOUT = 30000;
 
 export interface CloudGetResult<T> {
   found: boolean;
@@ -94,7 +94,7 @@ export async function supabaseSet<T>(key: string, value: T): Promise<void> {
  * Write with retry. Tries up to `maxRetries` times with exponential backoff.
  * Returns true if succeeded, false if all retries failed.
  */
-export async function supabaseSetWithRetry<T>(key: string, value: T, maxRetries = 2): Promise<boolean> {
+export async function supabaseSetWithRetry<T>(key: string, value: T, maxRetries = 3): Promise<boolean> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       await supabaseSet(key, value);
@@ -102,8 +102,8 @@ export async function supabaseSetWithRetry<T>(key: string, value: T, maxRetries 
     } catch (e: any) {
       console.warn(`[Supabase] write attempt ${attempt + 1}/${maxRetries + 1} failed for "${key}":`, e.message);
       if (attempt < maxRetries) {
-        // Exponential backoff: 500ms, 1000ms
-        await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+        // Exponential backoff: 1s, 2s, 4s
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
       }
     }
   }

@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage, AnimationConfig } from '../types';
 import { mockCollections } from '../data/mockData';
 import { dbGet, dbSet } from '../utils/storage';
 import { isSupabaseConfigured, supabaseGetDetailed, supabaseSetWithRetry } from '../utils/supabase';
 import { syncImgbbKeyFromCloud } from '../utils/imageHost';
 import { syncNewsletterKeyFromCloud } from '../utils/newsletter';
+
+type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
 interface DataContextType {
   collections: PhotoCollection[];
@@ -13,6 +15,9 @@ interface DataContextType {
   heroImages: HeroImage[];
   animationConfig: AnimationConfig;
   dataLoaded: boolean;
+  cloudSyncStatus: SyncStatus;
+  pendingSyncKeys: string[];
+  retrySyncAll: () => void;
   updateCollections: (collections: PhotoCollection[]) => Promise<boolean>;
   updateAboutInfo: (aboutInfo: AboutInfo) => Promise<boolean>;
   addPhoto: (collectionId: string, photo: Photo) => Promise<boolean>;
@@ -110,6 +115,52 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
   const [animationConfig, setAnimationConfig] = useState<AnimationConfig>(defaultAnimationConfig);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<SyncStatus>('idle');
+  const [pendingSyncKeys, setPendingSyncKeys] = useState<string[]>([]);
+
+  // Track pending cloud syncs: key -> value
+  const pendingSyncRef = useRef<Map<string, any>>(new Map());
+
+  // Background cloud sync function
+  const syncToCloud = useCallback(async (key: string, value: any) => {
+    if (!isSupabaseConfigured()) return;
+
+    // Add to pending
+    pendingSyncRef.current.set(key, value);
+    setPendingSyncKeys(Array.from(pendingSyncRef.current.keys()));
+    setCloudSyncStatus('syncing');
+
+    try {
+      const ok = await supabaseSetWithRetry(key, value, 3);
+      if (ok) {
+        // Remove from pending
+        pendingSyncRef.current.delete(key);
+        setPendingSyncKeys(Array.from(pendingSyncRef.current.keys()));
+        if (pendingSyncRef.current.size === 0) {
+          setCloudSyncStatus('success');
+          // Auto-clear success status after 3s
+          setTimeout(() => setCloudSyncStatus(prev => prev === 'success' ? 'idle' : prev), 3000);
+        }
+        console.log(`[CloudSync] "${key}" synced OK`);
+      } else {
+        setCloudSyncStatus('error');
+        console.error(`[CloudSync] "${key}" sync FAILED`);
+      }
+    } catch (e) {
+      setCloudSyncStatus('error');
+      console.error(`[CloudSync] "${key}" sync error:`, e);
+    }
+  }, []);
+
+  // Retry all pending syncs
+  const retrySyncAll = useCallback(() => {
+    const pending = new Map(pendingSyncRef.current);
+    if (pending.size === 0) return;
+    console.log(`[CloudSync] Retrying ${pending.size} pending syncs...`);
+    pending.forEach((value, key) => {
+      syncToCloud(key, value);
+    });
+  }, [syncToCloud]);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,48 +168,65 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const loadData = async () => {
       const useCloud = isSupabaseConfigured();
 
-      // Simple load strategy:
-      // 1. If cloud is configured, try cloud first (it's the authority for cross-device sync)
-      // 2. Fall back to IndexedDB (local cache)
-      // 3. Fall back to localStorage (legacy migration)
+      // Load strategy:
+      // 1. Load from IndexedDB first (instant, always available)
+      // 2. If cloud is configured, also try cloud
+      // 3. If cloud has data, use cloud (authority) and update local cache
+      // 4. If cloud fails/unreachable, use local data
+      // 5. If local has data but cloud doesn't, sync local to cloud
       async function loadKey<T>(key: string): Promise<T | undefined> {
-        // 1. Try Supabase
+        let localVal: T | undefined;
+        let cloudVal: T | undefined;
+        let cloudReached = false;
+        let cloudFound = false;
+
+        // 1. Always try IndexedDB first (fast)
+        try {
+          localVal = await dbGet<T>(key);
+        } catch (e) {
+          console.warn(`[DataContext] IndexedDB read failed for "${key}"`, e);
+        }
+
+        // 2. Try localStorage migration
+        if (localVal === undefined) {
+          const ls = localStorage.getItem(key);
+          if (ls) {
+            try { localVal = JSON.parse(ls) as T; } catch {}
+            localStorage.removeItem(key);
+          }
+        }
+
+        // 3. Try Supabase
         if (useCloud) {
           try {
             const result = await supabaseGetDetailed<T>(key);
+            cloudReached = true;
             if (result.found && result.value !== undefined) {
-              // Cache to local
-              dbSet(key, result.value).catch(() => {});
-              return result.value;
+              cloudFound = true;
+              cloudVal = result.value;
             }
-            // Cloud reachable but key not found — fall through to local
           } catch (e) {
             console.warn(`[DataContext] Cloud read failed for "${key}", using local`, e);
           }
         }
 
-        // 2. Try IndexedDB
-        try {
-          const val = await dbGet<T>(key);
-          if (val !== undefined) {
-            // If cloud is configured and we're using local fallback, try to sync up
-            if (useCloud) {
-              supabaseSetWithRetry(key, val).catch(() => {});
-            }
-            return val;
+        // Decision:
+        if (cloudReached && cloudFound) {
+          // Cloud has data — use it as authority, update local cache
+          dbSet(key, cloudVal!).catch(() => {});
+          return cloudVal;
+        } else if (cloudReached && !cloudFound && localVal !== undefined) {
+          // Cloud reachable but no data there — push local to cloud
+          syncToCloud(key, localVal);
+          return localVal;
+        } else if (!cloudReached && localVal !== undefined) {
+          // Cloud unreachable — use local, mark for sync
+          if (useCloud) {
+            pendingSyncRef.current.set(key, localVal);
           }
-        } catch (e) {
-          console.warn(`[DataContext] IndexedDB read failed for "${key}"`, e);
-        }
-
-        // 3. Try localStorage (migration)
-        const ls = localStorage.getItem(key);
-        if (ls) {
-          try {
-            const parsed = JSON.parse(ls) as T;
-            localStorage.removeItem(key);
-            return parsed;
-          } catch {}
+          return localVal;
+        } else if (localVal !== undefined) {
+          return localVal;
         }
 
         return undefined;
@@ -174,6 +242,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ]);
 
       if (cancelled) return;
+
+      // Update pending sync keys state
+      if (pendingSyncRef.current.size > 0) {
+        setPendingSyncKeys(Array.from(pendingSyncRef.current.keys()));
+        setCloudSyncStatus('error');
+      }
 
       // Apply loaded data
       if (savedCollections) {
@@ -203,20 +277,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (seed.collections && seed.collections.length > 0) {
               const fixed = fixDuplicatePhotoIds(seed.collections);
               setCollections(fixed);
-              saveToCloud('photo_collections', fixed);
+              seedToCloud('photo_collections', fixed);
             }
-            if (seed.aboutInfo) { setAboutInfo(seed.aboutInfo); saveToCloud('about_info', seed.aboutInfo); }
-            if (seed.litCities) { setLitCities(seed.litCities); saveToCloud('lit_cities', seed.litCities); }
-            if (seed.heroImages && seed.heroImages.length > 0) { setHeroImages(seed.heroImages); saveToCloud('hero_images', seed.heroImages); }
-            if (seed.animationConfig) { setAnimationConfig(seed.animationConfig); saveToCloud('animation_config', seed.animationConfig); }
+            if (seed.aboutInfo) { setAboutInfo(seed.aboutInfo); seedToCloud('about_info', seed.aboutInfo); }
+            if (seed.litCities) { setLitCities(seed.litCities); seedToCloud('lit_cities', seed.litCities); }
+            if (seed.heroImages && seed.heroImages.length > 0) { setHeroImages(seed.heroImages); seedToCloud('hero_images', seed.heroImages); }
+            if (seed.animationConfig) { setAnimationConfig(seed.animationConfig); seedToCloud('animation_config', seed.animationConfig); }
             console.log('[DataContext] Loaded seed data from portfolio-data.json');
           }
         } catch (e) {
           if (cancelled) return;
           console.log('[DataContext] No seed data file found, using defaults');
           setCollections(mockCollections);
-          saveToCloud('photo_collections', mockCollections);
-          saveToCloud('about_info', defaultAboutInfo);
+          seedToCloud('photo_collections', mockCollections);
+          seedToCloud('about_info', defaultAboutInfo);
         }
       }
 
@@ -227,8 +301,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ]);
     };
 
-    // Helper for seeding
-    async function saveToCloud<T>(key: string, value: T) {
+    // Helper for seeding (fire-and-forget)
+    function seedToCloud<T>(key: string, value: T) {
       dbSet(key, value).catch(() => {});
       if (isSupabaseConfigured()) {
         supabaseSetWithRetry(key, value).catch(() => {});
@@ -267,31 +341,28 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   /**
-   * Save to both IndexedDB AND Supabase. WAITS for cloud write to complete.
-   * Returns true if cloud write succeeded, false if it failed.
-   * Local write always happens regardless.
+   * Save locally (instant) and trigger background cloud sync.
+   * Always returns true (local save is reliable).
+   * Cloud sync status is tracked via cloudSyncStatus state.
    */
   const save = useCallback(async <T,>(key: string, value: T): Promise<boolean> => {
     const jsonSize = JSON.stringify(value).length;
     console.log(`[save] "${key}" (${(jsonSize / 1024).toFixed(1)} KB)...`);
 
-    // Always save locally first
-    dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
-
-    // Save to cloud — AWAIT it, with retry
-    if (isSupabaseConfigured()) {
-      const ok = await supabaseSetWithRetry(key, value, 2);
-      if (ok) {
-        console.log(`[save] "${key}" cloud write OK`);
-        return true;
-      } else {
-        console.error(`[save] "${key}" cloud write FAILED after retries`);
-        return false;
-      }
+    // Save locally — this is fast and reliable
+    try {
+      await dbSet(key, value);
+      console.log(`[save] "${key}" local save OK`);
+    } catch (e) {
+      console.error(`[save] "${key}" local save FAILED:`, e);
+      return false; // Only fail if local save fails
     }
 
-    return true; // No cloud configured, local-only is fine
-  }, []);
+    // Trigger background cloud sync (non-blocking)
+    syncToCloud(key, value);
+
+    return true; // Local save succeeded — UI can proceed
+  }, [syncToCloud]);
 
   const updateCollections = useCallback(async (newCollections: PhotoCollection[]): Promise<boolean> => {
     if (!dataLoaded) {
@@ -308,8 +379,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return save('about_info', newAboutInfo);
   }, [save, dataLoaded]);
 
-  const collectionsRef = React.useRef(collections);
-  React.useEffect(() => { collectionsRef.current = collections; }, [collections]);
+  const collectionsRef = useRef(collections);
+  useEffect(() => { collectionsRef.current = collections; }, [collections]);
 
   const addPhoto = useCallback(async (collectionId: string, photo: Photo): Promise<boolean> => {
     if (!dataLoaded) return false;
@@ -359,6 +430,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       heroImages,
       animationConfig,
       dataLoaded,
+      cloudSyncStatus,
+      pendingSyncKeys,
+      retrySyncAll,
       updateCollections,
       updateAboutInfo,
       addPhoto,

@@ -16,6 +16,70 @@
   }
 }
 
+/* ============ CLOUD SYNC BANNER ============ */
+.cloud-sync-banner {
+  position: fixed;
+  top: 72px;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 13px;
+  font-family: 'Noto Serif SC', serif;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.cloud-sync-banner.syncing {
+  background: #e8f4fd;
+  color: #1a73e8;
+  border-bottom: 1px solid #c4dff6;
+}
+
+.cloud-sync-banner.error {
+  background: #fef3f2;
+  color: #c5221f;
+  border-bottom: 1px solid #f5c6c4;
+}
+
+.cloud-sync-banner.success {
+  background: #e6f4ea;
+  color: #137333;
+  border-bottom: 1px solid #c4e7ce;
+}
+
+.sync-retry-btn {
+  background: #c5221f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Noto Serif SC', serif;
+  transition: opacity 0.2s;
+}
+
+.sync-retry-btn:hover {
+  opacity: 0.85;
+}
+
+@media (max-width: 768px) {
+  .cloud-sync-banner {
+    top: 60px;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
+
 /* ============ LOGIN ============ */
 .admin-login-container {
   min-height: calc(100vh - 72px);

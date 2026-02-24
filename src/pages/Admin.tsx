@@ -223,7 +223,7 @@ const GeoPicker: React.FC<GeoPickerProps> = ({ value, onChange, locationHint }) 
    Admin Component
    ============================================================ */
 const Admin: React.FC = () => {
-  const { collections, aboutInfo, litCities, heroImages, animationConfig, dataLoaded, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages, updateAnimationConfig } = useData();
+  const { collections, aboutInfo, litCities, heroImages, animationConfig, dataLoaded, cloudSyncStatus, pendingSyncKeys, retrySyncAll, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages, updateAnimationConfig } = useData();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -551,7 +551,7 @@ const Admin: React.FC = () => {
           geo: undefined,
         });
       } else {
-        alert('云端保存失败，数据可能未同步到其他设备。请检查网络后重试。');
+        alert('本地保存失败，请重试');
       }
     } catch (e) {
       console.error('创建作品集失败:', e);
@@ -587,8 +587,8 @@ const Admin: React.FC = () => {
   };
 
   const handleSaveAbout = async () => {
-    const ok = await updateAboutInfo(editedAboutInfo);
-    showToast(ok ? '关于我页面已保存' : '云端保存失败，请重试');
+    await updateAboutInfo(editedAboutInfo);
+    showToast('关于我页面已保存');
   };
 
   // Track if about info has unsaved changes
@@ -660,6 +660,23 @@ const Admin: React.FC = () => {
 
   return (
     <div className="admin-page">
+      {/* Cloud sync status banner */}
+      {cloudSyncStatus === 'syncing' && (
+        <div className="cloud-sync-banner syncing">
+          <span>☁️ 正在同步到云端...</span>
+        </div>
+      )}
+      {cloudSyncStatus === 'error' && pendingSyncKeys.length > 0 && (
+        <div className="cloud-sync-banner error">
+          <span>⚠️ {pendingSyncKeys.length} 项数据未同步到云端（其他设备可能看不到最新数据）</span>
+          <button onClick={retrySyncAll} className="sync-retry-btn">重试同步</button>
+        </div>
+      )}
+      {cloudSyncStatus === 'success' && (
+        <div className="cloud-sync-banner success">
+          <span>✅ 云端同步完成</span>
+        </div>
+      )}
       <div className="admin-container">
         {/* Sidebar */}
         <div className="admin-sidebar">
