@@ -105,12 +105,16 @@ export async function subscribeEmail(email: string): Promise<SubscribeResult> {
       }),
     });
 
+    console.log('[newsletter] Buttondown API response:', res.status, res.statusText);
+
     if (res.status === 201) {
+      console.log('[newsletter] Subscription successful for:', email);
       return { success: true, message: '订阅成功！感谢你的关注。' };
     }
 
     // Handle known error cases
     const data = await res.json().catch(() => null);
+    console.log('[newsletter] Response data:', data);
     const errorCode = data?.code || '';
     const errorDetail = Array.isArray(data) ? data[0] : (data?.detail || data?.email_address?.[0] || '');
 
@@ -130,6 +134,12 @@ export async function subscribeEmail(email: string): Promise<SubscribeResult> {
 
     if (res.status === 429) {
       return { success: false, message: '请求太频繁，请稍后再试' };
+    }
+
+    if (res.status === 200) {
+      // Buttondown sometimes returns 200 for successful subscription
+      console.log('[newsletter] Subscription successful (200) for:', email);
+      return { success: true, message: '订阅成功！感谢你的关注。' };
     }
 
     return { success: false, message: `订阅失败 (${res.status})` };
