@@ -305,19 +305,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Strict save: write to both IndexedDB and Supabase, throw on Supabase failure.
-  // Used by user-initiated operations that need to report errors.
+  // Save to both IndexedDB (local) and Supabase (cloud).
+  // Local save failure is critical (throws). Cloud save failure is logged but not thrown,
+  // so the user sees success and data syncs on next load.
   const saveStrict = useCallback(async <T,>(key: string, value: T) => {
     const jsonSize = JSON.stringify(value).length;
     console.log(`[saveStrict] saving "${key}" (${(jsonSize / 1024).toFixed(1)} KB)...`);
-    await dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
+    // Local save — must succeed
+    await dbSet(key, value);
+    // Cloud save — best effort
     if (isSupabaseConfigured()) {
       try {
         await supabaseSet(key, value);
         console.log(`[Supabase] saved "${key}" successfully (${(jsonSize / 1024).toFixed(1)} KB)`);
       } catch (e: any) {
-        console.error(`[Supabase] FAILED to save "${key}":`, e);
-        throw new Error(`云端保存失败 (${key}): ${e.message || e}`);
+        console.error(`[Supabase] cloud save failed for "${key}" (data saved locally):`, e);
+        // Don't throw — local save succeeded, cloud will sync on next load
       }
     }
   }, []);

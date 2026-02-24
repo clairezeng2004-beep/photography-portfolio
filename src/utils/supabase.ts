@@ -75,7 +75,7 @@ export async function supabaseGetDetailed<T>(key: string): Promise<CloudGetResul
   return { found: true, value: data.value as T };
 }
 
-/** Write a value to Supabase app_data table (upsert) with verification */
+/** Write a value to Supabase app_data table (upsert) */
 export async function supabaseSet<T>(key: string, value: T): Promise<void> {
   const supabase = getSupabase();
   const now = new Date().toISOString();
@@ -88,64 +88,42 @@ export async function supabaseSet<T>(key: string, value: T): Promise<void> {
     `SET ${key}`
   );
 
-  if (upsertError) {
-    console.error(`[Supabase] upsert failed for "${key}":`, upsertError.message, upsertError.code);
-
-    // If upsert failed, try explicit insert-or-update approach
-    // First check if row exists
-    const existing = await supabaseGetDetailed(key).catch(() => null);
-    
-    if (existing && existing.found) {
-      // Row exists → update
-      const { error: updateError } = await withTimeout(
-        supabase.from('app_data')
-          .update({ value: value as any, updated_at: now })
-          .eq('key', key),
-        WRITE_TIMEOUT,
-        `UPDATE ${key}`
-      );
-      if (updateError) {
-        console.error(`[Supabase] update also failed for "${key}":`, updateError.message);
-        throw updateError;
-      }
-      console.log(`[Supabase] saved "${key}" via UPDATE fallback`);
-    } else {
-      // Row doesn't exist → insert
-      const { error: insertError } = await withTimeout(
-        supabase.from('app_data').insert(row),
-        WRITE_TIMEOUT,
-        `INSERT ${key}`
-      );
-      if (insertError) {
-        console.error(`[Supabase] insert also failed for "${key}":`, insertError.message);
-        throw insertError;
-      }
-      console.log(`[Supabase] saved "${key}" via INSERT fallback`);
-    }
+  if (!upsertError) {
+    // Upsert succeeded — done
     return;
   }
 
-  // Verify the write actually persisted (non-blocking — log only, don't throw)
-  try {
-    const verify = await supabaseGetDetailed(key);
-    if (!verify.found) {
-      // Upsert said success but row not found — try insert as a recovery attempt
-      console.warn(`[Supabase] verification: "${key}" not found after upsert, attempting INSERT...`);
-      const { error: insertError } = await withTimeout(
-        supabase.from('app_data').insert(row),
-        WRITE_TIMEOUT,
-        `INSERT-VERIFY ${key}`
-      );
-      if (insertError) {
-        // Insert failed (likely duplicate key = row actually exists, verification was a fluke)
-        console.warn(`[Supabase] INSERT-VERIFY for "${key}" failed (may be OK if row exists):`, insertError.message);
-      } else {
-        console.log(`[Supabase] saved "${key}" via INSERT after verification miss`);
-      }
+  // Upsert failed — try explicit insert-or-update fallback
+  console.error(`[Supabase] upsert failed for "${key}":`, upsertError.message, upsertError.code);
+
+  const existing = await supabaseGetDetailed(key).catch(() => null);
+
+  if (existing && existing.found) {
+    // Row exists → update
+    const { error: updateError } = await withTimeout(
+      supabase.from('app_data')
+        .update({ value: value as any, updated_at: now })
+        .eq('key', key),
+      WRITE_TIMEOUT,
+      `UPDATE ${key}`
+    );
+    if (updateError) {
+      console.error(`[Supabase] update also failed for "${key}":`, updateError.message);
+      throw updateError;
     }
-  } catch (verifyErr) {
-    // Don't fail the whole operation if verification read itself fails
-    console.warn(`[Supabase] verification read failed for "${key}" (write likely succeeded):`, verifyErr);
+    console.log(`[Supabase] saved "${key}" via UPDATE fallback`);
+  } else {
+    // Row doesn't exist → insert
+    const { error: insertError } = await withTimeout(
+      supabase.from('app_data').insert(row),
+      WRITE_TIMEOUT,
+      `INSERT ${key}`
+    );
+    if (insertError) {
+      console.error(`[Supabase] insert also failed for "${key}":`, insertError.message);
+      throw insertError;
+    }
+    console.log(`[Supabase] saved "${key}" via INSERT fallback`);
   }
 }
 
