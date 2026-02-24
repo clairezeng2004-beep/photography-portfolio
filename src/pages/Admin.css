@@ -1490,6 +1490,32 @@
   background: rgba(42, 42, 42, 0.9);
 }
 
+.set-cover-btn {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(42, 42, 42, 0.7);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.photo-card-thumb:hover .set-cover-btn {
+  opacity: 1;
+}
+
+.set-cover-btn:hover {
+  background: rgba(42, 42, 42, 0.95);
+}
+
 /* ============ ABOUT EDITOR ============ */
 .about-editor {
   display: flex;

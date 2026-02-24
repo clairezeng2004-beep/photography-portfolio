@@ -65,33 +65,30 @@ function extractFromTitle(title: string): { location?: string; year?: number } {
 }
 
 /* ============================================================
-   Helper: Auto-crop a landscape image to 3:4 portrait from center
+   Helper: Auto-crop an image to a given aspect ratio from center
    ============================================================ */
-function autoCropToPortrait(
+function autoCropToAspect(
   imageUrl: string,
-  outputWidth: number = 900
+  targetAspect: number,
+  outputWidth: number = 1600
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new window.Image();
-    // Only set crossOrigin for remote URLs, not for base64 data URLs
     if (!imageUrl.startsWith('data:')) {
       img.crossOrigin = 'anonymous';
     }
     img.onload = () => {
       try {
-        const targetAspect = 3 / 4;
         const outputHeight = Math.round(outputWidth / targetAspect);
         const imgAspect = img.width / img.height;
 
         let sx: number, sy: number, sw: number, sh: number;
         if (imgAspect > targetAspect) {
-          // Image is wider — fit height, crop width from center
           sh = img.height;
           sw = Math.round(sh * targetAspect);
           sx = Math.round((img.width - sw) / 2);
           sy = 0;
         } else {
-          // Image is taller — fit width, crop height from center
           sw = img.width;
           sh = Math.round(sw / targetAspect);
           sx = 0;
@@ -111,6 +108,20 @@ function autoCropToPortrait(
     img.onerror = reject;
     img.src = imageUrl;
   });
+}
+
+function autoCropToLandscape(imageUrl: string, outputWidth: number = 1600): Promise<string> {
+  return autoCropToAspect(imageUrl, 4 / 3, outputWidth);
+}
+
+/* ============================================================
+   Helper: Auto-crop a landscape image to 3:4 portrait from center
+   ============================================================ */
+function autoCropToPortrait(
+  imageUrl: string,
+  outputWidth: number = 900
+): Promise<string> {
+  return autoCropToAspect(imageUrl, 3 / 4, outputWidth);
 }
 
 type TabType = 'home' | 'collections' | 'about' | 'map';
@@ -1121,7 +1132,7 @@ const Admin: React.FC = () => {
                           defaultCropAspect={4 / 3}
                           defaultOutputWidth={1600}
                         />
-                        {!newCollection.coverImage && newCollection.photos && newCollection.photos.length > 0 && (
+                        {newCollection.photos && newCollection.photos.length > 0 && (
                           <div className="cover-picker-grid">
                             {newCollection.photos.map(photo => (
                               <button
@@ -1129,8 +1140,15 @@ const Admin: React.FC = () => {
                                 key={photo.id}
                                 className={`cover-picker-item ${newCollection.coverImage === photo.url ? 'active' : ''}`}
                                 onClick={() => {
-                                  setNewCollection(prev => ({ ...prev, coverImage: photo.url }));
-                                  autoCropToPortrait(photo.url).then(portrait => {
+                                  const originalUrl = photo.url;
+                                  // Auto-crop to 4:3 landscape for coverImage
+                                  autoCropToLandscape(originalUrl).then(landscape => {
+                                    setNewCollection(prev => ({ ...prev, coverImage: landscape }));
+                                  }).catch(() => {
+                                    setNewCollection(prev => ({ ...prev, coverImage: originalUrl }));
+                                  });
+                                  // Auto-crop to 3:4 portrait for cardCoverImage
+                                  autoCropToPortrait(originalUrl).then(portrait => {
                                     setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
                                   }).catch(() => {});
                                 }}
@@ -1961,6 +1979,24 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                         onClick={() => onRemovePhoto(photo.id)}
                       >
                         <X size={14} />
+                      </button>
+                      <button
+                        className="set-cover-btn"
+                        onClick={() => {
+                          const originalUrl = photo.url;
+                          autoCropToLandscape(originalUrl).then(landscape => {
+                            setCoverImage(landscape);
+                          }).catch(() => {
+                            setCoverImage(originalUrl);
+                          });
+                          autoCropToPortrait(originalUrl).then(portrait => {
+                            setCardCoverImage(portrait);
+                          }).catch(() => {});
+                        }}
+                        title="设为封面"
+                      >
+                        <ImageIcon size={12} />
+                        <span>封面</span>
                       </button>
                     </div>
                     <div className="photo-card-fields">
