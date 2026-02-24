@@ -17,6 +17,52 @@ import {
   lookupCity,
   CityEntry,
 } from '../data/geoData';
+
+/* ============================================================
+   Helper: Extract location/year from collection title
+   e.g. "2024巴黎" → { year: 2024, location: "巴黎" }
+   e.g. "巴黎2024" → { year: 2024, location: "巴黎" }
+   e.g. "京都之旅" → { location: "京都" }
+   ============================================================ */
+function extractFromTitle(title: string): { location?: string; year?: number } {
+  const result: { location?: string; year?: number } = {};
+
+  // Extract 4-digit year (2000-2099)
+  const yearMatch = title.match(/(20\d{2})/);
+  if (yearMatch) {
+    result.year = parseInt(yearMatch[1], 10);
+  }
+
+  // Remove year and common decorative words to find city
+  const cleaned = title.replace(/20\d{2}/g, '').replace(/[年之旅行日记纪手记游记春夏秋冬]/g, '').trim();
+
+  // Try to match any known city from CITY_DATABASE
+  for (const entry of CITY_DATABASE) {
+    if (title.includes(entry.city)) {
+      result.location = entry.city;
+      break;
+    }
+  }
+
+  // If no city match, also try country names
+  if (!result.location) {
+    for (const country of COUNTRY_LIST) {
+      if (title.includes(country.name)) {
+        // Use the first city of that country as a hint
+        const cities = CITY_DATABASE.filter(c => c.countryCode === country.code);
+        result.location = cities.length > 0 ? cities[0].city : country.name;
+        break;
+      }
+    }
+  }
+
+  // If still no match but cleaned string is non-empty, use it as-is
+  if (!result.location && cleaned.length > 0 && cleaned.length <= 20) {
+    result.location = cleaned;
+  }
+
+  return result;
+}
 import ImageUploader from '../components/ImageUploader';
 import { getImgbbApiKey, setImgbbApiKey, isImageHostConfigured, countBase64Images, migrateAllToImgbb, MigrationProgress } from '../utils/imageHost';
 import { getNewsletterApiKey, setNewsletterApiKey, isNewsletterConfigured } from '../utils/newsletter';
@@ -542,6 +588,7 @@ const Admin: React.FC = () => {
         year: newCollection.year || lastUsedYear,
         description: newCollection.description || '',
         coverImage,
+        cardCoverImage: coverImage,  // Default: mobile cover = desktop cover
         coverTitle: newCollection.coverTitle || newCollection.location || '',
         hoverLocation: newCollection.hoverLocation || newCollection.location || '',
         photos,
@@ -921,11 +968,22 @@ const Admin: React.FC = () => {
                           <input
                             type="text"
                             value={newCollection.title}
-                            onChange={(e) => setNewCollection({
-                              ...newCollection,
-                              title: e.target.value
-                            })}
-                            placeholder="例如：2024巴黎"
+                            onChange={(e) => {
+                              const title = e.target.value;
+                              const extracted = extractFromTitle(title);
+                              const updates: Partial<PhotoCollection> = { ...newCollection, title };
+                              // Auto-fill location if currently empty or was auto-filled
+                              if (extracted.location && (!newCollection.location || newCollection.location === extractFromTitle(newCollection.title || '').location)) {
+                                updates.location = extracted.location;
+                              }
+                              // Auto-fill year if extracted
+                              if (extracted.year) {
+                                updates.year = extracted.year;
+                                setLastUsedYear(extracted.year);
+                              }
+                              setNewCollection(updates);
+                            }}
+                            placeholder="例如：2024巴黎（自动提取地点和年份）"
                           />
                         </div>
                         

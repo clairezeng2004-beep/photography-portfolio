@@ -156,6 +156,19 @@
 }
 
 .crop-image-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: static;
+  width: auto;
+  height: auto;
   background: rgba(255, 255, 255, 0.92);
   color: #374151;
   backdrop-filter: blur(4px);
@@ -164,6 +177,7 @@
 .crop-image-btn:hover {
   background: #fff;
   color: #8b5cf6;
+  transform: none;
 }
 
 .crop-overlay {
@@ -224,12 +238,9 @@
   display: block;
 }
 
-.crop-preview-mask {
-  position: absolute;
-  inset: 12px;
-  border: 2px dashed rgba(139, 92, 246, 0.6);
-  border-radius: 10px;
-  pointer-events: none;
+.crop-area-highlight img {
+  border-radius: 0;
+  opacity: 1 !important;
 }
 
 .crop-controls .form-group {
