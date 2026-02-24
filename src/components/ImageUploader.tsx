@@ -21,6 +21,8 @@ interface ImageUploaderProps {
   compressMaxWidth?: number;
   /** JPEG quality for compression 0-1 (default 0.82) */
   compressQuality?: number;
+  /** Original (uncropped) source image for re-cropping with position memory */
+  originalSource?: string;
 }
 
 const DEFAULT_ASPECT_OPTIONS = [
@@ -68,7 +70,9 @@ const DragCropper: React.FC<{
   src: string;
   aspect: number;
   onCropArea: (pixels: { x: number; y: number; width: number; height: number }) => void;
-}> = ({ src, aspect, onCropArea }) => {
+  /** If provided, DragCropper will start with this crop rect (in natural pixels) instead of centered max-fit */
+  initialCropPixels?: { x: number; y: number; width: number; height: number } | null;
+}> = ({ src, aspect, onCropArea, initialCropPixels }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgLayout, setImgLayout] = useState<{ w: number; h: number; x: number; y: number } | null>(null);
@@ -139,7 +143,22 @@ const DragCropper: React.FC<{
         y: imgRect.top - contRect.top,
       };
       setImgLayout(layout);
-      const rect = initCrop(layout.w, layout.h);
+
+      let rect: CropRect;
+      if (initialCropPixels) {
+        // Convert natural pixel coords to display coords
+        const scaleX = layout.w / nat.w;
+        const scaleY = layout.h / nat.h;
+        rect = {
+          x: initialCropPixels.x * scaleX,
+          y: initialCropPixels.y * scaleY,
+          w: initialCropPixels.width * scaleX,
+          h: initialCropPixels.height * scaleY,
+        };
+        setCrop(rect);
+      } else {
+        rect = initCrop(layout.w, layout.h);
+      }
       // Report initial crop
       const scaleX = nat.w / layout.w;
       const scaleY = nat.h / layout.h;
@@ -341,6 +360,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   emptyHint = '请先选择图片',
   compressMaxWidth = 2000,
   compressQuality = 0.82,
+  originalSource,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -360,6 +380,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewImgRef = useRef<HTMLImageElement | null>(null);
+  const [showPreviewWindow, setShowPreviewWindow] = useState(false);
+  const previewLargeCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [initialCropPixels, setInitialCropPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
   const maybeUploadToHost = async (
     imageBase64: string,
@@ -489,6 +512,47 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const openCropper = (imageUrl: string) => {
     setCropSource(imageUrl);
     setCroppedAreaPixels(null);
+    setShowPreviewWindow(false);
+
+    // If re-cropping from an originalSource, try to detect the current crop position
+    // by comparing aspect ratios and computing a centered crop matching the current image
+    if (originalSource && imageUrl === originalSource && currentImage && currentImage !== originalSource) {
+      // Load both original and current to compute initial crop area
+      const origImg = new window.Image();
+      origImg.crossOrigin = 'anonymous';
+      origImg.onload = () => {
+        const curImg = new window.Image();
+        curImg.crossOrigin = 'anonymous';
+        curImg.onload = () => {
+          const curAspect = curImg.naturalWidth / curImg.naturalHeight;
+          const origW = origImg.naturalWidth;
+          const origH = origImg.naturalHeight;
+          // Compute crop area that matches curAspect centered in original
+          let cw: number, ch: number;
+          if (origW / origH > curAspect) {
+            ch = origH;
+            cw = ch * curAspect;
+          } else {
+            cw = origW;
+            ch = cw / curAspect;
+          }
+          setInitialCropPixels({
+            x: Math.round((origW - cw) / 2),
+            y: Math.round((origH - ch) / 2),
+            width: Math.round(cw),
+            height: Math.round(ch),
+          });
+          // Also set the crop aspect to match
+          const matchingOpt = aspectOptions.find(o => Math.abs(o.value - curAspect) < 0.05);
+          if (matchingOpt) setCropAspect(matchingOpt.value);
+        };
+        curImg.src = currentImage;
+      };
+      origImg.src = originalSource;
+    } else {
+      setInitialCropPixels(null);
+    }
+
     setCropOpen(true);
     // Pre-load full-res image for preview canvas
     const img = new window.Image();
@@ -499,7 +563,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const onCropArea = useCallback((area: { x: number; y: number; width: number; height: number }) => {
     setCroppedAreaPixels(area);
-    // Render preview
+    // Render preview on small canvas
     const canvas = previewCanvasRef.current;
     const img = previewImgRef.current;
     if (!canvas || !img || !img.complete) return;
@@ -512,7 +576,42 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       ctx.clearRect(0, 0, previewW, previewH);
       ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, previewW, previewH);
     }
-  }, []);
+    // Render large preview
+    const largeCanvas = previewLargeCanvasRef.current;
+    if (largeCanvas) {
+      const largeW = Math.min(cropWidth, 1200);
+      const largeH = Math.round(largeW * (area.height / area.width));
+      largeCanvas.width = largeW;
+      largeCanvas.height = largeH;
+      const lctx = largeCanvas.getContext('2d');
+      if (lctx) {
+        lctx.clearRect(0, 0, largeW, largeH);
+        lctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, largeW, largeH);
+      }
+    }
+  }, [cropWidth]);
+
+  // Re-render large preview canvas when opening large preview window
+  useEffect(() => {
+    if (!showPreviewWindow || !croppedAreaPixels) return;
+    const renderLarge = () => {
+      const largeCanvas = previewLargeCanvasRef.current;
+      const img = previewImgRef.current;
+      if (!largeCanvas || !img || !img.complete) return;
+      const area = croppedAreaPixels;
+      const largeW = Math.min(cropWidth, 1200);
+      const largeH = Math.round(largeW * (area.height / area.width));
+      largeCanvas.width = largeW;
+      largeCanvas.height = largeH;
+      const ctx = largeCanvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, largeW, largeH);
+        ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, largeW, largeH);
+      }
+    };
+    // Small delay to let DOM mount the canvas
+    requestAnimationFrame(renderLarge);
+  }, [showPreviewWindow, croppedAreaPixels, cropWidth]);
 
   const handleApplyCrop = async () => {
     if (!cropSource || !croppedAreaPixels) return;
@@ -706,6 +805,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                 src={cropSource}
                 aspect={cropAspect}
                 onCropArea={onCropArea}
+                initialCropPixels={initialCropPixels}
               />
               <div className="crop-controls">
                 <div className="form-group">
@@ -738,7 +838,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                 </div>
                 <div className="crop-note">拖动裁剪框移动位置，拖拽四角调整大小</div>
                 <div className="crop-preview-section">
-                  <label>裁剪预览</label>
+                  <div className="crop-preview-header">
+                    <label>裁剪预览</label>
+                    <button
+                      type="button"
+                      className="crop-preview-enlarge-btn"
+                      onClick={() => setShowPreviewWindow(true)}
+                      title="放大预览"
+                    >
+                      查看大图
+                    </button>
+                  </div>
                   <div className="crop-preview-container">
                     <canvas ref={previewCanvasRef} />
                   </div>
@@ -750,6 +860,23 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               <button className="btn btn-primary" onClick={handleApplyCrop}>应用裁剪</button>
             </div>
           </div>
+
+          {/* Large preview overlay */}
+          {showPreviewWindow && (
+            <div className="crop-large-preview-overlay" onClick={() => setShowPreviewWindow(false)}>
+              <div className="crop-large-preview-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="crop-large-preview-header">
+                  <span>大图预览 ({cropWidth} × {Math.round(cropWidth / cropAspect)})</span>
+                  <button className="btn-icon" onClick={() => setShowPreviewWindow(false)}>
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="crop-large-preview-body">
+                  <canvas ref={previewLargeCanvasRef} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
