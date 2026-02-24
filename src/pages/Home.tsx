@@ -42,7 +42,7 @@ const Home: React.FC = () => {
     if (heroImages.length <= 1) return;
     const timer = setInterval(() => {
       if (!isDragging) {
-        setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+        setCurrentSlide((prev) => prev + 1);
       }
     }, 8000);
     return () => clearInterval(timer);
@@ -109,27 +109,72 @@ const Home: React.FC = () => {
     if (!isDragging) return;
     setIsDragging(false);
     const threshold = 80;
-    if (translateX < -threshold && currentSlide < heroImages.length - 1) {
-      setCurrentSlide((prev) => prev + 1);
-    } else if (translateX > threshold && currentSlide > 0) {
-      setCurrentSlide((prev) => prev - 1);
+    if (translateX < -threshold) {
+      setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+    } else if (translateX > threshold) {
+      setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
     }
     setTranslateX(0);
-  }, [isDragging, translateX, currentSlide, heroImages.length]);
+  }, [isDragging, translateX, heroImages.length]);
 
   const handleHeroClick = useCallback(() => {
     if (Math.abs(translateX) > 5) return;
-    const cid = heroImages[currentSlide]?.collectionId;
+    const displayIdx = ((currentSlide % heroImages.length) + heroImages.length) % heroImages.length;
+    const cid = heroImages[displayIdx]?.collectionId;
     if (cid) navigate(`/gallery/${cid}`);
   }, [translateX, heroImages, currentSlide, navigate]);
 
   const goHeroPrev = () => {
-    setCurrentSlide((prev) => (prev > 0 ? prev - 1 : heroImages.length - 1));
+    if (heroImages.length <= 1) return;
+    setCurrentSlide((prev) => prev - 1);
   };
 
   const goHeroNext = () => {
-    setCurrentSlide((prev) => (prev < heroImages.length - 1 ? prev + 1 : 0));
+    if (heroImages.length <= 1) return;
+    setCurrentSlide((prev) => prev + 1);
   };
+
+  // Scroll down handler for hero scroll hint
+  const handleScrollDown = useCallback(() => {
+    const heroEl = heroRef.current;
+    if (!heroEl) return;
+    const nextSection = heroEl.nextElementSibling;
+    if (nextSection) {
+      nextSection.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: heroEl.offsetHeight, behavior: 'smooth' });
+    }
+  }, []);
+
+  const [isTransitioning, setIsTransitioning] = useState(true);
+
+  // For slide mode infinite loop: clone last slide before first and first slide after last
+  const extendedImages = heroImages.length > 1
+    ? [heroImages[heroImages.length - 1], ...heroImages, heroImages[0]]
+    : heroImages;
+  const slideIndex = heroImages.length > 1 ? currentSlide + 1 : currentSlide;
+
+  // When slide animation ends, silently jump to the real slide (no transition)
+  const handleSlideTransitionEnd = useCallback(() => {
+    if (heroImages.length <= 1) return;
+    if (currentSlide >= heroImages.length) {
+      setIsTransitioning(false);
+      setCurrentSlide(0);
+    } else if (currentSlide < 0) {
+      setIsTransitioning(false);
+      setCurrentSlide(heroImages.length - 1);
+    }
+  }, [currentSlide, heroImages.length]);
+
+  // Re-enable transitions after a silent jump
+  useEffect(() => {
+    if (!isTransitioning) {
+      const raf = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setIsTransitioning(true));
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [isTransitioning]);
 
   /* ============================================================
      HERO RENDER
@@ -140,12 +185,13 @@ const Home: React.FC = () => {
         <div
           className="hero-slider"
           style={{
-            transform: `translateX(calc(-${currentSlide * 100}% + ${isDragging ? translateX : 0}px))`,
-            transition: isDragging ? 'none' : 'transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            transform: `translateX(calc(-${slideIndex * 100}% + ${isDragging ? translateX : 0}px))`,
+            transition: isDragging || !isTransitioning ? 'none' : 'transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
           }}
+          onTransitionEnd={handleSlideTransitionEnd}
         >
-          {heroImages.map((img, i) => (
-            <div className="hero-slide" key={i}>
+          {extendedImages.map((img, i) => (
+            <div className="hero-slide" key={`slide-${i}`}>
               <img
                 src={img.url}
                 alt={img.title}
@@ -415,9 +461,9 @@ const Home: React.FC = () => {
 
         <div className={`hero-overlay ${heroLoaded ? 'loaded' : ''}`} onClick={handleHeroClick}>
           <div className="hero-info-strip">
-            <span className="hero-location">{heroImages[currentSlide]?.title}</span>
+            <span className="hero-location">{heroImages[((currentSlide % heroImages.length) + heroImages.length) % heroImages.length]?.title}</span>
             <span className="hero-sep">—</span>
-            <span className="hero-title-text">{heroImages[currentSlide]?.location}，{heroImages[currentSlide]?.year}</span>
+            <span className="hero-title-text">{heroImages[((currentSlide % heroImages.length) + heroImages.length) % heroImages.length]?.location}，{heroImages[((currentSlide % heroImages.length) + heroImages.length) % heroImages.length]?.year}</span>
           </div>
         </div>
 
@@ -425,14 +471,14 @@ const Home: React.FC = () => {
           <>
             <div className="hero-edge-zone hero-edge-left">
               <button className="hero-arrow hero-arrow-left" onClick={goHeroPrev} aria-label="上一张">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
             </div>
             <div className="hero-edge-zone hero-edge-right">
               <button className="hero-arrow hero-arrow-right" onClick={goHeroNext} aria-label="下一张">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
@@ -442,14 +488,15 @@ const Home: React.FC = () => {
 
         {heroImages.length > 1 && (
           <div className="hero-dots">
-            {heroImages.map((_, i) => (
-              <button key={i} className={`hero-dot ${i === currentSlide ? 'active' : ''}`} onClick={() => setCurrentSlide(i)} />
-            ))}
+            {heroImages.map((_, i) => {
+              const displayIdx = ((currentSlide % heroImages.length) + heroImages.length) % heroImages.length;
+              return <button key={i} className={`hero-dot ${i === displayIdx ? 'active' : ''}`} onClick={() => setCurrentSlide(i)} />;
+            })}
           </div>
         )}
 
-        <div className="hero-scroll-hint">
-          <svg className="scroll-arrow" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <div className="hero-scroll-hint" onClick={handleScrollDown}>
+          <svg className="scroll-arrow" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>

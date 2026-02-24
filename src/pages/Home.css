@@ -86,9 +86,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  padding-bottom: 120px;
-  background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%);
+  justify-content: flex-start;
+  padding-top: 28vh;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.25) 100%);
   opacity: 0;
   transition: opacity 1.5s ease;
   pointer-events: auto;
@@ -97,10 +97,6 @@
 
 .hero-overlay.loaded {
   opacity: 1;
-}
-
-.hero-overlay {
-  cursor: pointer;
 }
 
 .hero-view-gallery {
@@ -127,32 +123,33 @@
 
 .hero-info-strip {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .hero-location {
   font-family: 'Noto Serif SC', serif;
-  font-size: 28px;
+  font-size: 42px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.95);
-  line-height: 1.4;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.97);
+  line-height: 1.3;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
 .hero-sep {
-  font-size: 22px;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.35);
   line-height: 1;
 }
 
 .hero-title-text {
   font-family: 'Playfair Display', serif;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 400;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.75);
   font-style: italic;
   line-height: 1;
 }
@@ -162,7 +159,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 100px;
+  width: 120px;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -172,13 +169,13 @@
 .hero-edge-left {
   left: 0;
   justify-content: flex-start;
-  padding-left: 24px;
+  padding-left: 28px;
 }
 
 .hero-edge-right {
   right: 0;
   justify-content: flex-end;
-  padding-right: 24px;
+  padding-right: 28px;
 }
 
 .hero-arrow {
@@ -236,15 +233,21 @@
 /* Scroll hint arrow */
 .hero-scroll-hint {
   position: absolute;
-  bottom: 18px;
+  bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
+  cursor: pointer;
 }
 
 .scroll-arrow {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.55);
   animation: bounceDown 2s ease-in-out infinite;
+  transition: color 0.3s ease;
+}
+
+.hero-scroll-hint:hover .scroll-arrow {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 @keyframes bounceDown {
@@ -812,14 +815,22 @@
 
 @media (max-width: 768px) {
   .hero-location {
-    font-size: 16px;
+    font-size: 24px;
+  }
+
+  .hero-title-text {
+    font-size: 14px;
+  }
+
+  .hero-overlay {
+    padding-top: 35vh;
   }
 
   .hero-dots { bottom: 44px; }
 
-  .hero-edge-zone { width: 60px; }
-  .hero-edge-left { padding-left: 12px; }
-  .hero-edge-right { padding-right: 12px; }
+  .hero-edge-zone { width: 70px; }
+  .hero-edge-left { padding-left: 14px; }
+  .hero-edge-right { padding-right: 14px; }
 
   .hero-edge-zone .hero-arrow { opacity: 0.6; }
   .hero-edge-zone:hover .hero-arrow { opacity: 0.8; }
@@ -833,11 +844,12 @@
 }
 
 @media (max-width: 480px) {
-  .hero-location { font-size: 15px; }
+  .hero-location { font-size: 20px; }
+  .hero-title-text { font-size: 13px; }
   .intro-greeting { font-size: 22px; }
 
   .flip-card-front-info .card-title,
   .simple-card-info .card-title { font-size: 19px; }
 
-  .hero-arrow svg { width: 24px; height: 24px; }
+  .hero-arrow svg { width: 32px; height: 32px; }
 }
