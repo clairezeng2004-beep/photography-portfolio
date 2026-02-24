@@ -1607,7 +1607,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [cardCoverImage, setCardCoverImage] = useState(collection.cardCoverImage || '');
   const [year, setYear] = useState(collection.year);
   const [geo, setGeo] = useState<GeoInfo | undefined>(collection.geo);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // City search state
   const [citySearchText, setCitySearchText] = useState('');
@@ -1677,7 +1676,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     setCardCoverImage(collection.cardCoverImage || '');
     setYear(collection.year);
     setGeo(collection.geo);
-    setShowAdvanced(false);
     setCitySearchText('');
     setShowCityDropdown(false);
     const entry = lookupCity(collection.location);
@@ -1802,18 +1800,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               rows={3}
             />
 
-            <div className="inline-edit-advanced-toggle">
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-              >
-                <Settings size={14} />
-                {showAdvanced ? '收起设置' : '更多设置'}
-              </button>
-            </div>
-
-            {showAdvanced && (
-              <div className="inline-edit-advanced">
+            <div className="inline-edit-advanced">
                 <div className="form-group">
                   <label>封面图片（横版，用于首页轮播等）</label>
                   <ImageUploader
@@ -1833,9 +1820,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
                 <div className="form-group">
                   <label>首页卡片封面（竖版 3:4）</label>
-                  <div className="card-cover-hint">
-                    首页下方小卡片使用的竖版封面，不设置则使用横版封面
-                  </div>
                   <ImageUploader
                     onImageUpload={(url) => setCardCoverImage(url)}
                     currentImage={cardCoverImage}
@@ -1856,7 +1840,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   locationHint={location}
                 />
               </div>
-            )}
 
             <div className="photos-section">
               <div className="photos-section-header">
