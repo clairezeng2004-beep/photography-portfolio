@@ -86,9 +86,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding-top: 28vh;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.25) 100%);
+  justify-content: flex-end;
+  padding-bottom: 120px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%);
   opacity: 0;
   transition: opacity 1.5s ease;
   pointer-events: auto;
@@ -123,33 +123,32 @@
 
 .hero-info-strip {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .hero-location {
   font-family: 'Noto Serif SC', serif;
-  font-size: 42px;
+  font-size: 28px;
   font-weight: 500;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.97);
-  line-height: 1.3;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.4;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
 }
 
 .hero-sep {
-  font-size: 20px;
-  color: rgba(255, 255, 255, 0.35);
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.4);
   line-height: 1;
 }
 
 .hero-title-text {
   font-family: 'Playfair Display', serif;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 400;
-  letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.8);
   font-style: italic;
   line-height: 1;
 }
@@ -815,15 +814,7 @@
 
 @media (max-width: 768px) {
   .hero-location {
-    font-size: 24px;
-  }
-
-  .hero-title-text {
-    font-size: 14px;
-  }
-
-  .hero-overlay {
-    padding-top: 35vh;
+    font-size: 16px;
   }
 
   .hero-dots { bottom: 44px; }
@@ -844,8 +835,7 @@
 }
 
 @media (max-width: 480px) {
-  .hero-location { font-size: 20px; }
-  .hero-title-text { font-size: 13px; }
+  .hero-location { font-size: 15px; }
   .intro-greeting { font-size: 22px; }
 
   .flip-card-front-info .card-title,

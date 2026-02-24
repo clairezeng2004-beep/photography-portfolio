@@ -44,13 +44,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 72px;
+  height: 80px;
   padding: 0 48px;
 }
 
 .logo {
   font-family: 'Playfair Display', serif;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.12em;
   color: #2a2a2a;
