@@ -5,6 +5,10 @@
       "destination": "https://api.buttondown.com/v1/:path*"
     },
     {
+      "source": "/api/r2-upload",
+      "destination": "https://r2-upload-worker.clairezeng2004.workers.dev"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
