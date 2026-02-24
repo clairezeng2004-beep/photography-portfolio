@@ -1980,6 +1980,88 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               rows={3}
             />
 
+            <div className="photos-section">
+              <div className="photos-section-header">
+                <h5>照片管理</h5>
+                <span className="photo-count">{collection.photos.length} 张</span>
+              </div>
+
+              <ImageUploader
+                onImageUpload={(url, thumb) => onAddPhoto(url, thumb)}
+                onMultiImageUpload={onAddPhotos}
+                label="添加新照片"
+                multiple
+              />
+
+              <div className="photos-grid-extended">
+                {collection.photos.map((photo) => (
+                  <div key={photo.id} className="photo-card-extended">
+                    <div className="photo-card-thumb">
+                      <img src={photo.thumbnail} alt={photo.alt} />
+                      <button
+                        className="remove-photo-btn"
+                        onClick={() => onRemovePhoto(photo.id)}
+                      >
+                        <X size={14} />
+                      </button>
+                      <button
+                        className="set-cover-btn"
+                        onClick={() => {
+                          const originalUrl = photo.url;
+                          autoCropToLandscape(originalUrl).then(landscape => {
+                            setCoverImage(landscape);
+                          }).catch(() => {
+                            setCoverImage(originalUrl);
+                          });
+                          autoCropToPortrait(originalUrl).then(portrait => {
+                            setCardCoverImage(portrait);
+                          }).catch(() => {});
+                        }}
+                        title="设为封面"
+                      >
+                        <ImageIcon size={12} />
+                        <span>封面</span>
+                      </button>
+                    </div>
+                    <div className="photo-card-fields">
+                      <div className="photo-layout-toggle">
+                        <button
+                          type="button"
+                          className={`layout-btn ${(!photo.layout || photo.layout === 'full') ? 'active' : ''}`}
+                          onClick={() => onUpdatePhoto(photo.id, { layout: 'full' })}
+                          title="单张一行"
+                        >
+                          单张
+                        </button>
+                        <button
+                          type="button"
+                          className={`layout-btn ${photo.layout === 'half' ? 'active' : ''}`}
+                          onClick={() => onUpdatePhoto(photo.id, { layout: 'half' })}
+                          title="两张并排（需连续两张都设为并排）"
+                        >
+                          并排
+                        </button>
+                      </div>
+                      <textarea
+                        className="photo-caption-input"
+                        value={photo.caption || ''}
+                        onChange={(e) => onUpdatePhoto(photo.id, { caption: e.target.value })}
+                        placeholder="图片前配文（出现在图片上方，用于图片组间叙事）"
+                        rows={2}
+                      />
+                      <input
+                        type="text"
+                        className="photo-footnote-input"
+                        value={photo.footnote || ''}
+                        onChange={(e) => onUpdatePhoto(photo.id, { footnote: e.target.value })}
+                        placeholder="脚注（图片下方小字）"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="inline-edit-advanced">
                 <div className="form-group">
                   <label>封面图片（横版，用于首页轮播等）</label>
@@ -2068,88 +2150,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   locationHint={location}
                 />
               </div>
-
-            <div className="photos-section">
-              <div className="photos-section-header">
-                <h5>照片管理</h5>
-                <span className="photo-count">{collection.photos.length} 张</span>
-              </div>
-
-              <ImageUploader
-                onImageUpload={(url, thumb) => onAddPhoto(url, thumb)}
-                onMultiImageUpload={onAddPhotos}
-                label="添加新照片"
-                multiple
-              />
-
-              <div className="photos-grid-extended">
-                {collection.photos.map((photo) => (
-                  <div key={photo.id} className="photo-card-extended">
-                    <div className="photo-card-thumb">
-                      <img src={photo.thumbnail} alt={photo.alt} />
-                      <button
-                        className="remove-photo-btn"
-                        onClick={() => onRemovePhoto(photo.id)}
-                      >
-                        <X size={14} />
-                      </button>
-                      <button
-                        className="set-cover-btn"
-                        onClick={() => {
-                          const originalUrl = photo.url;
-                          autoCropToLandscape(originalUrl).then(landscape => {
-                            setCoverImage(landscape);
-                          }).catch(() => {
-                            setCoverImage(originalUrl);
-                          });
-                          autoCropToPortrait(originalUrl).then(portrait => {
-                            setCardCoverImage(portrait);
-                          }).catch(() => {});
-                        }}
-                        title="设为封面"
-                      >
-                        <ImageIcon size={12} />
-                        <span>封面</span>
-                      </button>
-                    </div>
-                    <div className="photo-card-fields">
-                      <div className="photo-layout-toggle">
-                        <button
-                          type="button"
-                          className={`layout-btn ${(!photo.layout || photo.layout === 'full') ? 'active' : ''}`}
-                          onClick={() => onUpdatePhoto(photo.id, { layout: 'full' })}
-                          title="单张一行"
-                        >
-                          单张
-                        </button>
-                        <button
-                          type="button"
-                          className={`layout-btn ${photo.layout === 'half' ? 'active' : ''}`}
-                          onClick={() => onUpdatePhoto(photo.id, { layout: 'half' })}
-                          title="两张并排（需连续两张都设为并排）"
-                        >
-                          并排
-                        </button>
-                      </div>
-                      <textarea
-                        className="photo-caption-input"
-                        value={photo.caption || ''}
-                        onChange={(e) => onUpdatePhoto(photo.id, { caption: e.target.value })}
-                        placeholder="图片前配文（出现在图片上方，用于图片组间叙事）"
-                        rows={2}
-                      />
-                      <input
-                        type="text"
-                        className="photo-footnote-input"
-                        value={photo.footnote || ''}
-                        onChange={(e) => onUpdatePhoto(photo.id, { footnote: e.target.value })}
-                        placeholder="脚注（图片下方小字）"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
             <div className="inline-edit-actions">
               <button className="btn btn-primary btn-sm" onClick={handleSave}>
@@ -2391,7 +2391,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
               </div>
             </div>
 
-            <div className="hero-item-preview">
+            <div className="hero-item-preview" onClick={() => openPicker(index)} title="点击从作品集更换">
               {img.url ? (
                 <img src={img.url} alt={img.title || '封面图'} />
               ) : (
@@ -2399,6 +2399,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   <ImageIcon size={24} />
                 </div>
               )}
+              <div className="hero-preview-overlay">更换</div>
             </div>
 
             <div className="hero-item-info">
@@ -2421,15 +2422,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                 />
               </div>
               <div className="hero-item-image-actions">
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => openPicker(index)}
-                  style={{ marginBottom: 8 }}
-                >
-                  从作品集同步
-                </button>
                 <div className="hero-custom-upload-hint">
-                  <span>或</span>
                   <ImageUploader
                     onImageUpload={(url) => replaceImage(index, url)}
                     currentImage={img.url}
@@ -2470,13 +2463,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   compressMaxWidth={1200}
                   compressQuality={0.85}
                 />
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => openPicker({ type: 'mobile', index })}
-                  style={{ marginBottom: 8 }}
-                >
-                  从作品集选图
-                </button>
               </div>
             </div>
 

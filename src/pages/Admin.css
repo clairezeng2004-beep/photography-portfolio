@@ -2336,12 +2336,33 @@
   flex-shrink: 0;
   overflow: hidden;
   background: #f0eeea;
+  position: relative;
+  cursor: pointer;
 }
 
 .hero-item-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.hero-preview-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.hero-item-preview:hover .hero-preview-overlay {
+  opacity: 1;
 }
 
 .hero-item-placeholder {
