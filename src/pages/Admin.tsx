@@ -1175,6 +1175,25 @@ const Admin: React.FC = () => {
                           defaultCropAspect={3 / 4}
                           defaultOutputWidth={900}
                         />
+                        {newCollection.photos && newCollection.photos.length > 0 && (
+                          <div className="cover-picker-grid">
+                            {newCollection.photos.map(photo => (
+                              <button
+                                type="button"
+                                key={photo.id}
+                                className="cover-picker-item"
+                                onClick={() => {
+                                  autoCropToPortrait(photo.url).then(portrait => {
+                                    setNewCollection(prev => ({ ...prev, cardCoverImage: portrait }));
+                                  }).catch(() => {});
+                                }}
+                              >
+                                <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                                <span>选择</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="form-group">
@@ -1913,15 +1932,13 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   <ImageUploader
                     onImageUpload={(url) => {
                       setCoverImage(url);
-                      // Also auto-generate portrait from the cropped cover
                       autoCropToPortrait(url).then(setCardCoverImage).catch(() => {});
                     }}
                     onCropOriginal={(originalUrl) => {
-                      // Override portrait with better quality crop from original
                       autoCropToPortrait(originalUrl).then(setCardCoverImage).catch(() => {});
                     }}
                     currentImage={coverImage}
-                    onRemove={() => setCoverImage('')}
+                    onRemove={() => { setCoverImage(''); setCardCoverImage(''); }}
                     label="更换封面"
                     enableCrop
                     cropAspectOptions={[
@@ -1931,6 +1948,29 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                     defaultCropAspect={4 / 3}
                     defaultOutputWidth={1600}
                   />
+                  {collection.photos.length > 0 && (
+                    <div className="cover-picker-grid">
+                      {collection.photos.map(photo => (
+                        <button
+                          type="button"
+                          key={photo.id}
+                          className="cover-picker-item"
+                          onClick={() => {
+                            const src = photo.url;
+                            autoCropToLandscape(src).then(landscape => {
+                              setCoverImage(landscape);
+                            }).catch(() => setCoverImage(src));
+                            autoCropToPortrait(src).then(portrait => {
+                              setCardCoverImage(portrait);
+                            }).catch(() => {});
+                          }}
+                        >
+                          <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                          <span>设为封面</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -1947,6 +1987,25 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                     defaultCropAspect={3 / 4}
                     defaultOutputWidth={900}
                   />
+                  {collection.photos.length > 0 && (
+                    <div className="cover-picker-grid">
+                      {collection.photos.map(photo => (
+                        <button
+                          type="button"
+                          key={photo.id}
+                          className="cover-picker-item"
+                          onClick={() => {
+                            autoCropToPortrait(photo.url).then(portrait => {
+                              setCardCoverImage(portrait);
+                            }).catch(() => {});
+                          }}
+                        >
+                          <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                          <span>选择</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <GeoPicker
