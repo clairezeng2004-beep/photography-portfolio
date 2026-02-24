@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage, AnimationConfig } from '../types';
 import { mockCollections } from '../data/mockData';
-import { dbGet, dbSet } from '../utils/storage';
+import { dbGet, dbSet, dbSetWithMeta, dbGetMeta, dbGetPendingSyncKeys } from '../utils/storage';
 import { isSupabaseConfigured, supabaseGetDetailed, supabaseSet } from '../utils/supabase';
 import { syncImgbbKeyFromCloud } from '../utils/imageHost';
 import { syncNewsletterKeyFromCloud } from '../utils/newsletter';
@@ -112,20 +112,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Save to both Supabase (cloud) and IndexedDB (local cache)
-  // Errors are caught and logged — callers that need strict error handling
-  // should call saveStrict instead.
+  // Strategy: save locally first (instant), then sync to cloud async.
+  // If cloud fails, mark as pending sync so next load can retry.
   const saveToAll = useCallback(async <T,>(key: string, value: T) => {
     const jsonSize = JSON.stringify(value).length;
     console.log(`[saveToAll] saving "${key}" (${(jsonSize / 1024).toFixed(1)} KB)...`);
-    // Save to local first (always)
-    await dbSet(key, value).catch(e => console.error(`[Local] save "${key}" failed:`, e));
-    // Then save to Supabase (cloud)
+    // Save locally with timestamp (always succeeds or throws)
+    const ts = await dbSetWithMeta(key, value, false);
+    // Then try cloud
     if (isSupabaseConfigured()) {
       try {
         await supabaseSet(key, value);
+        // Mark as synced
+        await dbSetWithMeta(key, value, true).catch(() => {});
         console.log(`[Supabase] saved "${key}" successfully`);
       } catch (e) {
-        console.error(`[Supabase] save "${key}" failed:`, e);
+        console.error(`[Supabase] save "${key}" failed (local ts=${ts}):`, e);
       }
     }
   }, []);
@@ -137,15 +139,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const useCloud = isSupabaseConfigured();
       let cloudReachable = false;
 
-      // Helper: try Supabase first, then IndexedDB, then localStorage
-      // Uses supabaseGetDetailed to distinguish "not found" from "unreachable"
+      // Helper: load a key with timestamp-based conflict resolution.
+      // 1. Read cloud value + cloud updated_at
+      // 2. Read local value + local updatedAt from meta
+      // 3. If both exist, pick the one with the newer timestamp
+      // 4. Sync the winner to the other store
       async function loadKey<T>(key: string): Promise<T | undefined> {
         let cloudVal: T | undefined;
-        let cloudFound = false; // true if cloud was reached AND row exists
-        let cloudReached = false; // true if cloud responded (even if row not found)
+        let cloudTs = 0; // epoch ms from cloud updated_at
+        let cloudFound = false;
+        let cloudReached = false;
         let localVal: T | undefined;
+        let localTs = 0;
+        let localCloudSynced = true;
 
-        // 1. Try Supabase (with timeout already in supabaseGetDetailed)
+        // 1. Try Supabase
         if (useCloud) {
           try {
             const result = await supabaseGetDetailed<T>(key);
@@ -154,6 +162,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (result.found) {
               cloudFound = true;
               cloudVal = result.value;
+              cloudTs = result.updatedAt || 0;
             }
           } catch (e) {
             console.warn(`[DataContext] Supabase read failed for "${key}", falling back to local`, e);
@@ -163,6 +172,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // 2. Try IndexedDB
         try {
           localVal = await dbGet<T>(key);
+          const meta = await dbGetMeta(key);
+          if (meta) {
+            localTs = meta.updatedAt;
+            localCloudSynced = meta.cloudSynced;
+          }
         } catch (e) {
           console.warn(`[DataContext] IndexedDB read failed for "${key}"`, e);
         }
@@ -176,36 +190,62 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         }
 
-        // Decision logic:
-        if (cloudReached) {
-          if (cloudFound) {
-            // Cloud has the row — it is the authority
-            // Exception: cloud row is empty array but local has data → prefer local & sync back
+        // Decision logic with timestamp comparison:
+        if (cloudReached && cloudFound && localVal !== undefined) {
+          // Both exist — compare timestamps
+          if (localTs > 0 && cloudTs > 0) {
+            if (localTs > cloudTs + 2000) {
+              // Local is newer (2s grace for clock skew)
+              console.log(`[DataContext] "${key}": local is newer (local=${new Date(localTs).toISOString()}, cloud=${new Date(cloudTs).toISOString()}), using local`);
+              // Sync local to cloud in background
+              if (!localCloudSynced) {
+                supabaseSet(key, localVal).then(() => {
+                  dbSetWithMeta(key, localVal as T, true).catch(() => {});
+                  console.log(`[DataContext] synced "${key}" to cloud`);
+                }).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
+              }
+              return localVal;
+            } else {
+              // Cloud is same or newer — use cloud
+              console.log(`[DataContext] "${key}": using cloud data (cloud=${new Date(cloudTs).toISOString()}, local=${new Date(localTs).toISOString()})`);
+              dbSetWithMeta(key, cloudVal!, true).catch(() => {});
+              return cloudVal;
+            }
+          } else if (localTs > 0 && !localCloudSynced) {
+            // Local has timestamp but cloud doesn't — local was never synced
+            console.log(`[DataContext] "${key}": local has pending sync, using local`);
+            supabaseSet(key, localVal).then(() => {
+              dbSetWithMeta(key, localVal as T, true).catch(() => {});
+            }).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
+            return localVal;
+          } else {
+            // No timestamp info — cloud is authority (backward compat)
+            // But: if cloud is empty array and local has data, prefer local
             if (Array.isArray(cloudVal) && cloudVal.length === 0 && Array.isArray(localVal) && localVal.length > 0) {
-              console.log(`[DataContext] "${key}": cloud is empty array but local has ${localVal.length} items, using local & syncing to cloud`);
+              console.log(`[DataContext] "${key}": cloud is empty array but local has ${localVal.length} items, using local`);
               supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
               dbSet(key, localVal).catch(() => {});
               return localVal;
             }
-            // Use cloud value, update local cache
-            dbSet(key, cloudVal!).catch(() => {});
+            dbSetWithMeta(key, cloudVal!, true).catch(() => {});
             return cloudVal;
-          } else {
-            // Cloud is reachable but key doesn't exist there yet
-            // If we have local data, USE it AND push to cloud so other devices get it
-            if (localVal !== undefined) {
-              console.log(`[DataContext] "${key}": cloud reachable but key not found, pushing local data to cloud`);
-              supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
-              return localVal;
-            }
-            // Neither cloud nor local has data
-            return undefined;
           }
+        } else if (cloudReached && cloudFound) {
+          // Only cloud has data
+          dbSetWithMeta(key, cloudVal!, true).catch(() => {});
+          return cloudVal;
+        } else if (cloudReached && !cloudFound) {
+          // Cloud reachable but key not found
+          if (localVal !== undefined) {
+            console.log(`[DataContext] "${key}": cloud reachable but key not found, pushing local data to cloud`);
+            supabaseSet(key, localVal).then(() => {
+              dbSetWithMeta(key, localVal as T, true).catch(() => {});
+            }).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
+            return localVal;
+          }
+          return undefined;
         } else {
-          // Cloud not reachable — use local, and try to sync local to cloud in background
-          if (localVal !== undefined && useCloud) {
-            supabaseSet(key, localVal).catch(e => console.warn(`[DataContext] sync "${key}" to cloud failed:`, e));
-          }
+          // Cloud not reachable — use local
           return localVal;
         }
       }
@@ -266,6 +306,30 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
 
+      // Retry any pending cloud syncs (data saved locally but cloud write previously failed)
+      if (useCloud && cloudReachable) {
+        try {
+          const pendingKeys = await dbGetPendingSyncKeys();
+          if (pendingKeys.length > 0) {
+            console.log(`[DataContext] Retrying cloud sync for ${pendingKeys.length} keys:`, pendingKeys);
+            for (const pk of pendingKeys) {
+              try {
+                const val = await dbGet(pk);
+                if (val !== undefined) {
+                  await supabaseSet(pk, val);
+                  await dbSetWithMeta(pk, val, true);
+                  console.log(`[DataContext] Retry sync "${pk}" succeeded`);
+                }
+              } catch (e) {
+                console.warn(`[DataContext] Retry sync "${pk}" failed:`, e);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[DataContext] Failed to check pending syncs:', e);
+        }
+      }
+
       // Sync API keys (ImgBB, Newsletter) from cloud to local if missing
       await Promise.all([
         syncImgbbKeyFromCloud().catch(() => {}),
@@ -306,22 +370,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // Save to both IndexedDB (local) and Supabase (cloud).
-  // Local save failure is critical (throws). Cloud save failure is logged but not thrown,
-  // so the user sees success and data syncs on next load.
+  // Local save is instant and blocking. Cloud save is async — if it fails,
+  // the data is marked as "pending sync" and will be pushed to cloud on next load.
+  // This means the UI never blocks on slow cloud writes.
   const saveStrict = useCallback(async <T,>(key: string, value: T) => {
     const jsonSize = JSON.stringify(value).length;
     console.log(`[saveStrict] saving "${key}" (${(jsonSize / 1024).toFixed(1)} KB)...`);
-    // Local save — must succeed
-    await dbSet(key, value);
-    // Cloud save — best effort
+    // Local save — must succeed, with timestamp
+    const ts = await dbSetWithMeta(key, value, false);
+    console.log(`[saveStrict] local save done for "${key}" (ts=${ts})`);
+    // Cloud save — fire and forget (don't block UI)
     if (isSupabaseConfigured()) {
-      try {
-        await supabaseSet(key, value);
+      supabaseSet(key, value).then(() => {
+        // Mark cloud as synced
+        dbSetWithMeta(key, value, true).catch(() => {});
         console.log(`[Supabase] saved "${key}" successfully (${(jsonSize / 1024).toFixed(1)} KB)`);
-      } catch (e: any) {
-        console.error(`[Supabase] cloud save failed for "${key}" (data saved locally):`, e);
-        // Don't throw — local save succeeded, cloud will sync on next load
-      }
+      }).catch((e: any) => {
+        console.error(`[Supabase] cloud save failed for "${key}" (will retry on next load):`, e);
+        // Data stays marked as cloudSynced=false, will be retried on next load
+      });
     }
   }, []);
 

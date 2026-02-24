@@ -42,6 +42,7 @@ const WRITE_TIMEOUT = 15000;
 export interface CloudGetResult<T> {
   found: boolean;
   value?: T;
+  updatedAt?: number; // epoch ms from cloud updated_at column
 }
 
 /** Read a value from Supabase app_data table */
@@ -53,11 +54,12 @@ export async function supabaseGet<T>(key: string): Promise<T | undefined> {
 /**
  * Detailed read — lets the caller distinguish "not found" from "unreachable".
  * Throws on network / timeout errors.
+ * Also returns the cloud updated_at timestamp if available.
  */
 export async function supabaseGetDetailed<T>(key: string): Promise<CloudGetResult<T>> {
   const supabase = getSupabase();
   const { data, error } = await withTimeout(
-    supabase.from('app_data').select('value').eq('key', key).single(),
+    supabase.from('app_data').select('value, updated_at').eq('key', key).single(),
     READ_TIMEOUT,
     `GET ${key}`
   );
@@ -72,7 +74,8 @@ export async function supabaseGetDetailed<T>(key: string): Promise<CloudGetResul
   }
 
   if (!data) return { found: false };
-  return { found: true, value: data.value as T };
+  const updatedAt = data.updated_at ? new Date(data.updated_at).getTime() : undefined;
+  return { found: true, value: data.value as T, updatedAt };
 }
 
 /** Write a value to Supabase app_data table (upsert) */
