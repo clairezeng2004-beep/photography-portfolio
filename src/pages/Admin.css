@@ -750,6 +750,36 @@
   grid-template-columns: repeat(3, 1fr);
 }
 
+/* ============ YEAR GROUP ============ */
+.year-group {
+  margin-bottom: 8px;
+}
+
+.year-group-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid #e8e6e2;
+  margin-bottom: 24px;
+}
+
+.year-group-label {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: #2a2a2a;
+  letter-spacing: 0.04em;
+}
+
+.year-group-count {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #999;
+  letter-spacing: 0.04em;
+}
+
 /* ============ COLLECTIONS GRID ============ */
 .collections-grid {
   display: grid;
@@ -1024,6 +1054,26 @@
 }
 
 .inline-edit-year:focus {
+  border-bottom-color: #999;
+  color: #2a2a2a;
+}
+
+/* Month select */
+.inline-edit-month {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #666;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #e8e6e2;
+  padding: 2px 4px;
+  cursor: pointer;
+  outline: none;
+  appearance: auto;
+}
+
+.inline-edit-month:focus {
   border-bottom-color: #999;
   color: #2a2a2a;
 }

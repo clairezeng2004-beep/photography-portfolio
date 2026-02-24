@@ -26,6 +26,7 @@ export interface PhotoCollection {
   title: string;
   location: string;
   year: number;
+  month?: number;
   description: string;
   coverImage: string;
   cardCoverImage?: string;

@@ -488,12 +488,13 @@ const Admin: React.FC = () => {
   }, [showToast, updateCollections, updateAboutInfo, updateLitCities, updateHeroImages, updateAnimationConfig]);
 
   const sortedCollections = useMemo(() => {
-    const hasManualOrder = collections.some(c => typeof c.order === 'number');
-    if (hasManualOrder) {
-      return [...collections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    }
     return [...collections].sort((a, b) => {
       if (b.year !== a.year) return b.year - a.year;
+      if ((b.month || 0) !== (a.month || 0)) return (b.month || 0) - (a.month || 0);
+      // Within same year+month, use manual order if set
+      if (typeof a.order === 'number' && typeof b.order === 'number') {
+        return a.order - b.order;
+      }
       return a.title.localeCompare(b.title);
     });
   }, [collections]);
@@ -661,6 +662,7 @@ const Admin: React.FC = () => {
         title: newCollection.title || '',
         location: newCollection.location || '',
         year: newCollection.year || lastUsedYear,
+        month: newCollection.month || undefined,
         description: newCollection.description || '',
         coverImage,
         cardCoverImage: newCollection.cardCoverImage || coverImage,
@@ -680,6 +682,7 @@ const Admin: React.FC = () => {
           title: '',
           location: '',
           year: lastUsedYear,
+          month: undefined,
           description: '',
           coverImage: '',
           cardCoverImage: '',
@@ -1121,7 +1124,19 @@ const Admin: React.FC = () => {
                           </div>
                         </div>
                         
-
+                        <div className="form-group">
+                          <label>月份</label>
+                          <select
+                            className="inline-edit-month"
+                            value={newCollection.month || 0}
+                            onChange={(e) => setNewCollection({ ...newCollection, month: parseInt(e.target.value) || undefined })}
+                          >
+                            <option value={0}>不设置</option>
+                            {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
+                              <option key={m} value={m}>{m}月</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
 
                       <div className="form-group">
@@ -1286,66 +1301,85 @@ const Admin: React.FC = () => {
                 document.body
               )}
 
-              {/* Collections List */}
-              <div className="collections-grid">
-                {sortedCollections.map((collection, index) => {
-                  const isEditing = editingCollection === collection.id;
-                  return (
-                    <CollectionCard
-                      key={collection.id}
-                      collection={collection}
-                      isEditing={isEditing}
-                      onToggleEdit={() => setEditingCollection(isEditing ? null : collection.id)}
-                      onSave={async (updatedData) => {
-                        await handleUpdateCollection(collection.id, updatedData);
-                        setEditingCollection(null);
-                        showToast('作品集已保存');
-                      }}
-                      onDelete={() => handleDeleteCollection(collection.id)}
-                      onAddPhoto={(url, thumb) => {
-                        handleAddPhoto(collection.id, url, thumb);
-                        showToast('照片已添加');
-                      }}
-                      onAddPhotos={async (images) => {
-                        const newPhotos = images.map((img, i) => ({
-                          id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
-                          url: img.imageUrl,
-                          thumbnail: img.thumbnailUrl,
-                          alt: '新照片',
-                          width: 1920,
-                          height: 1080,
-                        }));
-                        const updated = collections.map(c =>
-                          c.id === collection.id
-                            ? { ...c, photos: [...c.photos, ...newPhotos] }
-                            : c
+              {/* Collections List — grouped by year */}
+              {(() => {
+                const yearGroups: { year: number; items: { collection: typeof sortedCollections[0]; globalIndex: number }[] }[] = [];
+                let currentYear: number | null = null;
+                sortedCollections.forEach((collection, index) => {
+                  if (collection.year !== currentYear) {
+                    currentYear = collection.year;
+                    yearGroups.push({ year: currentYear, items: [] });
+                  }
+                  yearGroups[yearGroups.length - 1].items.push({ collection, globalIndex: index });
+                });
+                return yearGroups.map(group => (
+                  <div key={group.year} className="year-group">
+                    <div className="year-group-header">
+                      <span className="year-group-label">{group.year}</span>
+                      <span className="year-group-count">{group.items.length} 个作品集</span>
+                    </div>
+                    <div className="collections-grid">
+                      {group.items.map(({ collection, globalIndex }) => {
+                        const isEditing = editingCollection === collection.id;
+                        return (
+                          <CollectionCard
+                            key={collection.id}
+                            collection={collection}
+                            isEditing={isEditing}
+                            onToggleEdit={() => setEditingCollection(isEditing ? null : collection.id)}
+                            onSave={async (updatedData) => {
+                              await handleUpdateCollection(collection.id, updatedData);
+                              setEditingCollection(null);
+                              showToast('作品集已保存');
+                            }}
+                            onDelete={() => handleDeleteCollection(collection.id)}
+                            onAddPhoto={(url, thumb) => {
+                              handleAddPhoto(collection.id, url, thumb);
+                              showToast('照片已添加');
+                            }}
+                            onAddPhotos={async (images) => {
+                              const newPhotos = images.map((img, i) => ({
+                                id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
+                                url: img.imageUrl,
+                                thumbnail: img.thumbnailUrl,
+                                alt: '新照片',
+                                width: 1920,
+                                height: 1080,
+                              }));
+                              const updated = collections.map(c =>
+                                c.id === collection.id
+                                  ? { ...c, photos: [...c.photos, ...newPhotos] }
+                                  : c
+                              );
+                              await updateCollections(updated);
+                              showToast(`${images.length} 张照片已添加`);
+                            }}
+                            onRemovePhoto={(photoId) => {
+                              removePhoto(collection.id, photoId);
+                              showToast('照片已删除');
+                            }}
+                            onUpdatePhoto={async (photoId, data) => {
+                              const updated = collections.map(c =>
+                                c.id === collection.id
+                                  ? { ...c, photos: c.photos.map(p => p.id === photoId ? { ...p, ...data } : p) }
+                                  : c
+                              );
+                              await updateCollections(updated);
+                            }}
+                            onMoveUp={() => reorderCollections(globalIndex, globalIndex - 1)}
+                            onMoveDown={() => reorderCollections(globalIndex, globalIndex + 1)}
+                            onMoveToPosition={(toIndex) => reorderToPosition(globalIndex, toIndex)}
+                            isFirst={globalIndex === 0}
+                            isLast={globalIndex === sortedCollections.length - 1}
+                            currentIndex={globalIndex}
+                            totalCount={sortedCollections.length}
+                          />
                         );
-                        await updateCollections(updated);
-                        showToast(`${images.length} 张照片已添加`);
-                      }}
-                      onRemovePhoto={(photoId) => {
-                        removePhoto(collection.id, photoId);
-                        showToast('照片已删除');
-                      }}
-                      onUpdatePhoto={async (photoId, data) => {
-                        const updated = collections.map(c =>
-                          c.id === collection.id
-                            ? { ...c, photos: c.photos.map(p => p.id === photoId ? { ...p, ...data } : p) }
-                            : c
-                        );
-                        await updateCollections(updated);
-                      }}
-                      onMoveUp={() => reorderCollections(index, index - 1)}
-                      onMoveDown={() => reorderCollections(index, index + 1)}
-                      onMoveToPosition={(toIndex) => reorderToPosition(index, toIndex)}
-                      isFirst={index === 0}
-                      isLast={index === sortedCollections.length - 1}
-                      currentIndex={index}
-                      totalCount={sortedCollections.length}
-                    />
-                  );
-                })}
-              </div>
+                      })}
+                    </div>
+                  </div>
+                ));
+              })()}
 
               {collections.length === 0 && (
                 <div className="empty-state">
@@ -1772,6 +1806,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [coverImage, setCoverImage] = useState(collection.coverImage);
   const [cardCoverImage, setCardCoverImage] = useState(collection.cardCoverImage || '');
   const [year, setYear] = useState(collection.year);
+  const [month, setMonth] = useState(collection.month || 0);
   const [geo, setGeo] = useState<GeoInfo | undefined>(collection.geo);
 
   // Collapsible section states
@@ -1791,6 +1826,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     setCoverImage(collection.coverImage);
     setCardCoverImage(collection.cardCoverImage || '');
     setYear(collection.year);
+    setMonth(collection.month || 0);
     setGeo(collection.geo);
     // Try to resolve country from existing location
     const entry = lookupCity(collection.location);
@@ -1839,7 +1875,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   };
 
   const handleSave = () => {
-    onSave({ title, location, description, coverImage, cardCoverImage: cardCoverImage || undefined, year, geo });
+    onSave({ title, location, description, coverImage, cardCoverImage: cardCoverImage || undefined, year, month: month || undefined, geo });
   };
 
   const handleCancel = () => {
@@ -1849,6 +1885,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     setCoverImage(collection.coverImage);
     setCardCoverImage(collection.cardCoverImage || '');
     setYear(collection.year);
+    setMonth(collection.month || 0);
     setGeo(collection.geo);
     setCitySearchText('');
     setShowCityDropdown(false);
@@ -1975,6 +2012,17 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   </button>
                 </div>
               </div>
+              <select
+                className="inline-edit-month"
+                value={month}
+                onChange={(e) => setMonth(parseInt(e.target.value))}
+                title="月份（仅管理后台显示）"
+              >
+                <option value={0}>月</option>
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
+                  <option key={m} value={m}>{m}月</option>
+                ))}
+              </select>
             </div>
             <textarea
               className="inline-edit-description"
@@ -2078,7 +2126,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                 <span className="collapsible-toggle-icon">
                   <ChevronDown size={14} />
                 </span>
-                <span>作品集图片上传 / 删除</span>
+                <span>照片管理</span>
                 <span className="photo-count">{collection.photos.length} 张</span>
               </button>
               {showPhotosSection && (
@@ -2206,7 +2254,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               <MapPin size={14} />
               <span>{collection.location}</span>
               <Calendar size={14} />
-              <span>{collection.year}</span>
+              <span>{collection.year}{collection.month ? `.${collection.month}` : ''}</span>
             </div>
             {collection.geo && (
               <div className="card-geo-badge">
