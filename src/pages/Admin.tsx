@@ -2277,8 +2277,9 @@ const HeroManager: React.FC<HeroManagerProps> = ({
       };
       setLocalImages(prev => [...prev, newImage]);
     } else {
+      // Replace image and auto-fill title & location
       setLocalImages(prev => prev.map((img, i) =>
-        i === pickerTarget ? { ...img, url } : img
+        i === pickerTarget ? { ...img, url, title: collectionTitle, location: collectionLocation } : img
       ));
     }
     setHasChanges(true);
@@ -2466,26 +2467,28 @@ const HeroManager: React.FC<HeroManagerProps> = ({
       </div>
 
       <div className="hero-add-section">
-        <ImageUploader
-          onImageUpload={(url) => addCustomImage(url)}
-          label="添加自定义封面图"
-          enableCrop
-          cropAspectOptions={[
-            { label: '16:9', value: 16 / 9 },
-            { label: '4:3', value: 4 / 3 },
-          ]}
-          defaultCropAspect={16 / 9}
-          defaultOutputWidth={1920}
-          compressMaxWidth={2500}
-          compressQuality={0.85}
-        />
         <button
           className="btn btn-secondary"
           onClick={() => openPicker('add')}
-          style={{ marginTop: 12 }}
         >
           从作品集选图添加
         </button>
+        <div className="hero-custom-upload-hint">
+          <span>或</span>
+          <ImageUploader
+            onImageUpload={(url) => addCustomImage(url)}
+            label="上传自定义图片"
+            enableCrop
+            cropAspectOptions={[
+              { label: '16:9', value: 16 / 9 },
+              { label: '4:3', value: 4 / 3 },
+            ]}
+            defaultCropAspect={16 / 9}
+            defaultOutputWidth={1920}
+            compressMaxWidth={2500}
+            compressQuality={0.85}
+          />
+        </div>
       </div>
 
       {localImages.length === 0 && (
@@ -2506,12 +2509,12 @@ const HeroManager: React.FC<HeroManagerProps> = ({
         </div>
       )}
 
-      {/* Photo Picker Modal */}
-      {showPicker && (
+      {/* Photo Picker Modal — rendered via portal to body */}
+      {showPicker && createPortal(
         <div className="picker-overlay" onClick={() => setShowPicker(false)}>
           <div className="picker-modal" onClick={(e) => e.stopPropagation()}>
             <div className="picker-header">
-              <h3>从作品集选择图片</h3>
+              <h3>从作品集选择封面</h3>
               <button className="btn-icon" onClick={() => setShowPicker(false)}>
                 <X size={20} />
               </button>
@@ -2528,31 +2531,24 @@ const HeroManager: React.FC<HeroManagerProps> = ({
               {collections
                 .filter(c => !pickerFilter || c.title.toLowerCase().includes(pickerFilter.toLowerCase()) || c.location.toLowerCase().includes(pickerFilter.toLowerCase()))
                 .map(c => (
-                <div key={c.id} className="picker-collection">
-                  <h4 className="picker-collection-title">{c.title} · {c.location}</h4>
-                  <div className="picker-photos">
-                    <div
-                      className="picker-photo picker-photo-cover"
-                      onClick={() => handlePickImage(c.coverImage, c.title, c.location)}
-                    >
-                      <img src={c.coverImage} alt="封面" />
-                      <span className="picker-photo-badge">封面</span>
-                    </div>
-                    {c.photos.map(p => (
-                      <div
-                        key={p.id}
-                        className="picker-photo"
-                        onClick={() => handlePickImage(p.url, c.title, c.location)}
-                      >
-                        <img src={p.thumbnail || p.url} alt={p.alt} />
-                      </div>
-                    ))}
+                <div
+                  key={c.id}
+                  className="picker-collection-card"
+                  onClick={() => handlePickImage(c.coverImage, c.title, `${c.location} · ${c.year}`)}
+                >
+                  <div className="picker-card-cover">
+                    <img src={c.coverImage} alt={c.title} />
+                  </div>
+                  <div className="picker-card-info">
+                    <div className="picker-card-title">{c.title}</div>
+                    <div className="picker-card-sub">{c.location} · {c.year}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
