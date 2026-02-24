@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit, Trash2, Save, X,
@@ -941,8 +942,8 @@ const Admin: React.FC = () => {
                 </button>
               </div>
 
-              {/* Create Collection Form */}
-              {isCreatingCollection && (
+              {/* Create Collection Form — rendered via portal to avoid overflow clipping */}
+              {isCreatingCollection && createPortal(
                 <div className="modal-overlay">
                   <div className="modal modal-wide">
                     <div className="modal-header">
@@ -1117,7 +1118,8 @@ const Admin: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                </div>
+                </div>,
+                document.body
               )}
 
               {/* Collections List */}
