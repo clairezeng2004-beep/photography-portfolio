@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage, AnimationConfig } from '../types';
 import { mockCollections } from '../data/mockData';
 import { dbGet, dbSet } from '../utils/storage';
-import { isSupabaseConfigured, supabaseGet, supabaseGetDetailed, supabaseSet } from '../utils/supabase';
+import { isSupabaseConfigured, supabaseGetDetailed, supabaseSet } from '../utils/supabase';
 import { syncImgbbKeyFromCloud } from '../utils/imageHost';
 import { syncNewsletterKeyFromCloud } from '../utils/newsletter';
 
