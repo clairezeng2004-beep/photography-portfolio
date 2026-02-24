@@ -1810,6 +1810,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [geo, setGeo] = useState<GeoInfo | undefined>(collection.geo);
 
   // Collapsible section states
+  const [showCoverSection, setShowCoverSection] = useState(false);
   const [showPhotosSection, setShowPhotosSection] = useState(false);
   const [showLocationTimeSection, setShowLocationTimeSection] = useState(false);
 
@@ -1969,7 +1970,20 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               rows={3}
             />
 
-            {/* 封面编辑 — 默认展开 */}
+            {/* 封面编辑 — 折叠 */}
+            <div className="collapsible-section">
+              <button
+                type="button"
+                className={`collapsible-toggle ${showCoverSection ? 'open' : ''}`}
+                onClick={() => setShowCoverSection(!showCoverSection)}
+              >
+                <span className="collapsible-toggle-icon">
+                  <ChevronDown size={14} />
+                </span>
+                <span>封面管理</span>
+              </button>
+              {showCoverSection && (
+              <div className="collapsible-body">
             <div className="inline-edit-advanced">
                 <div className="form-group">
                   <label>封面图片（横版，用于首页轮播等）</label>
@@ -2070,6 +2084,9 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   </div>
                 </div>
               </div>
+              </div>
+              )}
+            </div>
 
             {/* 作品集图片 — 折叠 */}
             <div className="collapsible-section">
@@ -2266,14 +2283,14 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
         ) : (
           <>
             <h3>{collection.title}</h3>
-            <div className="card-meta" onClick={() => { onToggleEdit(); setTimeout(() => setShowLocationTimeSection(true), 50); }} title="点击编辑地点时间">
+            <div className="card-meta" onClick={() => { setShowCoverSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点时间">
               <MapPin size={14} />
               <span>{collection.location}</span>
               <Calendar size={14} />
               <span>{collection.year}{collection.month ? `.${collection.month}` : ''}</span>
             </div>
             {collection.geo && (
-              <div className="card-geo-badge clickable" onClick={() => { onToggleEdit(); setTimeout(() => setShowLocationTimeSection(true), 50); }} title="点击编辑地点">
+              <div className="card-geo-badge clickable" onClick={() => { setShowCoverSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点">
                 <Globe size={12} />
                 <span>{collection.geo.city}, {collection.geo.country}</span>
                 <span className="geo-continent-tag">
@@ -2282,13 +2299,13 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               </div>
             )}
             {!collection.geo && (
-              <div className="card-geo-badge unset clickable" onClick={() => { onToggleEdit(); setTimeout(() => setShowLocationTimeSection(true), 50); }} title="点击设置地点">
+              <div className="card-geo-badge unset clickable" onClick={() => { setShowCoverSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击设置地点">
                 <Globe size={12} />
                 <span>未定位</span>
               </div>
             )}
             <p className="card-description">{collection.description}</p>
-            <div className="card-stats" onClick={() => { onToggleEdit(); setTimeout(() => setShowPhotosSection(true), 50); }} title="点击管理照片">
+            <div className="card-stats" onClick={() => { setShowCoverSection(false); setShowLocationTimeSection(false); setShowPhotosSection(true); onToggleEdit(); }} title="点击管理照片">
               <ImageIcon size={14} />
               <span>{collection.photos.length} 张照片</span>
             </div>
