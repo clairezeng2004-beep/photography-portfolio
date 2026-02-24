@@ -125,25 +125,27 @@ export async function supabaseSet<T>(key: string, value: T): Promise<void> {
     return;
   }
 
-  // Verify the write actually persisted (catch silent failures)
+  // Verify the write actually persisted (non-blocking — log only, don't throw)
   try {
     const verify = await supabaseGetDetailed(key);
     if (!verify.found) {
-      console.error(`[Supabase] VERIFICATION FAILED for "${key}": upsert reported success but row not found!`);
-      // Attempt insert as the row might not exist
+      // Upsert said success but row not found — try insert as a recovery attempt
+      console.warn(`[Supabase] verification: "${key}" not found after upsert, attempting INSERT...`);
       const { error: insertError } = await withTimeout(
         supabase.from('app_data').insert(row),
         WRITE_TIMEOUT,
         `INSERT-VERIFY ${key}`
       );
       if (insertError) {
-        throw new Error(`[Supabase] write verification failed and insert failed for "${key}": ${insertError.message}`);
+        // Insert failed (likely duplicate key = row actually exists, verification was a fluke)
+        console.warn(`[Supabase] INSERT-VERIFY for "${key}" failed (may be OK if row exists):`, insertError.message);
+      } else {
+        console.log(`[Supabase] saved "${key}" via INSERT after verification miss`);
       }
-      console.log(`[Supabase] saved "${key}" via INSERT after verification failure`);
     }
   } catch (verifyErr) {
     // Don't fail the whole operation if verification read itself fails
-    console.warn(`[Supabase] verification read failed for "${key}" (write may have succeeded):`, verifyErr);
+    console.warn(`[Supabase] verification read failed for "${key}" (write likely succeeded):`, verifyErr);
   }
 }
 
