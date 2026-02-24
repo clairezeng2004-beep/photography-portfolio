@@ -97,6 +97,7 @@
 }
 
 .replace-image-btn,
+.crop-image-btn,
 .uploaded-image-actions .remove-image-btn {
   display: inline-flex;
   align-items: center;
@@ -113,13 +114,15 @@
   height: auto;
 }
 
-.replace-image-btn {
+.replace-image-btn,
+.crop-image-btn {
   background: rgba(255, 255, 255, 0.92);
   color: #374151;
   backdrop-filter: blur(4px);
 }
 
-.replace-image-btn:hover {
+.replace-image-btn:hover,
+.crop-image-btn:hover {
   background: #fff;
   color: #8b5cf6;
   transform: none;
@@ -153,31 +156,6 @@
   border-radius: 50%;
   background: #d4d2ce;
   display: inline-block;
-}
-
-.crop-image-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: static;
-  width: auto;
-  height: auto;
-  background: rgba(255, 255, 255, 0.92);
-  color: #374151;
-  backdrop-filter: blur(4px);
-}
-
-.crop-image-btn:hover {
-  background: #fff;
-  color: #8b5cf6;
-  transform: none;
 }
 
 .crop-overlay {
@@ -220,27 +198,18 @@
   padding: 20px;
 }
 
-.crop-preview {
+.crop-canvas-container {
   position: relative;
-  background: #f8f7f4;
+  background: #1a1a2e;
   border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 280px;
+  min-height: 350px;
+  overflow: hidden;
 }
 
-.crop-preview img {
-  max-width: 100%;
-  max-height: 380px;
-  border-radius: 10px;
-  display: block;
-}
-
-.crop-area-highlight img {
-  border-radius: 0;
-  opacity: 1 !important;
+.crop-zoom-slider {
+  width: 100%;
+  margin-top: 8px;
+  accent-color: #8b5cf6;
 }
 
 .crop-controls .form-group {

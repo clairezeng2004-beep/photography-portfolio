@@ -1,4 +1,6 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
+import Cropper from 'react-easy-crop';
+import type { Area } from 'react-easy-crop';
 import { Upload, X, RefreshCw, Crop } from 'lucide-react';
 import { isImageHostConfigured, uploadToImgbb } from '../utils/imageHost';
 import './ImageUploader.css';
@@ -24,101 +26,6 @@ const DEFAULT_ASPECT_OPTIONS = [
   { label: '1:1', value: 1 },
   { label: '9:16', value: 9 / 16 },
 ];
-
-/* ============================================================
-   CropPreview: shows actual crop area with darkened edges
-   ============================================================ */
-const CropPreview: React.FC<{ src: string; aspect: number }> = ({ src, aspect }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [imgNatural, setImgNatural] = useState<{ w: number; h: number } | null>(null);
-  const [imgDisplay, setImgDisplay] = useState<{ w: number; h: number; x: number; y: number } | null>(null);
-
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  const recalc = useCallback(() => {
-    const img = imgRef.current;
-    const container = containerRef.current;
-    if (!img || !container || !imgNatural) return;
-    const rect = img.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    setImgDisplay({
-      w: rect.width,
-      h: rect.height,
-      x: rect.left - containerRect.left,
-      y: rect.top - containerRect.top,
-    });
-  }, [imgNatural]);
-
-  useEffect(() => { recalc(); }, [recalc, aspect]);
-
-  // Compute crop box position relative to displayed image
-  const cropBox = useMemo(() => {
-    if (!imgNatural || !imgDisplay) return null;
-    const imageAspect = imgNatural.w / imgNatural.h;
-    let cropW: number, cropH: number;
-    if (imageAspect > aspect) {
-      // Image is wider: crop width
-      cropH = imgDisplay.h;
-      cropW = cropH * aspect;
-    } else {
-      // Image is taller: crop height
-      cropW = imgDisplay.w;
-      cropH = cropW / aspect;
-    }
-    return {
-      width: cropW,
-      height: cropH,
-      left: imgDisplay.x + (imgDisplay.w - cropW) / 2,
-      top: imgDisplay.y + (imgDisplay.h - cropH) / 2,
-    };
-  }, [imgNatural, imgDisplay, aspect]);
-
-  const handleImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    setImgNatural({ w: img.naturalWidth, h: img.naturalHeight });
-    setTimeout(recalc, 50);
-  };
-
-  return (
-    <div className="crop-preview" ref={containerRef}>
-      <img
-        ref={imgRef}
-        src={src}
-        alt="裁剪预览"
-        onLoad={handleImgLoad}
-        style={{ opacity: 0.4 }}
-      />
-      {cropBox && (
-        <div
-          className="crop-area-highlight"
-          style={{
-            position: 'absolute',
-            left: cropBox.left,
-            top: cropBox.top,
-            width: cropBox.width,
-            height: cropBox.height,
-            overflow: 'hidden',
-            borderRadius: 6,
-            border: '2px solid #8b5cf6',
-            boxShadow: '0 0 0 1px rgba(139, 92, 246, 0.3)',
-          }}
-        >
-          <img
-            src={src}
-            alt=""
-            style={{
-              position: 'absolute',
-              left: -(cropBox.left - (imgDisplay?.x || 0)),
-              top: -(cropBox.top - (imgDisplay?.y || 0)),
-              width: imgDisplay?.w || 0,
-              height: imgDisplay?.h || 0,
-            }}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({
   onImageUpload,
@@ -239,34 +146,24 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     });
   };
 
-  const createCroppedImage = (imageUrl: string, aspect: number, outputWidth: number): Promise<string> => {
+  const createCroppedImage = (
+    imageUrl: string,
+    croppedAreaPixels: Area,
+    outputWidth: number
+  ): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new window.Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         try {
-          const outputHeight = Math.round(outputWidth / aspect);
-          const imageAspect = img.width / img.height;
-          let sx = 0;
-          let sy = 0;
-          let sWidth = img.width;
-          let sHeight = img.height;
-
-          if (imageAspect > aspect) {
-            sHeight = img.height;
-            sWidth = Math.round(sHeight * aspect);
-            sx = Math.round((img.width - sWidth) / 2);
-          } else {
-            sWidth = img.width;
-            sHeight = Math.round(sWidth / aspect);
-            sy = Math.round((img.height - sHeight) / 2);
-          }
+          const { x, y, width: sw, height: sh } = croppedAreaPixels;
+          const outputHeight = Math.round(outputWidth * (sh / sw));
 
           const canvas = document.createElement('canvas');
           canvas.width = outputWidth;
           canvas.height = outputHeight;
           const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, outputWidth, outputHeight);
+          ctx?.drawImage(img, x, y, sw, sh, 0, 0, outputWidth, outputHeight);
           resolve(canvas.toDataURL('image/jpeg', 0.9));
         } catch (err) {
           reject(err);
@@ -279,14 +176,25 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const openCropper = (imageUrl: string) => {
     setCropSource(imageUrl);
+    setCroppedAreaPixels(null);
+    setCropPosition({ x: 0, y: 0 });
+    setCropZoom(1);
     setCropOpen(true);
   };
 
+  const [cropPosition, setCropPosition] = useState({ x: 0, y: 0 });
+  const [cropZoom, setCropZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+
+  const onCropComplete = useCallback((_croppedArea: Area, croppedPixels: Area) => {
+    setCroppedAreaPixels(croppedPixels);
+  }, []);
+
   const handleApplyCrop = async () => {
-    if (!cropSource) return;
+    if (!cropSource || !croppedAreaPixels) return;
     setIsUploading(true);
     try {
-      const croppedUrl = await createCroppedImage(cropSource, cropAspect, cropWidth);
+      const croppedUrl = await createCroppedImage(cropSource, croppedAreaPixels, cropWidth);
       const thumbnailBase64 = await createThumbnail(croppedUrl);
       const { imageUrl, thumbnailUrl } = await maybeUploadToHost(croppedUrl, thumbnailBase64);
       onImageUpload(imageUrl, thumbnailUrl);
@@ -476,7 +384,21 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               </button>
             </div>
             <div className="crop-body">
-              <CropPreview src={cropSource} aspect={cropAspect} />
+              <div className="crop-canvas-container">
+                <Cropper
+                  image={cropSource}
+                  crop={cropPosition}
+                  zoom={cropZoom}
+                  aspect={cropAspect}
+                  onCropChange={setCropPosition}
+                  onZoomChange={setCropZoom}
+                  onCropComplete={onCropComplete}
+                  showGrid
+                  style={{
+                    containerStyle: { borderRadius: 12 },
+                  }}
+                />
+              </div>
               <div className="crop-controls">
                 <div className="form-group">
                   <label>裁剪比例</label>
@@ -494,6 +416,18 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                   </div>
                 </div>
                 <div className="form-group">
+                  <label>缩放</label>
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.1}
+                    value={cropZoom}
+                    onChange={(e) => setCropZoom(Number(e.target.value))}
+                    className="crop-zoom-slider"
+                  />
+                </div>
+                <div className="form-group">
                   <label>输出宽度（像素）</label>
                   <input
                     type="number"
@@ -506,7 +440,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                     输出尺寸：{cropWidth} × {Math.round(cropWidth / cropAspect)} 像素
                   </div>
                 </div>
-                <div className="crop-note">裁剪将以图片中心为基准，灰色区域将被裁掉</div>
+                <div className="crop-note">拖动图片调整裁剪位置，滚轮或滑块缩放</div>
               </div>
             </div>
             <div className="crop-footer">
