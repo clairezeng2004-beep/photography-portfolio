@@ -2452,49 +2452,96 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
       {isEditing && (
         <div className="card-edit-panel">
-          {/* Row 1: Cover preview + sections */}
-          <div className="card-edit-row">
-            {/* Current cover preview */}
-            <div className="card-edit-cover-preview">
+          {/* Row 1: Cover + Meta info */}
+          <div className="card-edit-row card-edit-row-meta">
+            {/* Cover preview (small) */}
+            <div className="card-edit-cover-compact">
               <img src={cardCoverImage || coverImage || collection.cardCoverImage || collection.coverImage} alt={collection.title} />
             </div>
 
-            {/* Cover management */}
-            <div className="card-edit-block">
+            {/* Cover management (compact) */}
+            <div className="card-edit-block card-edit-block-cover">
               <h4 className="card-edit-block-title">封面管理</h4>
-              <div className="card-edit-block-body">
-                <div className="form-group">
-                  <label>横版封面</label>
-                  <ImageUploader onImageUpload={(url) => { setCoverImage(url); autoCropToPortrait(url).then(setCardCoverImage).catch(() => {}); }} onCropOriginal={(originalUrl) => { autoCropToPortrait(originalUrl).then(setCardCoverImage).catch(() => {}); }} currentImage={coverImage} onRemove={() => { setCoverImage(''); setCardCoverImage(''); }} label="更换封面" enableCrop cropAspectOptions={[{ label: '16:9', value: 16 / 9 },{ label: '4:3', value: 4 / 3 }]} defaultCropAspect={4 / 3} defaultOutputWidth={2400} previewAspectRatio={4 / 3} />
-                  {collection.photos.length > 0 && (
-                    <div className="cover-picker-grid">
-                      {collection.photos.map(photo => (
-                        <button type="button" key={photo.id} className="cover-picker-item" disabled={cropProcessing} onClick={async () => { setCropProcessing(true); try { const src = photo.url; const [landscape, portrait] = await Promise.allSettled([autoCropToLandscape(src), autoCropToPortrait(src)]); setCoverImage(landscape.status === 'fulfilled' ? landscape.value : src); if (portrait.status === 'fulfilled') setCardCoverImage(portrait.value); } catch (err) { console.error('Cover crop failed:', err); } setCropProcessing(false); }}>
-                          <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                          <span>{cropProcessing ? '处理中...' : '设为封面'}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+              <div className="card-edit-cover-uploads">
+                <div className="card-edit-cover-upload-item">
+                  <span className="cover-upload-label">横版</span>
+                  <ImageUploader onImageUpload={(url) => { setCoverImage(url); autoCropToPortrait(url).then(setCardCoverImage).catch(() => {}); }} onCropOriginal={(originalUrl) => { autoCropToPortrait(originalUrl).then(setCardCoverImage).catch(() => {}); }} currentImage={coverImage} onRemove={() => { setCoverImage(''); setCardCoverImage(''); }} label="更换" enableCrop cropAspectOptions={[{ label: '16:9', value: 16 / 9 },{ label: '4:3', value: 4 / 3 }]} defaultCropAspect={4 / 3} defaultOutputWidth={2400} previewAspectRatio={4 / 3} />
                 </div>
-                <div className="form-group">
-                  <label>竖版封面（3:4）</label>
-                  <ImageUploader onImageUpload={(url) => setCardCoverImage(url)} currentImage={cardCoverImage} onRemove={() => setCardCoverImage('')} label="上传竖版封面" enableCrop cropAspectOptions={[{ label: '3:4', value: 3 / 4 }]} defaultCropAspect={3 / 4} defaultOutputWidth={1200} previewAspectRatio={3 / 4} />
-                  {collection.photos.length > 0 && (
-                    <div className="cover-picker-grid">
-                      {collection.photos.map(photo => (
-                        <button type="button" key={photo.id} className="cover-picker-item" disabled={cropProcessing} onClick={async () => { setCropProcessing(true); try { const result = await Promise.allSettled([autoCropToPortrait(photo.url)]); if (result[0].status === 'fulfilled') setCardCoverImage(result[0].value); else setCardCoverImage(photo.url); } catch (err) { setCardCoverImage(photo.url); } setCropProcessing(false); }}>
-                          <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                          <span>{cropProcessing ? '处理中...' : '设为封面'}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <div className="card-edit-cover-upload-item">
+                  <span className="cover-upload-label">竖版</span>
+                  <ImageUploader onImageUpload={(url) => setCardCoverImage(url)} currentImage={cardCoverImage} onRemove={() => setCardCoverImage('')} label="上传" enableCrop cropAspectOptions={[{ label: '3:4', value: 3 / 4 }]} defaultCropAspect={3 / 4} defaultOutputWidth={1200} previewAspectRatio={3 / 4} />
                 </div>
               </div>
+              {collection.photos.length > 0 && (
+                <div className="cover-picker-grid cover-picker-grid-compact">
+                  {collection.photos.map(photo => (
+                    <button type="button" key={photo.id} className="cover-picker-item" disabled={cropProcessing} onClick={async () => { setCropProcessing(true); try { const src = photo.url; const [landscape, portrait] = await Promise.allSettled([autoCropToLandscape(src), autoCropToPortrait(src)]); setCoverImage(landscape.status === 'fulfilled' ? landscape.value : src); if (portrait.status === 'fulfilled') setCardCoverImage(portrait.value); } catch (err) { console.error('Cover crop failed:', err); } setCropProcessing(false); }}>
+                      <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                      <span>{cropProcessing ? '...' : '选'}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Photos management */}
+            {/* Title */}
+            <div className="card-edit-block card-edit-block-title-area">
+              <h4 className="card-edit-block-title">标题</h4>
+              <ClearableInput type="text" className="inline-edit-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="作品集标题" />
+            </div>
+
+            {/* Description */}
+            <div className="card-edit-block">
+              <h4 className="card-edit-block-title">描述</h4>
+              <ClearableTextarea className="inline-edit-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="描述这个作品集的故事..." rows={2} />
+            </div>
+
+            {/* Location/Time */}
+            <div className="card-edit-block">
+              <h4 className="card-edit-block-title">地点时间</h4>
+              <div className="inline-edit-meta">
+                <MapPin size={14} />
+                <div className="inline-city-search">
+                  <input type="text" className="inline-edit-location" value={citySearchText || location} onChange={(e) => handleCityInputChange(e.target.value)} onFocus={() => { if (citySearchText) setShowCityDropdown(true); }} onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)} placeholder="搜索城市..." />
+                  {showCityDropdown && filteredCityResults.length > 0 && (
+                    <div className="inline-city-dropdown">
+                      {filteredCityResults.map((entry, i) => (
+                        <button key={`${entry.city}-${i}`} type="button" className={`inline-city-dropdown-item ${entry.city === location ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); handleCitySelect(entry); }}>
+                          <span className="inline-city-name">{entry.city}</span>
+                          <span className="inline-city-country">{entry.country}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {matchedCountry && (<><Globe size={14} /><span className="inline-matched-country">{matchedCountry}</span></>)}
+              </div>
+              <div className="inline-edit-meta" style={{ marginTop: 4 }}>
+                <Calendar size={14} />
+                <div className="year-stepper">
+                  <input type="number" className="inline-edit-year" value={year} onChange={(e) => setYear(parseInt(e.target.value) || collection.year)} />
+                  <div className="year-stepper-arrows">
+                    <button type="button" className="year-arrow" onClick={() => setYear(y => y + 1)} title="年份+1"><ChevronUp size={12} /></button>
+                    <button type="button" className="year-arrow" onClick={() => setYear(y => y - 1)} title="年份-1"><ChevronDown size={12} /></button>
+                  </div>
+                </div>
+                <select className="inline-edit-month" value={month} onChange={(e) => setMonth(parseInt(e.target.value))} title="月份">
+                  <option value={0}>月</option>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (<option key={m} value={m}>{m}月</option>))}
+                </select>
+              </div>
+              {geo && (<div className="card-geo-badge" style={{ marginTop: 8 }}><Globe size={12} /><span>{geo.city}，{geo.country}</span></div>)}
+            </div>
+
+            {/* Actions */}
+            <div className="card-edit-block card-edit-block-actions">
+              <button className="btn btn-primary btn-sm" onClick={handleSave}><Check size={14} /> 完成</button>
+              <button className="btn btn-secondary btn-sm" onClick={handleCancel}>取消</button>
+            </div>
+          </div>
+
+          {/* Row 2: Photos management (full width) */}
+          <div className="card-edit-row card-edit-row-photos">
             <div className="card-edit-block card-edit-block-photos">
               <div className="card-edit-photos-header">
                 <h4 className="card-edit-block-title">照片管理 <span className="photo-count">{collection.photos.length} 张</span></h4>
@@ -2553,59 +2600,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   </div>
                 );
               })()}
-            </div>
-          </div>
-
-          {/* Row 2: Title + Description + Location/Time + Actions */}
-          <div className="card-edit-row card-edit-row-bottom">
-            <div className="card-edit-block card-edit-block-title-area">
-              <ClearableInput type="text" className="inline-edit-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="作品集标题" />
-            </div>
-
-            <div className="card-edit-block">
-              <h4 className="card-edit-block-title">描述</h4>
-              <ClearableTextarea className="inline-edit-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="描述这个作品集的故事..." rows={3} />
-            </div>
-
-            <div className="card-edit-block">
-              <h4 className="card-edit-block-title">地点时间</h4>
-              <div className="inline-edit-meta">
-                <MapPin size={14} />
-                <div className="inline-city-search">
-                  <input type="text" className="inline-edit-location" value={citySearchText || location} onChange={(e) => handleCityInputChange(e.target.value)} onFocus={() => { if (citySearchText) setShowCityDropdown(true); }} onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)} placeholder="搜索城市..." />
-                  {showCityDropdown && filteredCityResults.length > 0 && (
-                    <div className="inline-city-dropdown">
-                      {filteredCityResults.map((entry, i) => (
-                        <button key={`${entry.city}-${i}`} type="button" className={`inline-city-dropdown-item ${entry.city === location ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); handleCitySelect(entry); }}>
-                          <span className="inline-city-name">{entry.city}</span>
-                          <span className="inline-city-country">{entry.country}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {matchedCountry && (<><Globe size={14} /><span className="inline-matched-country">{matchedCountry}</span></>)}
-              </div>
-              <div className="inline-edit-meta" style={{ marginTop: 4 }}>
-                <Calendar size={14} />
-                <div className="year-stepper">
-                  <input type="number" className="inline-edit-year" value={year} onChange={(e) => setYear(parseInt(e.target.value) || collection.year)} />
-                  <div className="year-stepper-arrows">
-                    <button type="button" className="year-arrow" onClick={() => setYear(y => y + 1)} title="年份+1"><ChevronUp size={12} /></button>
-                    <button type="button" className="year-arrow" onClick={() => setYear(y => y - 1)} title="年份-1"><ChevronDown size={12} /></button>
-                  </div>
-                </div>
-                <select className="inline-edit-month" value={month} onChange={(e) => setMonth(parseInt(e.target.value))} title="月份">
-                  <option value={0}>月</option>
-                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (<option key={m} value={m}>{m}月</option>))}
-                </select>
-              </div>
-              {geo && (<div className="card-geo-badge" style={{ marginTop: 8 }}><Globe size={12} /><span>{geo.city}，{geo.country}</span></div>)}
-            </div>
-
-            <div className="card-edit-block card-edit-block-actions">
-              <button className="btn btn-primary btn-sm" onClick={handleSave}><Check size={14} /> 完成</button>
-              <button className="btn btn-secondary btn-sm" onClick={handleCancel}>取消</button>
             </div>
           </div>
         </div>

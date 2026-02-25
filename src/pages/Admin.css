@@ -982,28 +982,75 @@
 .card-edit-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   padding: 16px;
 }
 
 .card-edit-row {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: flex-start;
 }
 
-.card-edit-cover-preview {
-  flex: 0 0 120px;
-  aspect-ratio: 3 / 4;
+/* Row 1: compact meta row */
+.card-edit-row-meta {
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+/* Small cover preview */
+.card-edit-cover-compact {
+  flex: 0 0 72px;
+  height: 96px;
   overflow: hidden;
   border-radius: 4px;
   border: 1px solid #e8e6e2;
 }
 
-.card-edit-cover-preview img {
+.card-edit-cover-compact img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Cover management block (compact) */
+.card-edit-block-cover {
+  flex: 0 0 auto;
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.card-edit-cover-uploads {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.card-edit-cover-upload-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.cover-upload-label {
+  display: block;
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 4px;
+  letter-spacing: 0.03em;
+}
+
+.cover-picker-grid-compact {
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.cover-picker-grid-compact .cover-picker-item {
+  font-size: 10px;
+}
+
+.cover-picker-grid-compact .cover-picker-item img {
+  height: 36px;
 }
 
 .card-edit-block {
@@ -1012,13 +1059,14 @@
 }
 
 .card-edit-block-photos {
-  flex: 2;
+  flex: 1;
+  width: 100%;
 }
 
 .card-edit-block-title {
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   font-family: 'Noto Serif SC', serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
   color: #999;
   letter-spacing: 0.04em;
@@ -1027,25 +1075,27 @@
 .card-edit-block-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
-.card-edit-row-bottom {
+/* Row 2: photos full width */
+.card-edit-row-photos {
   border-top: 1px solid #e8e6e2;
-  padding-top: 16px;
-  align-items: flex-end;
+  padding-top: 12px;
 }
 
 .card-edit-block-title-area {
   flex: 0 0 auto;
-  min-width: 180px;
+  min-width: 140px;
 }
 
 .card-edit-block-actions {
   flex: 0 0 auto;
   display: flex;
-  gap: 8px;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 .card-edit-photos-header {
