@@ -18,9 +18,9 @@ interface ImageUploaderProps {
   defaultOutputWidth?: number;
   allowUpload?: boolean;
   emptyHint?: string;
-  /** Max width for compression (default 2000) */
+  /** Max width for compression (default 4000) */
   compressMaxWidth?: number;
-  /** JPEG quality for compression 0-1 (default 0.82) */
+  /** JPEG quality for compression 0-1 (default 1.0; at >=0.98, skips re-encoding if already within size) */
   compressQuality?: number;
   /** Original (uncropped) source image for re-cropping with position memory */
   originalSource?: string;
@@ -43,7 +43,8 @@ const DEFAULT_ASPECT_OPTIONS = [
 
 /**
  * Compress an image: resize to maxWidth and encode as JPEG with given quality.
- * Returns a base64 data URL. If the image is already smaller than maxWidth, only re-encodes.
+ * Returns a base64 data URL. If the image is already smaller than maxWidth
+ * and quality >= 0.98, returns the original data to avoid re-encoding loss.
  */
 function compressImage(
   base64Data: string,
@@ -53,6 +54,11 @@ function compressImage(
   return new Promise((resolve) => {
     const img = new window.Image();
     img.onload = () => {
+      // Skip re-encoding if image is within size limits and quality is near-lossless
+      if (img.width <= maxWidth && quality >= 0.98) {
+        resolve(base64Data);
+        return;
+      }
       let w = img.width;
       let h = img.height;
       if (w > maxWidth) {

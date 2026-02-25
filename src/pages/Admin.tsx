@@ -2742,9 +2742,18 @@ const HeroManager: React.FC<HeroManagerProps> = ({
       };
       setLocalImages(prev => [...prev, newImage]);
     } else {
-      setLocalImages(prev => prev.map((img, i) =>
-        i === pickerTarget ? { ...img, url, mobileUrl: mobileUrl || url, title: collectionTitle, location: collectionLocation } : img
-      ));
+      // Desktop pick: only sync to mobile if mobile has no independent image
+      setLocalImages(prev => prev.map((img, i) => {
+        if (i !== pickerTarget) return img;
+        const hasMobileIndependent = img.mobileUrl && img.mobileUrl !== img.url;
+        return {
+          ...img,
+          url,
+          title: collectionTitle,
+          location: collectionLocation,
+          ...(hasMobileIndependent ? {} : { mobileUrl: mobileUrl || url }),
+        };
+      }));
     }
     setShowPicker(false);
     setPickerSelectedCollection(null);
@@ -2761,9 +2770,15 @@ const HeroManager: React.FC<HeroManagerProps> = ({
       if (typeof heroLocalUploadTarget === 'object' && heroLocalUploadTarget.type === 'mobile') {
         replaceMobileImage(heroLocalUploadTarget.index, url);
       } else if (typeof heroLocalUploadTarget === 'number') {
-        setLocalImages(prev => prev.map((im, i) =>
-          i === heroLocalUploadTarget ? { ...im, url, mobileUrl: url } : im
-        ));
+        setLocalImages(prev => prev.map((im, i) => {
+          if (i !== heroLocalUploadTarget) return im;
+          const hasMobileIndependent = im.mobileUrl && im.mobileUrl !== im.url;
+          return {
+            ...im,
+            url,
+            ...(hasMobileIndependent ? {} : { mobileUrl: url }),
+          };
+        }));
       }
     };
     reader.readAsDataURL(file);
@@ -2917,7 +2932,12 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                       <ImageUploader
                         onImageUpload={(url) => {
                           setLocalImages(prev => prev.map((im, i) =>
-                            i === index ? { ...im, url } : im
+                            i === index ? {
+                              ...im,
+                              url,
+                              // Auto-sync to mobile only when mobile has no independent image
+                              ...(!im.mobileUrl || im.mobileUrl === im.url ? { mobileUrl: url } : {})
+                            } : im
                           ));
                         }}
                         currentImage={img.url || undefined}
@@ -2928,8 +2948,8 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                           { label: '21:9', value: 21 / 9 },
                         ]}
                         defaultCropAspect={16 / 9}
-                        defaultOutputWidth={4000}
-                        compressMaxWidth={4000}
+                        defaultOutputWidth={5120}
+                        compressMaxWidth={5120}
                         compressQuality={1.0}
                         previewAspectRatio={16 / 9}
                         allowUpload={true}
@@ -2963,8 +2983,8 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                           { label: '2:3', value: 2 / 3 },
                         ]}
                         defaultCropAspect={9 / 16}
-                        defaultOutputWidth={2400}
-                        compressMaxWidth={2400}
+                        defaultOutputWidth={3000}
+                        compressMaxWidth={3000}
                         compressQuality={1.0}
                         previewAspectRatio={9 / 16}
                         allowUpload={true}
