@@ -449,6 +449,8 @@ const Footprints: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const panRef = useRef(pan);
+  panRef.current = pan;
   const dragMoved = useRef(false);
 
   // China province GeoJSON (loaded on demand)
@@ -589,23 +591,30 @@ const Footprints: React.FC = () => {
     return allFeatures.filter((f: any) => regionIds.has(String(f.id)));
   }, [activeContinent]);
 
-  // Zoom handlers
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
-    setZoom(prev => {
-      const newZoom = Math.max(0.5, Math.min(5, prev * factor));
-      // Zoom towards mouse position
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const scale = newZoom / prev;
-      setPan(p => ({
-        x: mx - scale * (mx - p.x),
-        y: my - scale * (my - p.y),
-      }));
-      return newZoom;
-    });
+  // Zoom handlers — use a ref for the wheel handler to avoid passive listener issues
+  const svgContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = svgContainerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+      setZoom(prev => {
+        const newZoom = Math.max(0.5, Math.min(5, prev * factor));
+        const rect = el.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const scale = newZoom / prev;
+        setPan(p => ({
+          x: mx - scale * (mx - p.x),
+          y: my - scale * (my - p.y),
+        }));
+        return newZoom;
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -613,9 +622,10 @@ const Footprints: React.FC = () => {
     isPanning.current = true;
     dragMoved.current = false;
     setIsDragging(true);
-    panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+    const currentPan = panRef.current;
+    panStart.current = { x: e.clientX, y: e.clientY, panX: currentPan.x, panY: currentPan.y };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, [pan]);
+  }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isPanning.current) return;
@@ -942,8 +952,8 @@ const Footprints: React.FC = () => {
 
       <div className="map-section visible">
         <div
+          ref={svgContainerRef}
           className="svg-map-container"
-          onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
