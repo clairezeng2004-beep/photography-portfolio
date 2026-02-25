@@ -415,6 +415,30 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const previewLargeCanvasRef = useRef<HTMLCanvasElement>(null);
   const [initialCropPixels, setInitialCropPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
+  // Crop modal drag state
+  const [modalPos, setModalPos] = useState<{ x: number; y: number } | null>(null);
+  const modalDragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  const handleModalDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const currentX = modalPos ? modalPos.x : 0;
+    const currentY = modalPos ? modalPos.y : 0;
+    modalDragRef.current = { startX: e.clientX, startY: e.clientY, origX: currentX, origY: currentY };
+    const onMove = (ev: MouseEvent) => {
+      if (!modalDragRef.current) return;
+      const dx = ev.clientX - modalDragRef.current.startX;
+      const dy = ev.clientY - modalDragRef.current.startY;
+      setModalPos({ x: modalDragRef.current.origX + dx, y: modalDragRef.current.origY + dy });
+    };
+    const onUp = () => {
+      modalDragRef.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [modalPos]);
+
   const maybeUploadToHost = async (
     imageBase64: string,
     thumbnailBase64: string
@@ -853,11 +877,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       )}
 
       {cropOpen && cropSource && createPortal(
-        <div className="crop-overlay" onClick={() => setCropOpen(false)}>
-          <div className="crop-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="crop-header">
+        <div className="crop-overlay" onClick={() => { setCropOpen(false); setModalPos(null); }}>
+          <div
+            className="crop-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={modalPos ? { transform: `translate(${modalPos.x}px, ${modalPos.y}px)` } : undefined}
+          >
+            <div className="crop-header" onMouseDown={handleModalDragStart} style={{ cursor: 'move' }}>
               <h3>裁剪与调整尺寸</h3>
-              <button className="btn-icon" onClick={() => setCropOpen(false)}>
+              <button className="btn-icon" onClick={() => { setCropOpen(false); setModalPos(null); }}>
                 <X size={18} />
               </button>
             </div>
@@ -917,8 +945,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               </div>
             </div>
             <div className="crop-footer">
-              <button className="btn btn-secondary" onClick={() => setCropOpen(false)}>取消</button>
-              <button className="btn btn-primary" onClick={handleApplyCrop}>应用裁剪</button>
+              <button className="btn btn-secondary" onClick={() => { setCropOpen(false); setModalPos(null); }}>取消</button>
+              <button className="btn btn-primary" onClick={() => { handleApplyCrop(); setModalPos(null); }}>应用裁剪</button>
             </div>
           </div>
 

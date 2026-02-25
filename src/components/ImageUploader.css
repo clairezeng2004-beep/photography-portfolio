@@ -162,7 +162,7 @@
 .crop-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,6 +185,8 @@
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid #eee;
+  cursor: move;
+  user-select: none;
 }
 
 .crop-header h3 {
