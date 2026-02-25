@@ -40,8 +40,18 @@ export default {
         return jsonResponse({ error: 'Missing image data' }, 400);
       }
 
+      // Detect content type from base64 header
+      let contentType = 'image/jpeg';
+      let ext = 'jpg';
+      if (image.startsWith('data:image/webp')) {
+        contentType = 'image/webp';
+        ext = 'webp';
+      } else if (image.startsWith('data:image/png')) {
+        contentType = 'image/png';
+        ext = 'png';
+      }
+
       // Generate filename if not provided
-      const ext = 'jpg';
       const name = filename || `${Date.now()}-${randomId()}.${ext}`;
       const key = `images/${name}`;
 
@@ -56,7 +66,7 @@ export default {
       // Upload to R2
       await env.BUCKET.put(key, bytes.buffer, {
         httpMetadata: {
-          contentType: 'image/jpeg',
+          contentType: contentType,
           cacheControl: 'public, max-age=31536000',
         },
       });

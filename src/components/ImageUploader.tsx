@@ -41,8 +41,17 @@ const DEFAULT_ASPECT_OPTIONS = [
   { label: '9:16', value: 9 / 16 },
 ];
 
+/** Detect best lossless-like format the browser supports */
+function bestOutputFormat(): string {
+  const c = document.createElement('canvas');
+  c.width = 1; c.height = 1;
+  if (c.toDataURL('image/webp').startsWith('data:image/webp')) return 'image/webp';
+  return 'image/jpeg';
+}
+
 /**
- * Compress an image: resize to maxWidth and encode as JPEG with given quality.
+ * Compress an image: resize to maxWidth and encode with given quality.
+ * Uses WebP when available (much sharper at same quality), falls back to JPEG.
  * Returns a base64 data URL. If the image is already smaller than maxWidth
  * and quality >= 0.98, returns the original data to avoid re-encoding loss.
  */
@@ -70,7 +79,7 @@ function compressImage(
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      resolve(canvas.toDataURL(bestOutputFormat(), quality));
     };
     img.src = base64Data;
   });
@@ -546,7 +555,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             canvas.height = outputHeight;
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, outputWidth, outputHeight);
-            resolve(canvas.toDataURL('image/jpeg', compressQuality));
+            resolve(canvas.toDataURL(bestOutputFormat(), compressQuality));
           } catch (err) {
             reject(err);
           } finally {

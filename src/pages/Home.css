@@ -35,6 +35,8 @@
   height: 100%;
   object-fit: cover;
   pointer-events: none;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 /* Stack mode (fade / zoom / kenburns / blur) */
@@ -51,6 +53,8 @@
   height: 100%;
   object-fit: cover;
   pointer-events: none;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .hero-fade-img {
