@@ -264,8 +264,8 @@
 
   .footer-mobile-row1 .footer-column {
     flex: none;
-    align-items: center;
-    text-align: center;
+    align-items: flex-start;
+    text-align: left;
   }
 
   .footer-mobile-row1 .footer-column:first-child {
@@ -281,15 +281,15 @@
 
   .footer-mobile-row2 .footer-column {
     flex: none;
-    align-items: center;
-    text-align: center;
+    align-items: flex-start;
+    text-align: left;
     padding-right: 0;
     margin-left: 0;
   }
 
   .footer-column:first-child,
   .footer-column:last-child {
-    align-items: center;
+    align-items: flex-start;
     padding-left: 0;
     padding-right: 0;
   }
