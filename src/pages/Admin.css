@@ -981,18 +981,71 @@
 
 .card-edit-panel {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 16px;
   padding: 16px;
 }
 
-.card-edit-left {
-  flex: 0 0 280px;
+.card-edit-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.card-edit-cover-preview {
+  flex: 0 0 120px;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: 4px;
+  border: 1px solid #e8e6e2;
+}
+
+.card-edit-cover-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-edit-block {
+  flex: 1;
   min-width: 0;
 }
 
-.card-edit-right {
-  flex: 1;
-  min-width: 0;
+.card-edit-block-photos {
+  flex: 2;
+}
+
+.card-edit-block-title {
+  margin: 0 0 8px 0;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #999;
+  letter-spacing: 0.04em;
+}
+
+.card-edit-block-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-edit-row-bottom {
+  border-top: 1px solid #e8e6e2;
+  padding-top: 16px;
+  align-items: flex-end;
+}
+
+.card-edit-block-title-area {
+  flex: 0 0 auto;
+  min-width: 180px;
+}
+
+.card-edit-block-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .card-edit-photos-header {
@@ -3560,4 +3613,63 @@
 
 .hero-fullpreview-container.mobile .hero-fullpreview-text {
   padding: 24px 20px;
+}
+
+/* Move target list (custom dropdown replacement) */
+.move-target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #e8e6e2;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.move-target-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: #2a2a2a;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.move-target-item:hover {
+  background: #f5f4f1;
+}
+
+.move-target-item.selected {
+  background: #f0efec;
+}
+
+.move-target-title {
+  flex: 1;
+}
+
+.move-target-count {
+  font-size: 12px;
+  color: #999;
+}
+
+.move-target-check {
+  color: #2a2a2a;
+  flex-shrink: 0;
+}
+
+.move-target-item.new {
+  border-top: 1px solid #e8e6e2;
+  margin-top: 2px;
+  padding-top: 10px;
+  color: #666;
 }
