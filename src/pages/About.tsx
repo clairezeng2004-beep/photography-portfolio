@@ -73,23 +73,23 @@ const About: React.FC = () => {
         {hasStats && (
           <div className="about-section">
             <h2 className="about-section-title">{sectionLabel('stats', '统计数据')}</h2>
-            <div className="about-stats">
+            <div className="about-custom-items">
               {mapCountryCount > 0 && (
-                <div className="about-stat-item">
-                  <span className="about-stat-number">{mapCountryCount}</span>
-                  <span className="about-stat-label">国家</span>
+                <div className="about-custom-item">
+                  <span className="about-custom-item-label">国家</span>
+                  <span className="about-custom-item-value">{mapCountryCount}</span>
                 </div>
               )}
               {mapCityCount > 0 && (
-                <div className="about-stat-item">
-                  <span className="about-stat-number">{mapCityCount}</span>
-                  <span className="about-stat-label">城市</span>
+                <div className="about-custom-item">
+                  <span className="about-custom-item-label">城市</span>
+                  <span className="about-custom-item-value">{mapCityCount}</span>
                 </div>
               )}
               {aboutInfo.stats.experience && (
-                <div className="about-stat-item">
-                  <span className="about-stat-number">{aboutInfo.stats.experience}</span>
-                  <span className="about-stat-label">年经验</span>
+                <div className="about-custom-item">
+                  <span className="about-custom-item-label">年经验</span>
+                  <span className="about-custom-item-value">{aboutInfo.stats.experience}</span>
                 </div>
               )}
             </div>

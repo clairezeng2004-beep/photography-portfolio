@@ -80,36 +80,6 @@
   color: #2a2a2a;
 }
 
-/* Stats */
-.about-stats {
-  display: flex;
-  gap: 48px;
-  flex-wrap: wrap;
-}
-
-.about-stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.about-stat-number {
-  font-family: 'Playfair Display', serif;
-  font-size: 32px;
-  font-weight: 400;
-  color: #2a2a2a;
-  letter-spacing: 0.02em;
-}
-
-.about-stat-label {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 13px;
-  font-weight: 300;
-  color: #999;
-  letter-spacing: 0.06em;
-}
-
 /* Custom section items */
 .about-custom-items {
   display: flex;
@@ -240,14 +210,6 @@
 
   .about-text p {
     font-size: 15px;
-  }
-
-  .about-stats {
-    gap: 32px;
-  }
-
-  .about-stat-number {
-    font-size: 26px;
   }
 
   .about-custom-item {

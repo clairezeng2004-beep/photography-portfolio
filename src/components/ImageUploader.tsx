@@ -30,6 +30,8 @@ interface ImageUploaderProps {
   replaceLabel?: string;
   /** Custom click handler for the replace button; overrides default file-dialog behavior */
   onReplaceClick?: () => void;
+  /** Extra action buttons rendered inside the image overlay actions row */
+  extraActions?: React.ReactNode;
 }
 
 const DEFAULT_ASPECT_OPTIONS = [
@@ -382,6 +384,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   previewAspectRatio,
   replaceLabel,
   onReplaceClick,
+  extraActions,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);

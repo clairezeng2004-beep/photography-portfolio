@@ -5,7 +5,7 @@ import {
   Plus, Edit, Trash2, Save, X,
   User, Image as ImageIcon, Settings, LogOut,
   Folder, Camera, MapPin, Calendar, Globe,
-  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload
+  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload, Eye
 } from 'lucide-react';
 import { PhotoCollection, Photo, AboutInfo, AboutCustomSection, AboutCustomSectionSubItem, GeoInfo, HeroImage } from '../types';
 import { useData } from '../context/DataContext';
@@ -443,6 +443,11 @@ const Admin: React.FC = () => {
   });
 
   const [editedAboutInfo, setEditedAboutInfo] = useState<AboutInfo>(aboutInfo);
+
+  // City search state for create collection modal
+  const [createCitySearch, setCreateCitySearch] = useState('');
+  const [createCityDropdown, setCreateCityDropdown] = useState(false);
+  const [createMatchedCountry, setCreateMatchedCountry] = useState('');
 
   useEffect(() => {
     const authStatus = localStorage.getItem('admin_authenticated');
@@ -999,15 +1004,58 @@ const Admin: React.FC = () => {
                         
                         <div className="form-group">
                           <label>地点 *</label>
-                          <ClearableInput
-                            type="text"
-                            value={newCollection.location}
-                            onChange={(e) => setNewCollection({
-                              ...newCollection,
-                              location: e.target.value
-                            })}
-                            placeholder="例如：巴黎"
-                          />
+                          <div className="inline-city-search" style={{ position: 'relative' }}>
+                            <ClearableInput
+                              type="text"
+                              value={createCitySearch || newCollection.location}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setCreateCitySearch(val);
+                                setNewCollection({ ...newCollection, location: val });
+                                setCreateCityDropdown(true);
+                                const entry = lookupCity(val) || resolveLandmarkToCity(val);
+                                setCreateMatchedCountry(entry ? entry.country : '');
+                              }}
+                              onFocus={() => { if (createCitySearch) setCreateCityDropdown(true); }}
+                              onBlur={() => setTimeout(() => setCreateCityDropdown(false), 200)}
+                              placeholder="搜索城市..."
+                            />
+                            {createCityDropdown && createCitySearch && (() => {
+                              const results = searchCities(createCitySearch).slice(0, 10);
+                              if (results.length === 0) return null;
+                              return (
+                                <div className="inline-city-dropdown">
+                                  {results.map((entry, i) => (
+                                    <button
+                                      key={`${entry.city}-${i}`}
+                                      type="button"
+                                      className={`inline-city-dropdown-item ${entry.city === newCollection.location ? 'selected' : ''}`}
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        setNewCollection({
+                                          ...newCollection,
+                                          location: entry.city,
+                                          geo: { continent: entry.continent, country: entry.country, countryCode: entry.countryCode, city: entry.city, lat: entry.lat, lng: entry.lng },
+                                        });
+                                        setCreateCitySearch('');
+                                        setCreateCityDropdown(false);
+                                        setCreateMatchedCountry(entry.country);
+                                      }}
+                                    >
+                                      <span className="inline-city-name">{entry.city}</span>
+                                      <span className="inline-city-country">{entry.country}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          {createMatchedCountry && (
+                            <div className="card-geo-badge" style={{ marginTop: 6 }}>
+                              <Globe size={12} />
+                              <span>{newCollection.location}，{createMatchedCountry}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1485,6 +1533,36 @@ const Admin: React.FC = () => {
                             contact: { ...prev.contact, instagram: val }
                           }));
                         }}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>电话</label>
+                      <ClearableInput
+                        type="text"
+                        value={editedAboutInfo.contact.phone}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditedAboutInfo(prev => ({
+                            ...prev,
+                            contact: { ...prev.contact, phone: val }
+                          }));
+                        }}
+                        placeholder="清空即不显示"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>微博</label>
+                      <ClearableInput
+                        type="url"
+                        value={editedAboutInfo.contact.weibo}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditedAboutInfo(prev => ({
+                            ...prev,
+                            contact: { ...prev.contact, weibo: val }
+                          }));
+                        }}
+                        placeholder="清空即不显示"
                       />
                     </div>
 
@@ -2148,10 +2226,14 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [showLocationTimeSection, setShowLocationTimeSection] = useState(false);
   const [cropProcessing, setCropProcessing] = useState(false);
 
-  // Move photo state
-  const [movePhotoId, setMovePhotoId] = useState<string | null>(null);
+  // Move photo state — multi-select
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
+  const [showMoveModal, setShowMoveModal] = useState(false);
   const [moveTargetId, setMoveTargetId] = useState<string>('');
   const [moveNewTitle, setMoveNewTitle] = useState('');
+
+  // Photo editing state — click to expand
+  const [activePhotoId, setActivePhotoId] = useState<string | null>(null);
 
   // City search state
   const [citySearchText, setCitySearchText] = useState('');
@@ -2231,7 +2313,37 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     setShowCityDropdown(false);
     const entry = lookupCity(collection.location);
     setMatchedCountry(entry ? entry.country : '');
+    setSelectedPhotoIds(new Set());
+    setActivePhotoId(null);
     onToggleEdit();
+  };
+
+  // Helper: check if a photo is part of a pair
+  const isPaired = (photoId: string) => {
+    const photos = collection.photos;
+    const idx = photos.findIndex(p => p.id === photoId);
+    if (idx < 0) return false;
+    const p = photos[idx];
+    if (p.layout !== 'half') return false;
+    if (idx > 0 && photos[idx - 1].layout === 'half') return true;
+    if (idx < photos.length - 1 && photos[idx + 1].layout === 'half') return true;
+    return false;
+  };
+
+  const toggleSelectPhoto = (id: string) => {
+    setSelectedPhotoIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllPhotos = () => {
+    if (selectedPhotoIds.size === collection.photos.length) {
+      setSelectedPhotoIds(new Set());
+    } else {
+      setSelectedPhotoIds(new Set(collection.photos.map(p => p.id)));
+    }
   };
 
   return (
@@ -2239,434 +2351,67 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
       <div className="card-image">
         <img src={isEditing ? (cardCoverImage || coverImage) : (collection.cardCoverImage || collection.coverImage)} alt={collection.title} />
         <div className="card-overlay">
-          <button
-            className="btn-icon"
-            onClick={(e) => { e.stopPropagation(); onToggleEdit(); }}
-            title={isEditing ? '取消' : '编辑'}
-          >
+          <button className="btn-icon" onClick={(e) => { e.stopPropagation(); onToggleEdit(); }} title={isEditing ? '取消' : '编辑'}>
             {isEditing ? <X size={18} /> : <Edit size={18} />}
           </button>
-          <button
-            className="btn-icon danger"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            title="删除"
-          >
+          <button className="btn-icon danger" onClick={(e) => { e.stopPropagation(); onDelete(); }} title="删除">
             <Trash2 size={18} />
           </button>
         </div>
         {!isEditing && (
           <div className="card-reorder-btns">
-            <button
-              className="btn-icon reorder-btn"
-              onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
-              disabled={isFirst}
-              title="上移"
-            >
-              <ChevronUp size={16} />
-            </button>
-            <input
-              type="number"
-              className="card-order-input"
-              value={currentIndex + 1}
-              min={1}
-              max={totalCount}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => {
-                const val = parseInt(e.target.value);
-                if (Number.isFinite(val) && val >= 1 && val <= totalCount) {
-                  onMoveToPosition(val - 1);
-                }
-              }}
-              title="输入数字调整排序"
-            />
-            <button
-              className="btn-icon reorder-btn"
-              onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
-              disabled={isLast}
-              title="下移"
-            >
-              <ChevronDown size={16} />
-            </button>
+            <button className="btn-icon reorder-btn" onClick={(e) => { e.stopPropagation(); onMoveUp(); }} disabled={isFirst} title="上移"><ChevronUp size={16} /></button>
+            <input type="number" className="card-order-input" value={currentIndex + 1} min={1} max={totalCount} onClick={(e) => e.stopPropagation()} onChange={(e) => { const val = parseInt(e.target.value); if (Number.isFinite(val) && val >= 1 && val <= totalCount) onMoveToPosition(val - 1); }} title="输入数字调整排序" />
+            <button className="btn-icon reorder-btn" onClick={(e) => { e.stopPropagation(); onMoveDown(); }} disabled={isLast} title="下移"><ChevronDown size={16} /></button>
           </div>
         )}
       </div>
 
-      <div className="card-body">
-        {isEditing ? (
-          <>
-            <ClearableInput
-              type="text"
-              className="inline-edit-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="作品集标题"
-            />
-
-            {/* 封面编辑 — 折叠 */}
-            <div className="collapsible-section">
-              <button
-                type="button"
-                className={`collapsible-toggle ${showCoverSection ? 'open' : ''}`}
-                onClick={() => setShowCoverSection(!showCoverSection)}
-              >
-                <span className="collapsible-toggle-icon">
-                  <ChevronDown size={14} />
-                </span>
-                <span>封面管理</span>
-              </button>
-              {showCoverSection && (
-              <div className="collapsible-body">
-            <div className="inline-edit-advanced">
-                <div className="form-group">
-                  <label>封面图片（横版，用于首页轮播等）</label>
-                  <ImageUploader
-                    onImageUpload={(url) => {
-                      setCoverImage(url);
-                      autoCropToPortrait(url).then(setCardCoverImage).catch(() => {});
-                    }}
-                    onCropOriginal={(originalUrl) => {
-                      autoCropToPortrait(originalUrl).then(setCardCoverImage).catch(() => {});
-                    }}
-                    currentImage={coverImage}
-                    onRemove={() => { setCoverImage(''); setCardCoverImage(''); }}
-                    label="更换封面"
-                    enableCrop
-                    cropAspectOptions={[
-                      { label: '16:9', value: 16 / 9 },
-                      { label: '4:3', value: 4 / 3 },
-                    ]}
-                    defaultCropAspect={4 / 3}
-                    defaultOutputWidth={2400}
-                    previewAspectRatio={4 / 3}
-                  />
-                  {collection.photos.length > 0 && (
-                    <div className="cover-picker-grid">
-                      {collection.photos.map(photo => (
-                        <button
-                          type="button"
-                          key={photo.id}
-                          className="cover-picker-item"
-                          disabled={cropProcessing}
-                          onClick={async () => {
-                            setCropProcessing(true);
-                            try {
-                              const src = photo.url;
-                              const [landscape, portrait] = await Promise.allSettled([
-                                autoCropToLandscape(src),
-                                autoCropToPortrait(src),
-                              ]);
-                              setCoverImage(landscape.status === 'fulfilled' ? landscape.value : src);
-                              if (portrait.status === 'fulfilled') setCardCoverImage(portrait.value);
-                            } catch (err) {
-                              console.error('Cover crop failed:', err);
-                            }
-                            setCropProcessing(false);
-                          }}
-                        >
-                          <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                          <span>{cropProcessing ? '处理中...' : '设为封面'}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div className="inline-cover-save">
-                    <button className="btn btn-primary btn-sm" onClick={handleSave}>
-                      <Check size={14} />
-                      完成
-                    </button>
-                    <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
-                      取消
-                    </button>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>首页卡片封面（竖版 3:4）</label>
-                  <ImageUploader
-                    onImageUpload={(url) => setCardCoverImage(url)}
-                    currentImage={cardCoverImage}
-                    onRemove={() => setCardCoverImage('')}
-                    label="上传竖版封面"
-                    enableCrop
-                    cropAspectOptions={[
-                      { label: '3:4', value: 3 / 4 },
-                    ]}
-                    defaultCropAspect={3 / 4}
-                    defaultOutputWidth={1200}
-                    previewAspectRatio={3 / 4}
-                  />
-                  {collection.photos.length > 0 && (
-                    <div className="cover-picker-grid">
-                      {collection.photos.map(photo => (
-                        <button
-                          type="button"
-                          key={photo.id}
-                          className="cover-picker-item"
-                          disabled={cropProcessing}
-                          onClick={async () => {
-                            setCropProcessing(true);
-                            try {
-                              const result = await Promise.allSettled([
-                                autoCropToPortrait(photo.url),
-                              ]);
-                              if (result[0].status === 'fulfilled') {
-                                setCardCoverImage(result[0].value);
-                              } else {
-                                // Fallback: use original URL directly
-                                setCardCoverImage(photo.url);
-                                console.error('Portrait crop failed, using original:', result[0].reason);
-                              }
-                            } catch (err) {
-                              console.error('Portrait crop failed:', err);
-                              setCardCoverImage(photo.url);
-                            }
-                            setCropProcessing(false);
-                          }}
-                        >
-                          <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                          <span>{cropProcessing ? '处理中...' : '设为封面'}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div className="inline-cover-save">
-                    <button className="btn btn-primary btn-sm" onClick={handleSave}>
-                      <Check size={14} />
-                      完成
-                    </button>
-                    <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
-                      取消
-                    </button>
-                  </div>
-                </div>
-              </div>
-              </div>
-              )}
+      {!isEditing && (
+        <div className="card-body">
+          <h3>{collection.title}</h3>
+          <div className="card-meta" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点时间">
+            <MapPin size={14} /><span>{collection.location}</span>
+            <Calendar size={14} /><span>{collection.year}{collection.month ? `.${collection.month}` : ''}</span>
+          </div>
+          {collection.geo ? (
+            <div className="card-geo-badge clickable" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点">
+              <Globe size={12} /><span>{collection.geo.city}，{collection.geo.country}</span>
             </div>
-
-            {/* 作品描述 — 折叠 */}
-            <div className="collapsible-section">
-              <button
-                type="button"
-                className={`collapsible-toggle ${showDescriptionSection ? 'open' : ''}`}
-                onClick={() => setShowDescriptionSection(!showDescriptionSection)}
-              >
-                <span className="collapsible-toggle-icon">
-                  <ChevronDown size={14} />
-                </span>
-                <span>作品描述</span>
-                {description && !showDescriptionSection && (
-                  <span className="collapsible-toggle-summary">
-                    {description.length > 30 ? description.slice(0, 30) + '...' : description}
-                  </span>
-                )}
-              </button>
-              {showDescriptionSection && (
-                <div className="collapsible-body">
-                  <ClearableTextarea
-                    className="inline-edit-description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="描述这个作品集的故事..."
-                    rows={3}
-                  />
-                </div>
-              )}
+          ) : (
+            <div className="card-geo-badge unset clickable" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击设置地点">
+              <Globe size={12} /><span>未定位</span>
             </div>
+          )}
+          <p className="card-description" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(true); setShowPhotosSection(false); setShowLocationTimeSection(false); onToggleEdit(); }} title="点击编辑描述" style={{ cursor: 'pointer' }}>{collection.description}</p>
+          <div className="card-stats" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowLocationTimeSection(false); setShowPhotosSection(true); onToggleEdit(); }} title="点击管理照片">
+            <ImageIcon size={14} /><span>{collection.photos.length} 张照片</span>
+          </div>
+        </div>
+      )}
 
-            {/* 作品集图片 — 折叠 */}
+      {isEditing && (
+        <div className="card-edit-panel">
+          <div className="card-edit-left">
+            <ClearableInput type="text" className="inline-edit-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="作品集标题" />
+
+            {/* 地点时间 */}
             <div className="collapsible-section">
-              <button
-                type="button"
-                className={`collapsible-toggle ${showPhotosSection ? 'open' : ''}`}
-                onClick={() => setShowPhotosSection(!showPhotosSection)}
-              >
-                <span className="collapsible-toggle-icon">
-                  <ChevronDown size={14} />
-                </span>
-                <span>照片管理</span>
-                <span className="photo-count">{collection.photos.length} 张</span>
-              </button>
-              {showPhotosSection && (
-                <div className="collapsible-body">
-                  <ImageUploader
-                    onImageUpload={(url, thumb) => onAddPhoto(url, thumb)}
-                    onMultiImageUpload={onAddPhotos}
-                    label="添加新照片"
-                    multiple
-                  />
-
-                  <div className="photos-grid-extended">
-                    {collection.photos.map((photo) => (
-                      <div key={photo.id} className="photo-card-extended">
-                        <div className="photo-card-thumb">
-                          <img src={photo.thumbnail} alt={photo.alt} />
-                          <button
-                            className="remove-photo-btn"
-                            onClick={() => onRemovePhoto(photo.id)}
-                          >
-                            <X size={14} />
-                          </button>
-                          <button
-                            className="set-cover-btn"
-                            onClick={() => {
-                              const originalUrl = photo.url;
-                              autoCropToLandscape(originalUrl).then(landscape => {
-                                setCoverImage(landscape);
-                              }).catch(() => {
-                                setCoverImage(originalUrl);
-                              });
-                              autoCropToPortrait(originalUrl).then(portrait => {
-                                setCardCoverImage(portrait);
-                              }).catch(() => {});
-                            }}
-                            title="设为封面"
-                          >
-                            <ImageIcon size={12} />
-                            <span>封面</span>
-                          </button>
-                          <button
-                            className="move-photo-btn"
-                            onClick={() => { setMovePhotoId(photo.id); setMoveTargetId(''); setMoveNewTitle(''); }}
-                            title="移动到其他作品集"
-                          >
-                            <Folder size={12} />
-                            <span>移动</span>
-                          </button>
-                        </div>
-                        <div className="photo-card-fields">
-                          <div className="photo-layout-toggle">
-                            <button
-                              type="button"
-                              className={`layout-btn ${(!photo.layout || photo.layout === 'full') ? 'active' : ''}`}
-                              onClick={() => onUpdatePhoto(photo.id, { layout: 'full' })}
-                              title="单张一行"
-                            >
-                              单张
-                            </button>
-                            <button
-                              type="button"
-                              className={`layout-btn ${photo.layout === 'half' ? 'active' : ''}`}
-                              onClick={() => onUpdatePhoto(photo.id, { layout: 'half' })}
-                              title="两张并排（需连续两张都设为并排）"
-                            >
-                              并排
-                            </button>
-                          </div>
-                          <ClearableTextarea
-                            className="photo-caption-input"
-                            value={photo.caption || ''}
-                            onChange={(e) => onUpdatePhoto(photo.id, { caption: e.target.value })}
-                            placeholder="图片前配文（出现在图片上方，用于图片组间叙事）"
-                            rows={2}
-                          />
-                          <ClearableInput
-                            type="text"
-                            className="photo-footnote-input"
-                            value={photo.footnote || ''}
-                            onChange={(e) => onUpdatePhoto(photo.id, { footnote: e.target.value })}
-                            placeholder="脚注（图片下方小字）"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Move Photo Modal */}
-                  {movePhotoId && createPortal(
-                    <div className="modal-overlay" onClick={() => setMovePhotoId(null)}>
-                      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
-                        <div className="modal-header">
-                          <h3>移动图片</h3>
-                          <button className="btn-icon" onClick={() => setMovePhotoId(null)}><X size={20} /></button>
-                        </div>
-                        <div className="modal-body">
-                          <div className="form-group">
-                            <label>目标作品集</label>
-                            <select
-                              value={moveTargetId}
-                              onChange={(e) => setMoveTargetId(e.target.value)}
-                              style={{ width: '100%', padding: '10px 0', border: 'none', borderBottom: '1px solid #e8e6e2', fontFamily: "'Noto Serif SC', serif", fontSize: 15, fontWeight: 300, color: '#2a2a2a', background: 'transparent', cursor: 'pointer' }}
-                            >
-                              <option value="">请选择...</option>
-                              {allCollections.filter(c => c.id !== collection.id).map(c => (
-                                <option key={c.id} value={c.id}>{c.title} ({c.photos.length}张)</option>
-                              ))}
-                              <option value="new">+ 新建作品集</option>
-                            </select>
-                          </div>
-                          {moveTargetId === 'new' && (
-                            <div className="form-group">
-                              <label>新作品集标题</label>
-                              <ClearableInput
-                                type="text"
-                                value={moveNewTitle}
-                                onChange={(e) => setMoveNewTitle(e.target.value)}
-                                placeholder="例如：2024巴黎"
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <div className="modal-footer">
-                          <button className="btn btn-secondary" onClick={() => setMovePhotoId(null)}>取消</button>
-                          <button
-                            className="btn btn-primary"
-                            disabled={!moveTargetId || (moveTargetId === 'new' && !moveNewTitle.trim())}
-                            onClick={() => {
-                              onMovePhotos([movePhotoId], moveTargetId, moveNewTitle.trim() || undefined);
-                              setMovePhotoId(null);
-                            }}
-                          >
-                            <Check size={14} />
-                            确认移动
-                          </button>
-                        </div>
-                      </div>
-                    </div>,
-                    document.body
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* 地点时间 — 折叠，放在最后 */}
-            <div className="collapsible-section">
-              <button
-                type="button"
-                className={`collapsible-toggle ${showLocationTimeSection ? 'open' : ''}`}
-                onClick={() => setShowLocationTimeSection(!showLocationTimeSection)}
-              >
-                <span className="collapsible-toggle-icon">
-                  <ChevronDown size={14} />
-                </span>
+              <button type="button" className={`collapsible-toggle ${showLocationTimeSection ? 'open' : ''}`} onClick={() => setShowLocationTimeSection(!showLocationTimeSection)}>
+                <span className="collapsible-toggle-icon"><ChevronDown size={14} /></span>
                 <span>地点时间</span>
-                <span className="collapsible-toggle-summary">
-                  {location || '未设置'} · {year}{month ? `.${month}` : ''}
-                </span>
+                <span className="collapsible-toggle-summary">{location || '未设置'}{geo ? ` · ${geo.city}，${geo.country}` : ''} · {year}{month ? `.${month}` : ''}</span>
               </button>
               {showLocationTimeSection && (
                 <div className="collapsible-body">
                   <div className="inline-edit-meta">
                     <MapPin size={14} />
                     <div className="inline-city-search">
-                      <input
-                        type="text"
-                        className="inline-edit-location"
-                        value={citySearchText || location}
-                        onChange={(e) => handleCityInputChange(e.target.value)}
-                        onFocus={() => { if (citySearchText) setShowCityDropdown(true); }}
-                        onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
-                        placeholder="搜索城市..."
-                      />
+                      <input type="text" className="inline-edit-location" value={citySearchText || location} onChange={(e) => handleCityInputChange(e.target.value)} onFocus={() => { if (citySearchText) setShowCityDropdown(true); }} onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)} placeholder="搜索城市..." />
                       {showCityDropdown && filteredCityResults.length > 0 && (
                         <div className="inline-city-dropdown">
                           {filteredCityResults.map((entry, i) => (
-                            <button
-                              key={`${entry.city}-${i}`}
-                              type="button"
-                              className={`inline-city-dropdown-item ${entry.city === location ? 'selected' : ''}`}
-                              onMouseDown={(e) => { e.preventDefault(); handleCitySelect(entry); }}
-                            >
+                            <button key={`${entry.city}-${i}`} type="button" className={`inline-city-dropdown-item ${entry.city === location ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); handleCitySelect(entry); }}>
                               <span className="inline-city-name">{entry.city}</span>
                               <span className="inline-city-country">{entry.country}</span>
                             </button>
@@ -2674,84 +2419,186 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                         </div>
                       )}
                     </div>
-                    {matchedCountry && (
-                      <>
-                        <Globe size={14} />
-                        <span className="inline-matched-country">{matchedCountry}</span>
-                      </>
-                    )}
+                    {matchedCountry && (<><Globe size={14} /><span className="inline-matched-country">{matchedCountry}</span></>)}
+                  </div>
+                  <div className="inline-edit-meta" style={{ marginTop: 4 }}>
                     <Calendar size={14} />
                     <div className="year-stepper">
-                      <input
-                        type="number"
-                        className="inline-edit-year"
-                        value={year}
-                        onChange={(e) => setYear(parseInt(e.target.value) || collection.year)}
-                      />
+                      <input type="number" className="inline-edit-year" value={year} onChange={(e) => setYear(parseInt(e.target.value) || collection.year)} />
                       <div className="year-stepper-arrows">
-                        <button type="button" className="year-arrow" onClick={() => setYear(y => y + 1)} title="年份+1">
-                          <ChevronUp size={12} />
-                        </button>
-                        <button type="button" className="year-arrow" onClick={() => setYear(y => y - 1)} title="年份-1">
-                          <ChevronDown size={12} />
-                        </button>
+                        <button type="button" className="year-arrow" onClick={() => setYear(y => y + 1)} title="年份+1"><ChevronUp size={12} /></button>
+                        <button type="button" className="year-arrow" onClick={() => setYear(y => y - 1)} title="年份-1"><ChevronDown size={12} /></button>
                       </div>
                     </div>
-                    <select
-                      className="inline-edit-month"
-                      value={month}
-                      onChange={(e) => setMonth(parseInt(e.target.value))}
-                      title="月份（仅管理后台显示）"
-                    >
+                    <select className="inline-edit-month" value={month} onChange={(e) => setMonth(parseInt(e.target.value))} title="月份">
                       <option value={0}>月</option>
-                      {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
-                        <option key={m} value={m}>{m}月</option>
-                      ))}
+                      {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (<option key={m} value={m}>{m}月</option>))}
                     </select>
                   </div>
+                  {geo && (<div className="card-geo-badge" style={{ marginTop: 8 }}><Globe size={12} /><span>{geo.city}，{geo.country}</span></div>)}
+                </div>
+              )}
+            </div>
+
+            {/* 封面管理 */}
+            <div className="collapsible-section">
+              <button type="button" className={`collapsible-toggle ${showCoverSection ? 'open' : ''}`} onClick={() => setShowCoverSection(!showCoverSection)}>
+                <span className="collapsible-toggle-icon"><ChevronDown size={14} /></span>
+                <span>封面管理</span>
+              </button>
+              {showCoverSection && (
+              <div className="collapsible-body">
+            <div className="inline-edit-advanced">
+                <div className="form-group">
+                  <label>封面图片（横版）</label>
+                  <ImageUploader onImageUpload={(url) => { setCoverImage(url); autoCropToPortrait(url).then(setCardCoverImage).catch(() => {}); }} onCropOriginal={(originalUrl) => { autoCropToPortrait(originalUrl).then(setCardCoverImage).catch(() => {}); }} currentImage={coverImage} onRemove={() => { setCoverImage(''); setCardCoverImage(''); }} label="更换封面" enableCrop cropAspectOptions={[{ label: '16:9', value: 16 / 9 },{ label: '4:3', value: 4 / 3 }]} defaultCropAspect={4 / 3} defaultOutputWidth={2400} previewAspectRatio={4 / 3} />
+                  {collection.photos.length > 0 && (
+                    <div className="cover-picker-grid">
+                      {collection.photos.map(photo => (
+                        <button type="button" key={photo.id} className="cover-picker-item" disabled={cropProcessing} onClick={async () => { setCropProcessing(true); try { const src = photo.url; const [landscape, portrait] = await Promise.allSettled([autoCropToLandscape(src), autoCropToPortrait(src)]); setCoverImage(landscape.status === 'fulfilled' ? landscape.value : src); if (portrait.status === 'fulfilled') setCardCoverImage(portrait.value); } catch (err) { console.error('Cover crop failed:', err); } setCropProcessing(false); }}>
+                          <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                          <span>{cropProcessing ? '处理中...' : '设为封面'}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label>卡片封面（竖版 3:4）</label>
+                  <ImageUploader onImageUpload={(url) => setCardCoverImage(url)} currentImage={cardCoverImage} onRemove={() => setCardCoverImage('')} label="上传竖版封面" enableCrop cropAspectOptions={[{ label: '3:4', value: 3 / 4 }]} defaultCropAspect={3 / 4} defaultOutputWidth={1200} previewAspectRatio={3 / 4} />
+                  {collection.photos.length > 0 && (
+                    <div className="cover-picker-grid">
+                      {collection.photos.map(photo => (
+                        <button type="button" key={photo.id} className="cover-picker-item" disabled={cropProcessing} onClick={async () => { setCropProcessing(true); try { const result = await Promise.allSettled([autoCropToPortrait(photo.url)]); if (result[0].status === 'fulfilled') setCardCoverImage(result[0].value); else setCardCoverImage(photo.url); } catch (err) { setCardCoverImage(photo.url); } setCropProcessing(false); }}>
+                          <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                          <span>{cropProcessing ? '处理中...' : '设为封面'}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+            </div>
+              </div>
+              )}
+            </div>
+
+            {/* 描述 */}
+            <div className="collapsible-section">
+              <button type="button" className={`collapsible-toggle ${showDescriptionSection ? 'open' : ''}`} onClick={() => setShowDescriptionSection(!showDescriptionSection)}>
+                <span className="collapsible-toggle-icon"><ChevronDown size={14} /></span>
+                <span>描述</span>
+                {description && !showDescriptionSection && (<span className="collapsible-toggle-summary">{description.length > 30 ? description.slice(0, 30) + '...' : description}</span>)}
+              </button>
+              {showDescriptionSection && (
+                <div className="collapsible-body">
+                  <ClearableTextarea className="inline-edit-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="描述这个作品集的故事..." rows={3} />
                 </div>
               )}
             </div>
 
             <div className="inline-edit-actions">
-              <button className="btn btn-primary btn-sm" onClick={handleSave}>
-                <Check size={14} />
-                完成
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
-                取消
-              </button>
+              <button className="btn btn-primary btn-sm" onClick={handleSave}><Check size={14} /> 完成</button>
+              <button className="btn btn-secondary btn-sm" onClick={handleCancel}>取消</button>
             </div>
-          </>
-        ) : (
-          <>
-            <h3>{collection.title}</h3>
-            <div className="card-meta" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点时间">
-              <MapPin size={14} />
-              <span>{collection.location}</span>
-              <Calendar size={14} />
-              <span>{collection.year}{collection.month ? `.${collection.month}` : ''}</span>
-            </div>
-            {collection.geo && (
-              <div className="card-geo-badge clickable" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点">
-                <Globe size={12} />
-                <span>{collection.geo.city}，{collection.geo.country}</span>
+          </div>
+
+          {/* Right: photos management */}
+          <div className="card-edit-right">
+            <div className="card-edit-photos-header">
+              <h4>照片管理 <span className="photo-count">{collection.photos.length} 张</span></h4>
+              <div className="card-edit-photos-actions">
+                {collection.photos.length > 0 && (
+                  <button type="button" className={`btn btn-secondary btn-xs`} onClick={selectAllPhotos}>
+                    {selectedPhotoIds.size === collection.photos.length ? '取消全选' : '全选'}
+                  </button>
+                )}
+                {selectedPhotoIds.size > 0 && (
+                  <button type="button" className="btn btn-secondary btn-xs" onClick={() => { setShowMoveModal(true); setMoveTargetId(''); setMoveNewTitle(''); }}>
+                    <Folder size={12} /> 移动 ({selectedPhotoIds.size})
+                  </button>
+                )}
               </div>
-            )}
-            {!collection.geo && (
-              <div className="card-geo-badge unset clickable" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击设置地点">
-                <Globe size={12} />
-                <span>未定位</span>
-              </div>
-            )}
-            <p className="card-description" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(true); setShowPhotosSection(false); setShowLocationTimeSection(false); onToggleEdit(); }} title="点击编辑描述" style={{ cursor: 'pointer' }}>{collection.description}</p>
-            <div className="card-stats" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowLocationTimeSection(false); setShowPhotosSection(true); onToggleEdit(); }} title="点击管理照片">
-              <ImageIcon size={14} />
-              <span>{collection.photos.length} 张照片</span>
             </div>
-          </>
-        )}
-      </div>
+            <ImageUploader onImageUpload={(url, thumb) => onAddPhoto(url, thumb)} onMultiImageUpload={onAddPhotos} label="添加新照片" multiple />
+
+            <div className="photos-thumb-grid">
+              {collection.photos.map((photo) => {
+                const isSelected = selectedPhotoIds.has(photo.id);
+                const isActive = activePhotoId === photo.id;
+                const paired = isPaired(photo.id);
+                return (
+                  <div key={photo.id} className={`photo-thumb-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${paired ? 'is-paired' : ''}`} onClick={() => setActivePhotoId(isActive ? null : photo.id)}>
+                    <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                    {paired && <span className="photo-paired-badge">并排</span>}
+                    {photo.layout === 'half' && !paired && <span className="photo-paired-badge half-only">半</span>}
+                    <input type="checkbox" className="photo-select-checkbox" checked={isSelected} onClick={(e) => e.stopPropagation()} onChange={() => toggleSelectPhoto(photo.id)} />
+                    <button className="remove-photo-btn" onClick={(e) => { e.stopPropagation(); onRemovePhoto(photo.id); }}><X size={12} /></button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {activePhotoId && (() => {
+              const photo = collection.photos.find(p => p.id === activePhotoId);
+              if (!photo) return null;
+              return (
+                <div className="photo-edit-panel">
+                  <div className="photo-edit-panel-header">
+                    <img src={photo.thumbnail || photo.url} alt={photo.alt} className="photo-edit-preview" />
+                    <div className="photo-edit-panel-fields">
+                      <div className="photo-layout-toggle">
+                        <button type="button" className={`layout-btn ${(!photo.layout || photo.layout === 'full') ? 'active' : ''}`} onClick={() => onUpdatePhoto(photo.id, { layout: 'full' })} title="单张一行">单张</button>
+                        <button type="button" className={`layout-btn ${photo.layout === 'half' ? 'active' : ''}`} onClick={() => onUpdatePhoto(photo.id, { layout: 'half' })} title="两张并排">并排</button>
+                      </div>
+                      <ClearableTextarea className="photo-caption-input" value={photo.caption || ''} onChange={(e) => onUpdatePhoto(photo.id, { caption: e.target.value })} placeholder="图片前配文（出现在图片上方）" rows={2} />
+                      <ClearableInput type="text" className="photo-footnote-input" value={photo.footnote || ''} onChange={(e) => onUpdatePhoto(photo.id, { footnote: e.target.value })} placeholder="脚注（图片下方小字）" />
+                    </div>
+                  </div>
+                  <div className="photo-edit-panel-actions">
+                    <button type="button" className="btn btn-secondary btn-xs" onClick={() => { const u = photo.url; autoCropToLandscape(u).then(l => setCoverImage(l)).catch(() => setCoverImage(u)); autoCropToPortrait(u).then(p => setCardCoverImage(p)).catch(() => {}); }}><ImageIcon size={12} /> 设为封面</button>
+                    <button type="button" className="btn btn-secondary btn-xs" onClick={() => { setSelectedPhotoIds(new Set([photo.id])); setShowMoveModal(true); setMoveTargetId(''); setMoveNewTitle(''); }}><Folder size={12} /> 移动</button>
+                    <button type="button" className="btn btn-secondary btn-xs" style={{ color: '#c44' }} onClick={() => { onRemovePhoto(photo.id); setActivePhotoId(null); }}><Trash2 size={12} /> 删除</button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {showMoveModal && selectedPhotoIds.size > 0 && createPortal(
+        <div className="modal-overlay" onClick={() => setShowMoveModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div className="modal-header">
+              <h3>移动 {selectedPhotoIds.size} 张图片</h3>
+              <button className="btn-icon" onClick={() => setShowMoveModal(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>目标作品集</label>
+                <select value={moveTargetId} onChange={(e) => setMoveTargetId(e.target.value)} style={{ width: '100%', padding: '10px 0', border: 'none', borderBottom: '1px solid #e8e6e2', fontFamily: "'Noto Serif SC', serif", fontSize: 15, fontWeight: 300, color: '#2a2a2a', background: 'transparent', cursor: 'pointer' }}>
+                  <option value="">请选择...</option>
+                  {allCollections.filter(c => c.id !== collection.id).map(c => (<option key={c.id} value={c.id}>{c.title} ({c.photos.length}张)</option>))}
+                  <option value="new">+ 新建作品集</option>
+                </select>
+              </div>
+              {moveTargetId === 'new' && (
+                <div className="form-group">
+                  <label>新作品集标题</label>
+                  <ClearableInput type="text" value={moveNewTitle} onChange={(e) => setMoveNewTitle(e.target.value)} placeholder="例如：2024巴黎" />
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowMoveModal(false)}>取消</button>
+              <button className="btn btn-primary" disabled={!moveTargetId || (moveTargetId === 'new' && !moveNewTitle.trim())} onClick={() => { onMovePhotos(Array.from(selectedPhotoIds), moveTargetId, moveNewTitle.trim() || undefined); setShowMoveModal(false); setSelectedPhotoIds(new Set()); setActivePhotoId(null); }}>
+                <Check size={14} /> 确认移动
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
@@ -2884,10 +2731,12 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     if (typeof pickerTarget === 'object' && pickerTarget.type === 'mobile') {
       replaceMobileImage(pickerTarget.index, url);
     } else if (pickerTarget === 'add') {
+      // For 'add', also set mobileUrl from the collection's cardCoverImage
+      const cardCover = pickerSelectedCollection?.cardCoverImage || pickerSelectedCollection?.coverImage;
       const newImage: HeroImage = {
         id: Date.now().toString(),
         url,
-        mobileUrl: mobileUrl || url,
+        mobileUrl: cardCover || mobileUrl || url,
         title: collectionTitle,
         location: collectionLocation,
       };
