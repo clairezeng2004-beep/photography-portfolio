@@ -1243,17 +1243,24 @@
 }
 
 .cover-picker-grid-compact {
-  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-  gap: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 6px;
 }
 
 .cover-picker-grid-compact .cover-picker-item {
   font-size: 9px;
+  aspect-ratio: unset;
+  height: 80px;
+  width: auto;
+  flex-shrink: 0;
 }
 
 .cover-picker-grid-compact .cover-picker-item img {
-  height: 32px;
+  height: 100%;
+  width: auto;
+  object-fit: contain;
 }
 
 .card-edit-block {

@@ -2546,7 +2546,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                           setShowCoverPicker(null);
                         }}>
                           <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                          <span>{cropProcessing ? '...' : '选'}</span>
+                          <span>{cropProcessing ? '...' : '选择'}</span>
                         </button>
                       ))}
                     </div>
