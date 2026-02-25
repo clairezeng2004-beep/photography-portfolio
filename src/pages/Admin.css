@@ -3170,6 +3170,7 @@
 .hero-cover-preview-portrait {
   aspect-ratio: 9 / 16;
   max-height: none;
+  /* will be overridden inside .hero-covers-row */
 }
 
 /* Make portrait show at REAL ratio, not forced landscape height */
@@ -3186,7 +3187,6 @@
 
 .hero-covers-row .hero-cover-slot:last-child .hero-cover-preview-final {
   aspect-ratio: 9 / 16;
-  max-height: 320px;
 }
 
 .hero-covers-row .hero-cover-slot:last-child .hero-cover-preview-final img {
@@ -3290,6 +3290,76 @@
   font-size: 9px;
 }
 
+/* Hero cover preview hover overlay */
+.hero-cover-preview-hover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  color: #fff;
+  font-size: 11px;
+  font-family: 'Noto Serif SC', serif;
+}
+
+.hero-cover-preview-final:hover .hero-cover-preview-hover {
+  opacity: 1;
+}
+
+/* Hero cover preview modal */
+.hero-preview-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.hero-preview-modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.hero-preview-modal-content img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.hero-preview-modal-close {
+  position: absolute;
+  top: -36px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.hero-preview-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Hide ImageUploader preview image in hero slots — only show action buttons */
 .hero-cover-slot .image-uploader .uploaded-image {
   aspect-ratio: unset !important;
@@ -3326,8 +3396,13 @@
 }
 
 .hero-cover-slot {
-  flex: 1;
+  flex: 3;
   min-width: 0;
+}
+
+/* Portrait slot is narrower so 9:16 height ≈ landscape 16:9 height */
+.hero-covers-row .hero-cover-slot:last-child {
+  flex: 1;
 }
 
 .hero-pick-btn {
