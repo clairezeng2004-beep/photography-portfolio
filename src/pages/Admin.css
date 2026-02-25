@@ -1959,6 +1959,15 @@
   margin-top: 16px;
 }
 
+.builtin-section-extra-items {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e8e6e2;
+}
+
 .bio-editor {
   display: flex;
   flex-direction: column;

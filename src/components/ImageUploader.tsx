@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Upload, X, RefreshCw, Crop } from 'lucide-react';
 import { isImageHostConfigured, uploadToImgbb } from '../utils/imageHost';
 import './ImageUploader.css';
@@ -392,6 +393,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const [uploadProgress, setUploadProgress] = useState('');
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const croppedAreaPixelsRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const previewImgRef = useRef<HTMLImageElement | null>(null);
   const [showPreviewWindow, setShowPreviewWindow] = useState(false);
@@ -523,15 +525,27 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     });
   };
 
-  const openCropper = (imageUrl: string) => {
-    setCropSource(imageUrl);
+  const openCropper = async (imageUrl: string) => {
     setCroppedAreaPixels(null);
     setShowPreviewWindow(false);
 
+    // Convert remote URLs to blob URLs to avoid CORS tainted canvas issues
+    let blobSrc = imageUrl;
+    if (imageUrl.startsWith('http')) {
+      try {
+        const res = await fetch(imageUrl, { mode: 'cors' });
+        const blob = await res.blob();
+        blobSrc = URL.createObjectURL(blob);
+      } catch {
+        // Fallback: use original URL with crossOrigin
+        blobSrc = imageUrl;
+      }
+    }
+
+    setCropSource(blobSrc);
+
     // If re-cropping from an originalSource, try to detect the current crop position
-    // by comparing aspect ratios and computing a centered crop matching the current image
     if (originalSource && imageUrl === originalSource && currentImage && currentImage !== originalSource) {
-      // Load both original and current to compute initial crop area
       const origImg = new window.Image();
       origImg.crossOrigin = 'anonymous';
       origImg.onload = () => {
@@ -541,7 +555,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
           const curAspect = curImg.naturalWidth / curImg.naturalHeight;
           const origW = origImg.naturalWidth;
           const origH = origImg.naturalHeight;
-          // Compute crop area that matches curAspect centered in original
           let cw: number, ch: number;
           if (origW / origH > curAspect) {
             ch = origH;
@@ -556,7 +569,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             width: Math.round(cw),
             height: Math.round(ch),
           });
-          // Also set the crop aspect to match
           const matchingOpt = aspectOptions.find(o => Math.abs(o.value - curAspect) < 0.05);
           if (matchingOpt) setCropAspect(matchingOpt.value);
         };
@@ -568,40 +580,57 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     }
 
     setCropOpen(true);
-    // Pre-load full-res image for preview canvas
+    // Pre-load full-res image for preview canvas using the blob URL
     const img = new window.Image();
-    img.crossOrigin = 'anonymous';
-    img.src = imageUrl;
+    if (blobSrc.startsWith('http')) {
+      img.crossOrigin = 'anonymous';
+    }
+    img.src = blobSrc;
     previewImgRef.current = img;
+    // When the image loads, re-render preview if we already have crop area
+    img.onload = () => {
+      if (croppedAreaPixelsRef.current) {
+        onCropArea(croppedAreaPixelsRef.current);
+      }
+    };
   };
 
   const onCropArea = useCallback((area: { x: number; y: number; width: number; height: number }) => {
     setCroppedAreaPixels(area);
+    croppedAreaPixelsRef.current = area;
     // Render preview on small canvas
     const canvas = previewCanvasRef.current;
     const img = previewImgRef.current;
     if (!canvas || !img || !img.complete) return;
-    const previewW = 300;
-    const previewH = Math.round(previewW * (area.height / area.width));
-    canvas.width = previewW;
-    canvas.height = previewH;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, previewW, previewH);
-      ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, previewW, previewH);
+    try {
+      const previewW = 300;
+      const previewH = Math.round(previewW * (area.height / area.width));
+      canvas.width = previewW;
+      canvas.height = previewH;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, previewW, previewH);
+        ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, previewW, previewH);
+      }
+    } catch (e) {
+      // Tainted canvas fallback - ignore
     }
     // Render large preview
-    const largeCanvas = previewLargeCanvasRef.current;
-    if (largeCanvas) {
-      const largeW = Math.min(cropWidth, 1200);
-      const largeH = Math.round(largeW * (area.height / area.width));
-      largeCanvas.width = largeW;
-      largeCanvas.height = largeH;
-      const lctx = largeCanvas.getContext('2d');
-      if (lctx) {
-        lctx.clearRect(0, 0, largeW, largeH);
-        lctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, largeW, largeH);
+    try {
+      const largeCanvas = previewLargeCanvasRef.current;
+      if (largeCanvas) {
+        const largeW = Math.min(cropWidth, 1200);
+        const largeH = Math.round(largeW * (area.height / area.width));
+        largeCanvas.width = largeW;
+        largeCanvas.height = largeH;
+        const lctx = largeCanvas.getContext('2d');
+        if (lctx) {
+          lctx.clearRect(0, 0, largeW, largeH);
+          lctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, largeW, largeH);
+        }
       }
+    } catch (e) {
+      // Tainted canvas fallback - ignore
     }
   }, [cropWidth]);
 
@@ -609,21 +638,24 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   useEffect(() => {
     if (!showPreviewWindow || !croppedAreaPixels) return;
     const renderLarge = () => {
-      const largeCanvas = previewLargeCanvasRef.current;
-      const img = previewImgRef.current;
-      if (!largeCanvas || !img || !img.complete) return;
-      const area = croppedAreaPixels;
-      const largeW = Math.min(cropWidth, 1200);
-      const largeH = Math.round(largeW * (area.height / area.width));
-      largeCanvas.width = largeW;
-      largeCanvas.height = largeH;
-      const ctx = largeCanvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, largeW, largeH);
-        ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, largeW, largeH);
+      try {
+        const largeCanvas = previewLargeCanvasRef.current;
+        const img = previewImgRef.current;
+        if (!largeCanvas || !img || !img.complete) return;
+        const area = croppedAreaPixels;
+        const largeW = Math.min(cropWidth, 1200);
+        const largeH = Math.round(largeW * (area.height / area.width));
+        largeCanvas.width = largeW;
+        largeCanvas.height = largeH;
+        const ctx = largeCanvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, largeW, largeH);
+          ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, largeW, largeH);
+        }
+      } catch (e) {
+        // Tainted canvas fallback
       }
     };
-    // Small delay to let DOM mount the canvas
     requestAnimationFrame(renderLarge);
   }, [showPreviewWindow, croppedAreaPixels, cropWidth]);
 
@@ -805,7 +837,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         </div>
       )}
 
-      {cropOpen && cropSource && (
+      {cropOpen && cropSource && createPortal(
         <div className="crop-overlay" onClick={() => setCropOpen(false)}>
           <div className="crop-modal" onClick={(e) => e.stopPropagation()}>
             <div className="crop-header">
@@ -891,7 +923,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               </div>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -12,6 +12,24 @@ const About: React.FC = () => {
 
   const hasStats = aboutInfo.stats.cities > 0 || aboutInfo.stats.photos || aboutInfo.stats.experience;
 
+  // Helper to render builtin section extra items
+  const builtinExtraItems = (sectionId: string) => {
+    const section = (aboutInfo.customSections || []).find(s => s.id === sectionId);
+    if (!section) return null;
+    const validItems = section.items.filter(item => item.label || item.value);
+    if (validItems.length === 0) return null;
+    return (
+      <div className="about-custom-items" style={{ marginTop: 16 }}>
+        {validItems.map((item) => (
+          <div key={item.id} className="about-custom-item">
+            {item.label && <span className="about-custom-item-label">{item.label}</span>}
+            {item.value && <span className="about-custom-item-value">{item.value}</span>}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="about-page">
       <div className="about-body">
@@ -61,11 +79,12 @@ const About: React.FC = () => {
                 </div>
               )}
             </div>
+            {builtinExtraItems('_builtin_stats')}
           </div>
         )}
 
-        {/* Custom Sections */}
-        {(aboutInfo.customSections || []).map((section) => {
+        {/* Custom Sections — exclude _builtin_ entries */}
+        {(aboutInfo.customSections || []).filter(s => !s.id.startsWith('_builtin_')).map((section) => {
           const validItems = section.items.filter(item => item.label || item.value || (item.subItems && item.subItems.length > 0));
           if (validItems.length === 0) return null;
           return (
@@ -122,6 +141,7 @@ const About: React.FC = () => {
               </a>
             )}
           </div>
+          {builtinExtraItems('_builtin_contact')}
         </div>
       </div>
     </div>

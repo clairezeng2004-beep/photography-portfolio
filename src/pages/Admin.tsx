@@ -1429,6 +1429,96 @@ const Admin: React.FC = () => {
                     </div>
 
                   </div>
+                  {/* Extra sub-items for contact */}
+                  {(() => {
+                    const builtinSectionId = '_builtin_contact';
+                    const sIdx = (editedAboutInfo.customSections || []).findIndex(s => s.id === builtinSectionId);
+                    const section = sIdx >= 0 ? (editedAboutInfo.customSections || [])[sIdx] : null;
+                    return (
+                      <div className="builtin-section-extra-items">
+                        {section && section.items.map((item, iIdx) => (
+                          <div key={item.id} className="custom-section-item">
+                            <div className="custom-section-item-fields">
+                              <ClearableInput
+                                type="text"
+                                value={item.label}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditedAboutInfo(prev => {
+                                    const sections = [...(prev.customSections || [])];
+                                    const idx = sections.findIndex(s => s.id === builtinSectionId);
+                                    if (idx < 0) return prev;
+                                    const items = [...sections[idx].items];
+                                    items[iIdx] = { ...items[iIdx], label: val };
+                                    sections[idx] = { ...sections[idx], items };
+                                    return { ...prev, customSections: sections };
+                                  });
+                                }}
+                                placeholder="标签"
+                                className="custom-item-label-input"
+                              />
+                              <ClearableInput
+                                type="text"
+                                value={item.value}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditedAboutInfo(prev => {
+                                    const sections = [...(prev.customSections || [])];
+                                    const idx = sections.findIndex(s => s.id === builtinSectionId);
+                                    if (idx < 0) return prev;
+                                    const items = [...sections[idx].items];
+                                    items[iIdx] = { ...items[iIdx], value: val };
+                                    sections[idx] = { ...sections[idx], items };
+                                    return { ...prev, customSections: sections };
+                                  });
+                                }}
+                                placeholder="内容"
+                                className="custom-item-value-input"
+                              />
+                            </div>
+                            <button
+                              className="btn-icon danger small"
+                              onClick={() => {
+                                setEditedAboutInfo(prev => {
+                                  const sections = [...(prev.customSections || [])];
+                                  const idx = sections.findIndex(s => s.id === builtinSectionId);
+                                  if (idx < 0) return prev;
+                                  const items = sections[idx].items.filter((_, i) => i !== iIdx);
+                                  if (items.length === 0) {
+                                    return { ...prev, customSections: sections.filter(s => s.id !== builtinSectionId) };
+                                  }
+                                  sections[idx] = { ...sections[idx], items };
+                                  return { ...prev, customSections: sections };
+                                });
+                              }}
+                              title="删除此项"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          className="btn btn-secondary small"
+                          onClick={() => {
+                            setEditedAboutInfo(prev => {
+                              const sections = [...(prev.customSections || [])];
+                              const idx = sections.findIndex(s => s.id === builtinSectionId);
+                              const newItem = { id: Date.now().toString(), label: '', value: '' };
+                              if (idx >= 0) {
+                                sections[idx] = { ...sections[idx], items: [...sections[idx].items, newItem] };
+                              } else {
+                                sections.push({ id: builtinSectionId, title: getSectionLabel('contact', '联系方式'), items: [newItem] });
+                              }
+                              return { ...prev, customSections: sections };
+                            });
+                          }}
+                        >
+                          <Plus size={14} />
+                          添加子项
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="editor-section">
@@ -1470,10 +1560,102 @@ const Admin: React.FC = () => {
                       />
                     </div>
                   </div>
+                  {/* Extra sub-items for stats */}
+                  {(() => {
+                    const builtinSectionId = '_builtin_stats';
+                    const sIdx = (editedAboutInfo.customSections || []).findIndex(s => s.id === builtinSectionId);
+                    const section = sIdx >= 0 ? (editedAboutInfo.customSections || [])[sIdx] : null;
+                    return (
+                      <div className="builtin-section-extra-items">
+                        {section && section.items.map((item, iIdx) => (
+                          <div key={item.id} className="custom-section-item">
+                            <div className="custom-section-item-fields">
+                              <ClearableInput
+                                type="text"
+                                value={item.label}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditedAboutInfo(prev => {
+                                    const sections = [...(prev.customSections || [])];
+                                    const idx = sections.findIndex(s => s.id === builtinSectionId);
+                                    if (idx < 0) return prev;
+                                    const items = [...sections[idx].items];
+                                    items[iIdx] = { ...items[iIdx], label: val };
+                                    sections[idx] = { ...sections[idx], items };
+                                    return { ...prev, customSections: sections };
+                                  });
+                                }}
+                                placeholder="标签"
+                                className="custom-item-label-input"
+                              />
+                              <ClearableInput
+                                type="text"
+                                value={item.value}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditedAboutInfo(prev => {
+                                    const sections = [...(prev.customSections || [])];
+                                    const idx = sections.findIndex(s => s.id === builtinSectionId);
+                                    if (idx < 0) return prev;
+                                    const items = [...sections[idx].items];
+                                    items[iIdx] = { ...items[iIdx], value: val };
+                                    sections[idx] = { ...sections[idx], items };
+                                    return { ...prev, customSections: sections };
+                                  });
+                                }}
+                                placeholder="内容"
+                                className="custom-item-value-input"
+                              />
+                            </div>
+                            <button
+                              className="btn-icon danger small"
+                              onClick={() => {
+                                setEditedAboutInfo(prev => {
+                                  const sections = [...(prev.customSections || [])];
+                                  const idx = sections.findIndex(s => s.id === builtinSectionId);
+                                  if (idx < 0) return prev;
+                                  const items = sections[idx].items.filter((_, i) => i !== iIdx);
+                                  if (items.length === 0) {
+                                    return { ...prev, customSections: sections.filter(s => s.id !== builtinSectionId) };
+                                  }
+                                  sections[idx] = { ...sections[idx], items };
+                                  return { ...prev, customSections: sections };
+                                });
+                              }}
+                              title="删除此项"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          className="btn btn-secondary small"
+                          onClick={() => {
+                            setEditedAboutInfo(prev => {
+                              const sections = [...(prev.customSections || [])];
+                              const idx = sections.findIndex(s => s.id === builtinSectionId);
+                              const newItem = { id: Date.now().toString(), label: '', value: '' };
+                              if (idx >= 0) {
+                                sections[idx] = { ...sections[idx], items: [...sections[idx].items, newItem] };
+                              } else {
+                                sections.push({ id: builtinSectionId, title: getSectionLabel('stats', '统计数据'), items: [newItem] });
+                              }
+                              return { ...prev, customSections: sections };
+                            });
+                          }}
+                        >
+                          <Plus size={14} />
+                          添加子项
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
 
-                {/* Custom Sections */}
-                {(editedAboutInfo.customSections || []).map((section, sIdx) => (
+                {/* Custom Sections — exclude builtin extra-item sections */}
+                {(editedAboutInfo.customSections || []).filter(s => !s.id.startsWith('_builtin_')).map((section, _filteredIdx) => {
+                  const sIdx = (editedAboutInfo.customSections || []).findIndex(s2 => s2.id === section.id);
+                  return (
                   <div key={section.id} className="editor-section custom-section-editor">
                     <div className="custom-section-header">
                       <ClearableInput
@@ -1653,7 +1835,8 @@ const Admin: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
 
                 <button
                   className="btn btn-secondary add-custom-section-btn"
@@ -2546,7 +2729,21 @@ const HeroManager: React.FC<HeroManagerProps> = ({
   const openPicker = (target: number | 'add' | { type: 'mobile'; index: number }) => {
     setPickerTarget(target);
     setPickerFilter('');
-    setPickerSelectedCollection(null);
+    // Auto-select the collection that the current hero image belongs to
+    let autoSelect: PhotoCollection | null = null;
+    if (target !== 'add') {
+      const idx = typeof target === 'object' ? target.index : target;
+      const heroImg = localImages[idx];
+      if (heroImg) {
+        // Try to find the collection whose coverImage or photos match the hero image
+        autoSelect = collections.find(c =>
+          c.coverImage === heroImg.url ||
+          c.title === heroImg.title ||
+          c.photos.some(p => p.url === heroImg.url)
+        ) || null;
+      }
+    }
+    setPickerSelectedCollection(autoSelect);
     setShowPicker(true);
   };
 
