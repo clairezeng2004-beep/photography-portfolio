@@ -291,7 +291,7 @@ const DragCropper: React.FC<{
   if (!imgLayout) {
     return (
       <div className="crop-canvas-container" ref={containerRef}>
-        <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" />
+        <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" crossOrigin="anonymous" />
       </div>
     );
   }
@@ -304,7 +304,7 @@ const DragCropper: React.FC<{
       className="crop-canvas-container"
       ref={containerRef}
     >
-      <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" />
+      <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" crossOrigin="anonymous" />
       {/* Dark overlay masks */}
       {/* Top */}
       <div style={{ position: 'absolute', left: imgLayout.x, top: imgLayout.y, width: imgLayout.w, height: crop.y, background: maskColor }} />
@@ -572,11 +572,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     let blobSrc = imageUrl;
     if (imageUrl.startsWith('http')) {
       try {
-        const res = await fetch(imageUrl, { mode: 'cors' });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(imageUrl, { mode: 'cors', signal: controller.signal });
+        clearTimeout(timeout);
         const blob = await res.blob();
         blobSrc = URL.createObjectURL(blob);
       } catch {
-        // Fallback: use original URL with crossOrigin
+        // Fallback: use original URL with crossOrigin (DragCropper img has crossOrigin="anonymous")
         blobSrc = imageUrl;
       }
     }
@@ -649,10 +652,20 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.clearRect(0, 0, previewW, previewH);
-        ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, previewW, previewH);
+        try {
+          ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, previewW, previewH);
+        } catch {
+          // Tainted canvas: show a placeholder message
+          ctx.fillStyle = '#f0f0f0';
+          ctx.fillRect(0, 0, previewW, previewH);
+          ctx.fillStyle = '#999';
+          ctx.font = '13px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('预览不可用（跨域限制）', previewW / 2, previewH / 2);
+        }
       }
     } catch (e) {
-      // Tainted canvas fallback - ignore
+      // Ignore
     }
     // Render large preview
     try {
