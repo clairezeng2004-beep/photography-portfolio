@@ -132,6 +132,7 @@
   align-items: stretch;
   border: 1px solid #d5d2cc;
   background: #fff;
+  min-width: 280px;
 }
 
 .footer-email-input {
@@ -163,25 +164,6 @@
   color: #aaa;
   margin: 0 0 18px;
   font-style: italic;
-}
-
-.footer-subscribe-form {
-  display: flex;
-  align-items: stretch;
-  border: 1px solid #d5d2cc;
-  background: #fff;
-}
-
-.footer-email-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-family: 'Playfair Display', serif;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  color: #2a2a2a;
-  padding: 10px 14px;
 }
 
 .footer-email-input::placeholder {
