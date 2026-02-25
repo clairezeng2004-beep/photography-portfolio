@@ -2899,7 +2899,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
       setPickerSelectedCollection(null);
     } else {
       // Desktop pick: open crop dialog instead of direct assignment
-      setHeroCropSource({ index: pickerTarget, url, title: collectionTitle, location: collectionLocation, mobileUrl });
+      setHeroCropSource({ index: pickerTarget as number, url, title: collectionTitle, location: collectionLocation, mobileUrl });
       setShowPicker(false);
       setPickerSelectedCollection(null);
     }
