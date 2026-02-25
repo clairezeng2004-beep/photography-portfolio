@@ -217,24 +217,23 @@ function filterOverlappingLabels(
       placed.push({ x: bestX, y: bestY, w: estWidth, key: item.key, isCity: true });
       attempted.add(itemKey);
     } else {
-      // For region/country labels: more permissive placement
+      // For region/country labels: try to place, but HIDE if can't find non-overlapping spot
       let placedSuccessfully = false;
       
       // First try original position
       let overlaps = placed.some(p =>
-        Math.abs(p.x - item.x) < (estWidth + p.w) * 0.35 &&
-        Math.abs(p.y - item.y) < minDistY * 0.7
+        Math.abs(p.x - item.x) < (estWidth + p.w) * 0.45 &&
+        Math.abs(p.y - item.y) < minDistY * 0.85
       );
       
       if (!overlaps) {
-        // Check marker overlap (more permissive than before)
+        // Check marker overlap
         const overlapsMarker = allMarkers.some(m =>
           Math.abs(m.x - item.x) < estWidth * 0.4 + 4 &&
           Math.abs(m.y - item.y) < minDistY * 0.7
         );
         
         if (!overlapsMarker) {
-          // Try to place
           placed.push({ x: item.x, y: item.y, w: estWidth, key: item.key, isCity: false });
           visible.add(item.key);
           attempted.add(itemKey);
@@ -243,34 +242,31 @@ function filterOverlappingLabels(
       }
       
       if (!placedSuccessfully) {
-        // Try nudging if original position fails
+        // Try nudging in several directions
         const nudges = [
-          { dx: 0, dy: 0 },  // already tried
-          { dx: 0, dy: -minDistY * 0.7 },
+          { dx: 0, dy: -minDistY * 0.8 },
           { dx: 0, dy: minDistY * 0.9 },
-          { dx: estWidth * 0.4, dy: 0 },
-          { dx: -(estWidth * 0.4), dy: 0 },
+          { dx: estWidth * 0.5, dy: 0 },
+          { dx: -(estWidth * 0.5), dy: 0 },
+          { dx: estWidth * 0.4, dy: -minDistY * 0.6 },
+          { dx: -(estWidth * 0.4), dy: -minDistY * 0.6 },
         ];
         
         for (const nudge of nudges) {
-          if (nudge.dx === 0 && nudge.dy === 0) continue; // already tried
-          
           const nx = item.x + nudge.dx;
           const ny = item.y + nudge.dy;
           overlaps = placed.some(p =>
-            Math.abs(p.x - nx) < (estWidth + p.w) * 0.35 &&
-            Math.abs(p.y - ny) < minDistY * 0.7
+            Math.abs(p.x - nx) < (estWidth + p.w) * 0.45 &&
+            Math.abs(p.y - ny) < minDistY * 0.85
           );
           
           if (!overlaps) {
-            // Check marker overlap for nudged position
             const overlapsMarker = allMarkers.some(m =>
               Math.abs(m.x - nx) < estWidth * 0.4 + 4 &&
               Math.abs(m.y - ny) < minDistY * 0.7
             );
             
             if (!overlapsMarker) {
-              // Place with nudge
               placed.push({ x: nx, y: ny, w: estWidth, key: item.key, isCity: false });
               visible.add(item.key);
               offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
@@ -282,15 +278,8 @@ function filterOverlappingLabels(
         }
       }
       
+      // If still not placed, HIDE the label (don't force placement)
       if (!placedSuccessfully) {
-        // If all attempts fail, still try to place with more aggressive nudging
-        const finalNudge = { dx: 0, dy: -minDistY * 1.2 };
-        const finalX = item.x + finalNudge.dx;
-        const finalY = item.y + finalNudge.dy;
-        
-        placed.push({ x: finalX, y: finalY, w: estWidth, key: item.key, isCity: false });
-        visible.add(item.key);
-        offsets.set(item.key, finalNudge);
         attempted.add(itemKey);
       }
     }
@@ -762,8 +751,9 @@ const Footprints: React.FC = () => {
         const bboxH = y1 - y0;
         const area = bboxW * bboxH;
         // Skip countries too small on screen at current zoom
-        const minArea = activeContinent === 'all' ? 400 : 800;
-        if (area < minArea / (zoom * zoom)) return;
+        // Use sqrt(zoom) for gradual scaling — prevents sudden flood of labels
+        const minArea = activeContinent === 'all' ? 500 : 1000;
+        if (area < minArea / (zoom * Math.sqrt(zoom))) return;
         const cx = (x0 + x1) / 2;
         const cy = (y0 + y1) / 2;
         // Skip if centroid outside viewport
@@ -780,8 +770,8 @@ const Footprints: React.FC = () => {
       });
     }
 
-    const charWidth = activeContinent === 'china' ? 7 / zoom : 7.5 / zoom;
-    const minY = activeContinent === 'china' ? 10 / zoom : 11 / zoom;
+    const charWidth = activeContinent === 'china' ? 7 / zoom : 7.5 / Math.sqrt(zoom);
+    const minY = activeContinent === 'china' ? 10 / zoom : 11 / Math.sqrt(zoom);
     return filterOverlappingLabels(items, charWidth, minY);
   }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures, chinaGeoJson]);
 
