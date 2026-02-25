@@ -158,6 +158,64 @@ function autoCropToPortrait(
 type TabType = 'home' | 'collections' | 'about' | 'map';
 
 /* ============================================================
+   ClearableInput: text input with inline clear (×) button
+   ============================================================ */
+const ClearableInput: React.FC<
+  React.InputHTMLAttributes<HTMLInputElement> & { onClear?: () => void }
+> = ({ onClear, value, onChange, ...rest }) => {
+  const hasValue = value !== undefined && value !== null && String(value).length > 0;
+  return (
+    <span className="clearable-input-wrap">
+      <input value={value} onChange={onChange} {...rest} />
+      {hasValue && (
+        <button
+          type="button"
+          className="clearable-input-x"
+          tabIndex={-1}
+          onClick={() => {
+            if (onClear) {
+              onClear();
+            } else if (onChange) {
+              onChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+            }
+          }}
+        >
+          <X size={12} />
+        </button>
+      )}
+    </span>
+  );
+};
+
+/* ClearableTextarea: textarea with inline clear button */
+const ClearableTextarea: React.FC<
+  React.TextareaHTMLAttributes<HTMLTextAreaElement> & { onClear?: () => void }
+> = ({ onClear, value, onChange, ...rest }) => {
+  const hasValue = value !== undefined && value !== null && String(value).length > 0;
+  return (
+    <span className="clearable-input-wrap clearable-textarea-wrap">
+      <textarea value={value} onChange={onChange} {...rest} />
+      {hasValue && (
+        <button
+          type="button"
+          className="clearable-input-x clearable-textarea-x"
+          tabIndex={-1}
+          onClick={() => {
+            if (onClear) {
+              onClear();
+            } else if (onChange) {
+              onChange({ target: { value: '' } } as React.ChangeEvent<HTMLTextAreaElement>);
+            }
+          }}
+        >
+          <X size={12} />
+        </button>
+      )}
+    </span>
+  );
+};
+
+/* ============================================================
    Click-outside hook for closing dropdown
    ============================================================ */
 
@@ -187,6 +245,25 @@ const Admin: React.FC = () => {
   const [editingCollection, setEditingCollection] = useState<string | null>(null);
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [isSavingCollection, setIsSavingCollection] = useState(false);
+
+  // Click outside editing collection card to close it
+  useEffect(() => {
+    if (!editingCollection) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // If click is inside the editing card, a modal/overlay, or a portal, do nothing
+      if (
+        target.closest('.collection-card.editing') ||
+        target.closest('.modal-overlay') ||
+        target.closest('.picker-overlay') ||
+        target.closest('.crop-overlay') ||
+        target.closest('.crop-large-preview-overlay')
+      ) return;
+      setEditingCollection(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [editingCollection]);
 
   // Toast state
   const [toastMessage, setToastMessage] = useState('');
@@ -875,18 +952,16 @@ const Admin: React.FC = () => {
                       <div className="form-row">
                         <div className="form-group">
                           <label>标题 *</label>
-                          <input
+                          <ClearableInput
                             type="text"
                             value={newCollection.title}
                             onChange={(e) => {
                               const title = e.target.value;
                               const extracted = extractFromTitle(title);
                               const updates: Partial<PhotoCollection> = { ...newCollection, title };
-                              // Auto-fill location if currently empty or was auto-filled
                               if (extracted.location && (!newCollection.location || newCollection.location === extractFromTitle(newCollection.title || '').location)) {
                                 updates.location = extracted.location;
                               }
-                              // Auto-fill year if extracted
                               if (extracted.year) {
                                 updates.year = extracted.year;
                                 setLastUsedYear(extracted.year);
@@ -899,7 +974,7 @@ const Admin: React.FC = () => {
                         
                         <div className="form-group">
                           <label>地点 *</label>
-                          <input
+                          <ClearableInput
                             type="text"
                             value={newCollection.location}
                             onChange={(e) => setNewCollection({
@@ -1220,7 +1295,7 @@ const Admin: React.FC = () => {
 
               <div className="about-editor">
                 <div className="editor-section">
-                  <input
+                  <ClearableInput
                     type="text"
                     className="section-label-input"
                     value={getSectionLabel('avatar', '头像')}
@@ -1239,7 +1314,7 @@ const Admin: React.FC = () => {
                 </div>
 
                 <div className="editor-section">
-                  <input
+                  <ClearableInput
                     type="text"
                     className="section-label-input"
                     value={getSectionLabel('basicInfo', '基本信息')}
@@ -1248,7 +1323,7 @@ const Admin: React.FC = () => {
                   <div className="form-grid">
                     <div className="form-group">
                       <label>标题</label>
-                      <input
+                      <ClearableInput
                         type="text"
                         value={editedAboutInfo.title}
                         onChange={(e) => setEditedAboutInfo(prev => ({ ...prev, title: e.target.value }))}
@@ -1256,7 +1331,7 @@ const Admin: React.FC = () => {
                     </div>
                     <div className="form-group">
                       <label>副标题</label>
-                      <input
+                      <ClearableInput
                         type="text"
                         value={editedAboutInfo.subtitle}
                         onChange={(e) => setEditedAboutInfo(prev => ({ ...prev, subtitle: e.target.value }))}
@@ -1266,7 +1341,7 @@ const Admin: React.FC = () => {
                 </div>
 
                 <div className="editor-section">
-                  <input
+                  <ClearableInput
                     type="text"
                     className="section-label-input"
                     value={getSectionLabel('bio', '个人简介')}
@@ -1276,7 +1351,7 @@ const Admin: React.FC = () => {
                     {editedAboutInfo.bio.map((paragraph, index) => (
                       <div key={index} className="bio-paragraph">
                         <div className="form-group bio-form-group">
-                          <textarea
+                          <ClearableTextarea
                             value={paragraph}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -1317,7 +1392,7 @@ const Admin: React.FC = () => {
                 </div>
 
                 <div className="editor-section">
-                  <input
+                  <ClearableInput
                     type="text"
                     className="section-label-input"
                     value={getSectionLabel('contact', '联系方式')}
@@ -1326,7 +1401,7 @@ const Admin: React.FC = () => {
                   <div className="form-grid">
                     <div className="form-group">
                       <label>邮箱</label>
-                      <input
+                      <ClearableInput
                         type="email"
                         value={editedAboutInfo.contact.email}
                         onChange={(e) => {
@@ -1340,7 +1415,7 @@ const Admin: React.FC = () => {
                     </div>
                     <div className="form-group">
                       <label>Instagram</label>
-                      <input
+                      <ClearableInput
                         type="url"
                         value={editedAboutInfo.contact.instagram}
                         onChange={(e) => {
@@ -1357,7 +1432,7 @@ const Admin: React.FC = () => {
                 </div>
 
                 <div className="editor-section">
-                  <input
+                  <ClearableInput
                     type="text"
                     className="section-label-input"
                     value={getSectionLabel('stats', '统计数据')}
@@ -1366,7 +1441,7 @@ const Admin: React.FC = () => {
                   <div className="form-grid">
                     <div className="form-group">
                       <label>国家数量</label>
-                      <input
+                      <ClearableInput
                         type="number"
                         value={editedAboutInfo.stats.cities}
                         onChange={(e) => {
@@ -1381,7 +1456,7 @@ const Admin: React.FC = () => {
                     </div>
                     <div className="form-group">
                       <label>城市数量</label>
-                      <input
+                      <ClearableInput
                         type="text"
                         value={editedAboutInfo.stats.photos}
                         onChange={(e) => {
@@ -1401,7 +1476,7 @@ const Admin: React.FC = () => {
                 {(editedAboutInfo.customSections || []).map((section, sIdx) => (
                   <div key={section.id} className="editor-section custom-section-editor">
                     <div className="custom-section-header">
-                      <input
+                      <ClearableInput
                         type="text"
                         className="section-label-input"
                         value={section.title}
@@ -1432,7 +1507,7 @@ const Admin: React.FC = () => {
                       {section.items.map((item, iIdx) => (
                         <div key={item.id} className="custom-section-item">
                           <div className="custom-section-item-fields">
-                            <input
+                            <ClearableInput
                               type="text"
                               value={item.label}
                               onChange={(e) => {
@@ -1448,7 +1523,7 @@ const Admin: React.FC = () => {
                               placeholder="小标题"
                               className="custom-item-label-input"
                             />
-                            <input
+                            <ClearableInput
                               type="text"
                               value={item.value}
                               onChange={(e) => {
@@ -1664,7 +1739,7 @@ const MapManager: React.FC<MapManagerProps> = ({ litCities, updateLitCities, col
           </button>
         </div>
         <div className="map-search-box">
-          <input
+          <ClearableInput
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -1897,7 +1972,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
       <div className="card-body">
         {isEditing ? (
           <>
-            <input
+            <ClearableInput
               type="text"
               className="inline-edit-title"
               value={title}
@@ -2066,7 +2141,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               </button>
               {showDescriptionSection && (
                 <div className="collapsible-body">
-                  <textarea
+                  <ClearableTextarea
                     className="inline-edit-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -2148,14 +2223,14 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                               并排
                             </button>
                           </div>
-                          <textarea
+                          <ClearableTextarea
                             className="photo-caption-input"
                             value={photo.caption || ''}
                             onChange={(e) => onUpdatePhoto(photo.id, { caption: e.target.value })}
                             placeholder="图片前配文（出现在图片上方，用于图片组间叙事）"
                             rows={2}
                           />
-                          <input
+                          <ClearableInput
                             type="text"
                             className="photo-footnote-input"
                             value={photo.footnote || ''}
@@ -2532,7 +2607,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                 <div className="hero-item-info">
                   <div className="form-group">
                     <label>标题</label>
-                    <input
+                    <ClearableInput
                       type="text"
                       value={img.title}
                       onChange={(e) => updateImageField(index, 'title', e.target.value)}
@@ -2541,7 +2616,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   </div>
                   <div className="form-group">
                     <label>地点</label>
-                    <input
+                    <ClearableInput
                       type="text"
                       value={img.location}
                       onChange={(e) => updateImageField(index, 'location', e.target.value)}
