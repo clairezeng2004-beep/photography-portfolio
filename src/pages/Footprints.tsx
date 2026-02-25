@@ -85,6 +85,8 @@ const COUNTRY_NUMERIC_TO_CODE: Record<string, string> = {
 /* ============================================================
    Label overlap detection: only show labels that don't overlap.
    Items are sorted by priority desc then totalPhotos desc.
+   For lit city labels (priority >= 10), nudge positions to avoid
+   each other instead of hiding.
    ============================================================ */
 interface LabelItem {
   key: string;
@@ -98,16 +100,22 @@ interface LabelItem {
   markerY?: number;
 }
 
+interface LabelResult {
+  visible: Set<string>;
+  offsets: Map<string, { dx: number; dy: number }>; // nudge offsets for lit city labels
+}
+
 function filterOverlappingLabels(
   items: LabelItem[],
   charWidth: number,
   minDistY: number
-): Set<string> {
+): LabelResult {
   const sorted = [...items].sort((a, b) =>
     b.priority !== a.priority ? b.priority - a.priority : b.totalPhotos - a.totalPhotos
   );
   const visible = new Set<string>();
-  const placed: { x: number; y: number; w: number }[] = [];
+  const offsets = new Map<string, { dx: number; dy: number }>();
+  const placed: { x: number; y: number; w: number; key: string; isCity: boolean }[] = [];
 
   // Collect ALL city marker positions (both with and without photos) for region label avoidance
   const allMarkers: { x: number; y: number }[] = [];
@@ -122,27 +130,74 @@ function filterOverlappingLabels(
     if (item.label === '') continue;
 
     const estWidth = item.label.length * charWidth;
+    const isLitCity = item.priority >= 10;
 
-    // Check overlap with already-placed labels (only hide if EXACT overlap)
-    const overlapsLabel = placed.some(p =>
-      Math.abs(p.x - item.x) < (estWidth + p.w) * 0.4 &&
-      Math.abs(p.y - item.y) < minDistY * 0.8
-    );
-    if (overlapsLabel) continue;
+    if (isLitCity) {
+      // For lit city labels: try to nudge instead of hiding
+      let bestX = item.x;
+      let bestY = item.y;
+      let resolved = false;
 
-    // For region labels (priority <= 5), only hide if marker is VERY close (direct overlap)
-    if (item.priority <= 5) {
+      // Try original position first, then nudge in various directions
+      const nudges = [
+        { dx: 0, dy: 0 },
+        { dx: 0, dy: -minDistY * 0.9 },        // up
+        { dx: 0, dy: minDistY * 1.2 },          // down (below marker)
+        { dx: estWidth * 0.5 + 4, dy: 0 },      // right
+        { dx: -(estWidth * 0.5 + 4), dy: 0 },   // left
+        { dx: estWidth * 0.4, dy: -minDistY * 0.7 },  // upper-right
+        { dx: -(estWidth * 0.4), dy: -minDistY * 0.7 }, // upper-left
+        { dx: estWidth * 0.4, dy: minDistY * 1.0 },     // lower-right
+        { dx: -(estWidth * 0.4), dy: minDistY * 1.0 },  // lower-left
+      ];
+
+      for (const nudge of nudges) {
+        const nx = item.x + nudge.dx;
+        const ny = item.y + nudge.dy;
+        const overlaps = placed.some(p => {
+          if (!p.isCity) return false; // only avoid other lit city labels
+          return Math.abs(p.x - nx) < (estWidth + p.w) * 0.45 &&
+                 Math.abs(p.y - ny) < minDistY * 0.85;
+        });
+        if (!overlaps) {
+          bestX = nx;
+          bestY = ny;
+          resolved = true;
+          if (nudge.dx !== 0 || nudge.dy !== 0) {
+            offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
+          }
+          break;
+        }
+      }
+
+      if (!resolved) {
+        // If all nudges fail, still show but with best effort (push further up)
+        bestY = item.y - minDistY * 1.5;
+        offsets.set(item.key, { dx: 0, dy: -minDistY * 1.5 });
+      }
+
+      visible.add(item.key);
+      placed.push({ x: bestX, y: bestY, w: estWidth, key: item.key, isCity: true });
+    } else {
+      // For region/country labels: hide if overlapping
+      const overlapsLabel = placed.some(p =>
+        Math.abs(p.x - item.x) < (estWidth + p.w) * 0.4 &&
+        Math.abs(p.y - item.y) < minDistY * 0.8
+      );
+      if (overlapsLabel) continue;
+
+      // Only hide if marker is VERY close (direct overlap)
       const overlapsMarker = allMarkers.some(m =>
         Math.abs(m.x - item.x) < estWidth * 0.3 + 4 &&
         Math.abs(m.y - item.y) < minDistY * 0.6
       );
       if (overlapsMarker) continue;
-    }
 
-    visible.add(item.key);
-    placed.push({ x: item.x, y: item.y, w: estWidth });
+      visible.add(item.key);
+      placed.push({ x: item.x, y: item.y, w: estWidth, key: item.key, isCity: false });
+    }
   }
-  return visible;
+  return { visible, offsets };
 }
 
 /* ============================================================
@@ -467,7 +522,7 @@ const Footprints: React.FC = () => {
   }, []);
 
   // Compute visible labels (unified overlap detection for city + province/country labels)
-  const visibleLabelKeys = useMemo(() => {
+  const labelResult = useMemo(() => {
     const items: LabelItem[] = [];
 
     // City labels (highest priority — always try to show)
@@ -567,6 +622,9 @@ const Footprints: React.FC = () => {
     const minY = activeContinent === 'china' ? 10 / zoom : 11 / zoom;
     return filterOverlappingLabels(items, charWidth, minY);
   }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures, chinaGeoJson]);
+
+  const visibleLabelKeys = labelResult.visible;
+  const labelOffsets = labelResult.offsets;
 
   /* ============ City preview modal ============ */
   const renderCollectionPreview = () => {
@@ -940,7 +998,7 @@ const Footprints: React.FC = () => {
                 );
               })}
 
-              {/* City markers */}
+              {/* City markers (rendered first, below labels) */}
               {filteredGeos.map(({ geo, cityGroup }) => {
                 const { lat, lng } = getLatLng(geo);
                 const pos = projectCity(lat, lng);
@@ -949,7 +1007,6 @@ const Footprints: React.FC = () => {
                 const hasPhoto = !!cityGroup;
                 const isHovered = hoveredCity === geo.city;
                 const cityKey = `${geo.continent}-${geo.city}`;
-                const showLabel = visibleLabelKeys.has(`city-${cityKey}`);
 
                 if (x < -20 || x > vc.width + 20 || y < -20 || y > vc.height + 20) return null;
 
@@ -973,16 +1030,37 @@ const Footprints: React.FC = () => {
                         if (cityGroup) { setSelectedCityGroup(cityGroup); setPreviewCollection(null); setPreviewPage(0); }
                       }}
                     />
-                    {hasPhoto && showLabel && (
-                      <text
-                        x={x}
-                        y={y - (isHovered ? 11 : 9)}
-                        className={`city-label ${isHovered ? 'city-label-hover' : ''}`}
-                      >
-                        {geo.city}
-                      </text>
-                    )}
                   </g>
+                );
+              })}
+
+              {/* City labels (rendered last, always on top of all markers) */}
+              {filteredGeos.map(({ geo, cityGroup }) => {
+                if (!cityGroup) return null;
+                const { lat, lng } = getLatLng(geo);
+                const pos = projectCity(lat, lng);
+                if (!pos) return null;
+                const { x, y } = pos;
+                const isHovered = hoveredCity === geo.city;
+                const cityKey = `${geo.continent}-${geo.city}`;
+                const showLabel = visibleLabelKeys.has(`city-${cityKey}`);
+
+                if (!showLabel) return null;
+                if (x < -20 || x > vc.width + 20 || y < -20 || y > vc.height + 20) return null;
+
+                const offset = labelOffsets.get(`city-${cityKey}`);
+                const labelX = x + (offset?.dx || 0);
+                const labelY = y - (isHovered ? 11 : 9) + (offset?.dy || 0);
+
+                return (
+                  <text
+                    key={`label-${cityKey}`}
+                    x={labelX}
+                    y={labelY}
+                    className={`city-label city-label-lit ${isHovered ? 'city-label-hover' : ''}`}
+                  >
+                    {geo.city}
+                  </text>
                 );
               })}
             </g>
