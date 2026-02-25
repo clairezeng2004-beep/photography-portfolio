@@ -66,16 +66,30 @@ const About: React.FC = () => {
 
         {/* Custom Sections */}
         {(aboutInfo.customSections || []).map((section) => {
-          const validItems = section.items.filter(item => item.label || item.value);
+          const validItems = section.items.filter(item => item.label || item.value || (item.subItems && item.subItems.length > 0));
           if (validItems.length === 0) return null;
           return (
             <div key={section.id} className="about-section">
               <h2 className="about-section-title">{section.title}</h2>
               <div className="about-custom-items">
                 {validItems.map((item) => (
-                  <div key={item.id} className="about-custom-item">
-                    {item.label && <span className="about-custom-item-label">{item.label}</span>}
-                    {item.value && <span className="about-custom-item-value">{item.value}</span>}
+                  <div key={item.id} className="about-custom-item-group">
+                    {(item.label || item.value) && (
+                      <div className="about-custom-item">
+                        {item.label && <span className="about-custom-item-label">{item.label}</span>}
+                        {item.value && <span className="about-custom-item-value">{item.value}</span>}
+                      </div>
+                    )}
+                    {item.subItems && item.subItems.filter(s => s.label || s.value).length > 0 && (
+                      <div className="about-custom-subitems">
+                        {item.subItems.filter(s => s.label || s.value).map((sub) => (
+                          <div key={sub.id} className="about-custom-subitem">
+                            {sub.label && <span className="about-custom-subitem-label">{sub.label}</span>}
+                            {sub.value && <span className="about-custom-subitem-value">{sub.value}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

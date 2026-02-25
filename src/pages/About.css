@@ -117,10 +117,50 @@
   gap: 14px;
 }
 
+.about-custom-item-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .about-custom-item {
   display: flex;
   gap: 16px;
   align-items: baseline;
+}
+
+.about-custom-subitems {
+  margin-left: 24px;
+  padding-left: 16px;
+  border-left: 1px solid #e0deda;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.about-custom-subitem {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.about-custom-subitem-label {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #555;
+  letter-spacing: 0.02em;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.about-custom-subitem-value {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: #777;
+  line-height: 1.8;
+  letter-spacing: 0.02em;
 }
 
 .about-custom-item-label {
@@ -216,6 +256,20 @@
   }
 
   .about-custom-item-label {
+    min-width: unset;
+  }
+
+  .about-custom-subitems {
+    margin-left: 16px;
+    padding-left: 12px;
+  }
+
+  .about-custom-subitem {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .about-custom-subitem-label {
     min-width: unset;
   }
 }

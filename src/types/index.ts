@@ -38,14 +38,23 @@ export interface PhotoCollection {
   order?: number;
 }
 
+export interface AboutCustomSectionSubItem {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface AboutCustomSectionItem {
+  id: string;
+  label: string;
+  value: string;
+  subItems?: AboutCustomSectionSubItem[];
+}
+
 export interface AboutCustomSection {
   id: string;
   title: string;
-  items: {
-    id: string;
-    label: string;
-    value: string;
-  }[];
+  items: AboutCustomSectionItem[];
 }
 
 export interface AboutInfo {

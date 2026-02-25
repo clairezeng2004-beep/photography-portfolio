@@ -7,7 +7,7 @@ import {
   Folder, Camera, MapPin, Calendar, Globe,
   ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload
 } from 'lucide-react';
-import { PhotoCollection, Photo, AboutInfo, AboutCustomSection, GeoInfo, HeroImage } from '../types';
+import { PhotoCollection, Photo, AboutInfo, AboutCustomSection, AboutCustomSectionSubItem, GeoInfo, HeroImage } from '../types';
 import { useData } from '../context/DataContext';
 import {
   CITY_DATABASE,
@@ -126,7 +126,7 @@ async function autoCropToAspect(
         canvas.height = outputHeight;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, sx, sy, sw, sh, 0, 0, outputWidth, outputHeight);
-        resolve(canvas.toDataURL('image/jpeg', 0.97));
+        resolve(canvas.toDataURL('image/jpeg', 1.0));
       } catch (err) {
         reject(err);
       } finally {
@@ -150,7 +150,7 @@ function autoCropToLandscape(imageUrl: string, outputWidth: number = 3200): Prom
    ============================================================ */
 function autoCropToPortrait(
   imageUrl: string,
-  outputWidth: number = 1800
+  outputWidth: number = 2400
 ): Promise<string> {
   return autoCropToAspect(imageUrl, 3 / 4, outputWidth);
 }
@@ -1498,62 +1498,143 @@ const Admin: React.FC = () => {
                             customSections: (prev.customSections || []).filter((_, i) => i !== sIdx)
                           }));
                         }}
-                        title="删除此区块"
+                        title="删除此区块（仅删除区块标题，子项会一并移除）"
                       >
                         <Trash2 size={14} />
                       </button>
                     </div>
                     <div className="custom-section-items">
                       {section.items.map((item, iIdx) => (
-                        <div key={item.id} className="custom-section-item">
-                          <div className="custom-section-item-fields">
-                            <ClearableInput
-                              type="text"
-                              value={item.label}
-                              onChange={(e) => {
-                                const val = e.target.value;
+                        <div key={item.id} className="custom-section-item-wrap">
+                          <div className="custom-section-item">
+                            <div className="custom-section-item-fields">
+                              <ClearableInput
+                                type="text"
+                                value={item.label}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditedAboutInfo(prev => {
+                                    const sections = [...(prev.customSections || [])];
+                                    const items = [...sections[sIdx].items];
+                                    items[iIdx] = { ...items[iIdx], label: val };
+                                    sections[sIdx] = { ...sections[sIdx], items };
+                                    return { ...prev, customSections: sections };
+                                  });
+                                }}
+                                placeholder="小标题"
+                                className="custom-item-label-input"
+                              />
+                              <ClearableInput
+                                type="text"
+                                value={item.value}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditedAboutInfo(prev => {
+                                    const sections = [...(prev.customSections || [])];
+                                    const items = [...sections[sIdx].items];
+                                    items[iIdx] = { ...items[iIdx], value: val };
+                                    sections[sIdx] = { ...sections[sIdx], items };
+                                    return { ...prev, customSections: sections };
+                                  });
+                                }}
+                                placeholder="内容"
+                                className="custom-item-value-input"
+                              />
+                            </div>
+                            <button
+                              className="btn-icon small"
+                              onClick={() => {
                                 setEditedAboutInfo(prev => {
                                   const sections = [...(prev.customSections || [])];
                                   const items = [...sections[sIdx].items];
-                                  items[iIdx] = { ...items[iIdx], label: val };
+                                  const newSubItem: AboutCustomSectionSubItem = { id: Date.now().toString(), label: '', value: '' };
+                                  items[iIdx] = { ...items[iIdx], subItems: [...(items[iIdx].subItems || []), newSubItem] };
                                   sections[sIdx] = { ...sections[sIdx], items };
                                   return { ...prev, customSections: sections };
                                 });
                               }}
-                              placeholder="小标题"
-                              className="custom-item-label-input"
-                            />
-                            <ClearableInput
-                              type="text"
-                              value={item.value}
-                              onChange={(e) => {
-                                const val = e.target.value;
+                              title="添加二级子项"
+                            >
+                              <Plus size={14} />
+                            </button>
+                            <button
+                              className="btn-icon danger small"
+                              onClick={() => {
                                 setEditedAboutInfo(prev => {
                                   const sections = [...(prev.customSections || [])];
-                                  const items = [...sections[sIdx].items];
-                                  items[iIdx] = { ...items[iIdx], value: val };
+                                  const items = sections[sIdx].items.filter((_, i) => i !== iIdx);
                                   sections[sIdx] = { ...sections[sIdx], items };
                                   return { ...prev, customSections: sections };
                                 });
                               }}
-                              placeholder="内容"
-                              className="custom-item-value-input"
-                            />
+                              title="删除此项（仅删除此项，不影响其他项）"
+                            >
+                              <X size={14} />
+                            </button>
                           </div>
-                          <button
-                            className="btn-icon danger small"
-                            onClick={() => {
-                              setEditedAboutInfo(prev => {
-                                const sections = [...(prev.customSections || [])];
-                                const items = sections[sIdx].items.filter((_, i) => i !== iIdx);
-                                sections[sIdx] = { ...sections[sIdx], items };
-                                return { ...prev, customSections: sections };
-                              });
-                            }}
-                            title="删除此项"
-                          >
-                            <X size={14} />
-                          </button>
+                          {/* Sub-items (二级子项) */}
+                          {(item.subItems || []).length > 0 && (
+                            <div className="custom-section-subitems">
+                              {(item.subItems || []).map((sub, subIdx) => (
+                                <div key={sub.id} className="custom-section-subitem">
+                                  <div className="custom-section-subitem-fields">
+                                    <ClearableInput
+                                      type="text"
+                                      value={sub.label}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setEditedAboutInfo(prev => {
+                                          const sections = [...(prev.customSections || [])];
+                                          const items = [...sections[sIdx].items];
+                                          const subs = [...(items[iIdx].subItems || [])];
+                                          subs[subIdx] = { ...subs[subIdx], label: val };
+                                          items[iIdx] = { ...items[iIdx], subItems: subs };
+                                          sections[sIdx] = { ...sections[sIdx], items };
+                                          return { ...prev, customSections: sections };
+                                        });
+                                      }}
+                                      placeholder="二级标题"
+                                      className="custom-subitem-label-input"
+                                    />
+                                    <ClearableInput
+                                      type="text"
+                                      value={sub.value}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setEditedAboutInfo(prev => {
+                                          const sections = [...(prev.customSections || [])];
+                                          const items = [...sections[sIdx].items];
+                                          const subs = [...(items[iIdx].subItems || [])];
+                                          subs[subIdx] = { ...subs[subIdx], value: val };
+                                          items[iIdx] = { ...items[iIdx], subItems: subs };
+                                          sections[sIdx] = { ...sections[sIdx], items };
+                                          return { ...prev, customSections: sections };
+                                        });
+                                      }}
+                                      placeholder="内容"
+                                      className="custom-subitem-value-input"
+                                    />
+                                  </div>
+                                  <button
+                                    className="btn-icon danger small"
+                                    onClick={() => {
+                                      setEditedAboutInfo(prev => {
+                                        const sections = [...(prev.customSections || [])];
+                                        const items = [...sections[sIdx].items];
+                                        const subs = (items[iIdx].subItems || []).filter((_, i) => i !== subIdx);
+                                        items[iIdx] = { ...items[iIdx], subItems: subs };
+                                        sections[sIdx] = { ...sections[sIdx], items };
+                                        return { ...prev, customSections: sections };
+                                      });
+                                    }}
+                                    title="删除此二级子项"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                       <button
@@ -2628,28 +2709,58 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                   <div className="hero-covers-row">
                     <div className="hero-cover-slot">
                       <label className="hero-cover-slot-label">横版封面</label>
-                      <div className="hero-cover-thumb" onClick={() => openPicker(index)} title="点击更换横版封面">
-                        {img.url ? (
-                          <img src={img.url} alt="横版" />
-                        ) : (
-                          <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
-                        )}
-                        <div className="hero-cover-thumb-overlay">更换</div>
-                      </div>
+                      <ImageUploader
+                        onImageUpload={(url) => {
+                          setLocalImages(prev => prev.map((im, i) =>
+                            i === index ? { ...im, url } : im
+                          ));
+                        }}
+                        currentImage={img.url || undefined}
+                        enableCrop
+                        cropAspectOptions={[
+                          { label: '16:9', value: 16 / 9 },
+                          { label: '4:3', value: 4 / 3 },
+                          { label: '21:9', value: 21 / 9 },
+                        ]}
+                        defaultCropAspect={16 / 9}
+                        defaultOutputWidth={4000}
+                        compressMaxWidth={4000}
+                        compressQuality={1.0}
+                        previewAspectRatio={16 / 9}
+                        allowUpload={true}
+                        label="上传横版封面"
+                      />
+                      <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => openPicker(index)}>
+                        从作品集选图
+                      </button>
                     </div>
                     <div className="hero-cover-slot">
                       <label className="hero-cover-slot-label">
                         <Smartphone size={11} style={{ marginRight: 3, verticalAlign: -1 }} />
                         竖版封面
                       </label>
-                      <div className="hero-cover-thumb" onClick={() => openPicker({ type: 'mobile', index })} title="点击更换竖版封面">
-                        {(img.mobileUrl || img.url) ? (
-                          <img src={img.mobileUrl || img.url} alt="竖版" />
-                        ) : (
-                          <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
-                        )}
-                        <div className="hero-cover-thumb-overlay">更换</div>
-                      </div>
+                      <ImageUploader
+                        onImageUpload={(url) => {
+                          replaceMobileImage(index, url);
+                        }}
+                        currentImage={(img.mobileUrl || img.url) || undefined}
+                        enableCrop
+                        cropAspectOptions={[
+                          { label: '9:16', value: 9 / 16 },
+                          { label: '3:4', value: 3 / 4 },
+                          { label: '2:3', value: 2 / 3 },
+                        ]}
+                        defaultCropAspect={9 / 16}
+                        defaultOutputWidth={2400}
+                        compressMaxWidth={2400}
+                        compressQuality={1.0}
+                        previewAspectRatio={9 / 16}
+                        allowUpload={true}
+                        label="上传竖版封面"
+                      />
+                      <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => openPicker({ type: 'mobile', index })}>
+                        从作品集选图
+                      </button>
                     </div>
                   </div>
 

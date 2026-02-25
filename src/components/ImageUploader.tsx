@@ -371,8 +371,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   defaultOutputWidth = 1600,
   allowUpload = true,
   emptyHint = '请先选择图片',
-  compressMaxWidth = 3000,
-  compressQuality = 0.95,
+  compressMaxWidth = 4000,
+  compressQuality = 1.0,
   originalSource,
   previewAspectRatio,
 }) => {
