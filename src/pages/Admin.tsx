@@ -2318,8 +2318,8 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     if (next.has(s)) next.delete(s); else next.add(s);
     return next;
   });
-  const [cropProcessing, setCropProcessing] = useState(false);
   const [showCoverPicker, setShowCoverPicker] = useState<'portrait' | null>(null);
+  const [externalCropSource, setExternalCropSource] = useState<string | null>(null);
 
   // Move photo state — multi-select
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
@@ -2524,6 +2524,8 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                     defaultOutputWidth={1200}
                     previewAspectRatio={3 / 4}
                     onReplaceClick={() => setShowCoverPicker('portrait')}
+                    externalCropSource={externalCropSource}
+                    onExternalCropConsumed={() => setExternalCropSource(null)}
                   />
                 </div>
                 {showCoverPicker && collection.photos.length > 0 && (
@@ -2534,19 +2536,12 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                     </div>
                     <div className="cover-picker-grid cover-picker-grid-compact">
                       {collection.photos.map(photo => (
-                        <button type="button" key={photo.id} className="cover-picker-item" disabled={cropProcessing} onClick={async () => {
-                          setCropProcessing(true);
-                          try {
-                            const src = photo.url;
-                            const [portrait, landscape] = await Promise.allSettled([autoCropToPortrait(src), autoCropToLandscape(src)]);
-                            if (portrait.status === 'fulfilled') setCardCoverImage(portrait.value);
-                            setCoverImage(landscape.status === 'fulfilled' ? landscape.value : src);
-                          } catch (err) { console.error('Cover crop failed:', err); }
-                          setCropProcessing(false);
+                        <button type="button" key={photo.id} className="cover-picker-item" onClick={() => {
+                          setExternalCropSource(photo.url);
                           setShowCoverPicker(null);
                         }}>
                           <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                          <span>{cropProcessing ? '...' : '选择'}</span>
+                          <span>选择</span>
                         </button>
                       ))}
                     </div>
@@ -2786,6 +2781,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
   const [pickerFilter, setPickerFilter] = useState('');
   const [pickerSelectedCollection, setPickerSelectedCollection] = useState<PhotoCollection | null>(null);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [heroCropSource, setHeroCropSource] = useState<{ index: number; url: string; title: string; location: string; mobileUrl?: string } | null>(null);
 
   // Initialize local images: if heroImages is set, use it; otherwise derive from collections
   useEffect(() => {
@@ -2884,6 +2880,8 @@ const HeroManager: React.FC<HeroManagerProps> = ({
   const handlePickImage = (url: string, collectionTitle: string, collectionLocation: string, mobileUrl?: string) => {
     if (typeof pickerTarget === 'object' && pickerTarget.type === 'mobile') {
       replaceMobileImage(pickerTarget.index, url);
+      setShowPicker(false);
+      setPickerSelectedCollection(null);
     } else if (pickerTarget === 'add') {
       // For 'add', also set mobileUrl from the collection's cardCoverImage
       const cardCover = pickerSelectedCollection?.cardCoverImage || pickerSelectedCollection?.coverImage;
@@ -2895,22 +2893,16 @@ const HeroManager: React.FC<HeroManagerProps> = ({
         location: collectionLocation,
       };
       setLocalImages(prev => [...prev, newImage]);
+      // Open crop dialog for the newly added image
+      setHeroCropSource({ index: localImages.length, url, title: collectionTitle, location: collectionLocation, mobileUrl });
+      setShowPicker(false);
+      setPickerSelectedCollection(null);
     } else {
-      // Desktop pick: only sync to mobile if mobile has no independent image
-      setLocalImages(prev => prev.map((img, i) => {
-        if (i !== pickerTarget) return img;
-        const hasMobileIndependent = img.mobileUrl && img.mobileUrl !== img.url;
-        return {
-          ...img,
-          url,
-          title: collectionTitle,
-          location: collectionLocation,
-          ...(hasMobileIndependent ? {} : { mobileUrl: mobileUrl || url }),
-        };
-      }));
+      // Desktop pick: open crop dialog instead of direct assignment
+      setHeroCropSource({ index: pickerTarget, url, title: collectionTitle, location: collectionLocation, mobileUrl });
+      setShowPicker(false);
+      setPickerSelectedCollection(null);
     }
-    setShowPicker(false);
-    setPickerSelectedCollection(null);
   };
 
   // Handle local file upload for hero slot replacement
@@ -3091,6 +3083,8 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         label="上传横版封面"
                         replaceLabel="更换"
                         onReplaceClick={() => openPicker(index)}
+                        externalCropSource={heroCropSource?.index === index ? heroCropSource.url : null}
+                        onExternalCropConsumed={() => setHeroCropSource(null)}
                       />
                     </div>
                     {/* 竖版封面 */}

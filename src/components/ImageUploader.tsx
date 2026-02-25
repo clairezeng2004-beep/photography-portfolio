@@ -30,6 +30,10 @@ interface ImageUploaderProps {
   replaceLabel?: string;
   /** Custom click handler for the replace button; overrides default file-dialog behavior */
   onReplaceClick?: () => void;
+  /** External image URL to open in the cropper (set to trigger crop modal from outside) */
+  externalCropSource?: string | null;
+  /** Callback when externalCropSource has been consumed (reset it to null) */
+  onExternalCropConsumed?: () => void;
   /** Extra action buttons rendered inside the image overlay actions row */
   extraActions?: React.ReactNode;
 }
@@ -399,6 +403,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   previewAspectRatio,
   replaceLabel,
   onReplaceClick,
+  externalCropSource,
+  onExternalCropConsumed,
   extraActions,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -645,6 +651,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       }
     };
   };
+
+  // Handle external crop source trigger
+  useEffect(() => {
+    if (externalCropSource) {
+      openCropper(externalCropSource);
+      onExternalCropConsumed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalCropSource]);
 
   const onCropArea = useCallback((area: { x: number; y: number; width: number; height: number }) => {
     setCroppedAreaPixels(area);
