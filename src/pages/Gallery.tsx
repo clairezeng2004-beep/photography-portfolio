@@ -36,11 +36,11 @@ const Gallery: React.FC = () => {
       : '小冰块 - 摄影集 - 作品';
   }, [collection]);
 
-  // Recommend other collections (exclude current, pick up to 6, shuffled)
+  // Recommend other collections (exclude current, pick up to 8, shuffled)
   const recommendedCollections = useMemo(() => {
     const others = collections.filter(c => c.id !== id);
     const shuffled = [...others].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 6);
+    return shuffled.slice(0, 8);
   }, [collections, id]);
 
   useEffect(() => {
@@ -144,7 +144,7 @@ const Gallery: React.FC = () => {
             <h2 className="rec-title">更多</h2>
           </div>
           <div className="rec-grid">
-            {recommendedCollections.map((c, i) => (
+            {recommendedCollections.map((c) => (
               <Link
                 key={c.id}
                 to={`/gallery/${c.id}`}
@@ -152,7 +152,7 @@ const Gallery: React.FC = () => {
                 
               >
                 <div className="rec-card-image">
-                  <img src={c.photos?.[0]?.thumbnail || c.coverImage} alt={c.title} loading="lazy" />
+                  <img src={c.cardCoverImage || c.coverImage || c.photos?.[0]?.url} alt={c.title} loading="lazy" />
                   <div className="rec-card-overlay">
                     <h3 className="rec-card-title">{c.location}</h3>
                     <span className="rec-card-year">{c.year}</span>

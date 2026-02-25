@@ -2711,7 +2711,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
   const [pickerFilter, setPickerFilter] = useState('');
   const [pickerSelectedCollection, setPickerSelectedCollection] = useState<PhotoCollection | null>(null);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const [previewHero, setPreviewHero] = useState<{ img: HeroImage; mode: 'desktop' | 'mobile' } | null>(null);
 
   // Initialize local images: if heroImages is set, use it; otherwise derive from collections
   useEffect(() => {
@@ -2965,34 +2964,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
             {/* Expanded: full editing */}
             {isExpanded && (
               <div className="hero-item-detail">
-                {/* Hero preview - simulates real cover look */}
-                <div className="hero-detail-preview">
-                  <div className="hero-preview-desktop" title="点击查看大图" style={{ cursor: 'pointer' }} onClick={() => setPreviewHero({ img, mode: 'desktop' })}>
-                    <div className="hero-preview-label">桌面端</div>
-                    {img.url ? (
-                      <img src={img.url} alt={img.title || '封面图'} />
-                    ) : (
-                      <div className="hero-item-placeholder"><ImageIcon size={24} /></div>
-                    )}
-                    <div className="hero-preview-text-overlay">
-                      <span className="hero-preview-text-title">{img.title || '标题'}</span>
-                      <span className="hero-preview-text-location">{img.location || '地点'}</span>
-                    </div>
-                  </div>
-                  <div className="hero-preview-mobile" title="点击查看大图" style={{ cursor: 'pointer' }} onClick={() => setPreviewHero({ img, mode: 'mobile' })}>
-                    <div className="hero-preview-label">手机端</div>
-                    {(img.mobileUrl || img.url) ? (
-                      <img src={img.mobileUrl || img.url} alt={img.title || '封面图'} />
-                    ) : (
-                      <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
-                    )}
-                    <div className="hero-preview-text-overlay">
-                      <span className="hero-preview-text-title">{img.title || '标题'}</span>
-                      <span className="hero-preview-text-location">{img.location || '地点'}</span>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="hero-item-info">
                   <div className="form-group">
                     <label>标题</label>
@@ -3013,22 +2984,32 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                     />
                   </div>
 
-                  {/* 更换封面 — 横版 + 竖版并排 */}
+                  {/* 更换封面 — 横版 + 竖版并排，带最终效果预览 */}
                   <div className="hero-covers-row">
                     <div className="hero-cover-slot">
                       <label className="hero-cover-slot-label">横版封面</label>
+                      <div className="hero-cover-preview-final hero-cover-preview-landscape">
+                        {img.url ? (
+                          <img src={img.url} alt={img.title || '封面图'} />
+                        ) : (
+                          <div className="hero-item-placeholder"><ImageIcon size={24} /></div>
+                        )}
+                        <div className="hero-preview-text-overlay">
+                          <span className="hero-preview-text-title">{img.title || '标题'}</span>
+                          <span className="hero-preview-text-location">{img.location || '地点'}</span>
+                        </div>
+                      </div>
                       <ImageUploader
                         onImageUpload={(url) => {
                           setLocalImages(prev => prev.map((im, i) =>
                             i === index ? {
                               ...im,
                               url,
-                              // Auto-sync to mobile only when mobile has no independent image
                               ...(!im.mobileUrl || im.mobileUrl === im.url ? { mobileUrl: url } : {})
                             } : im
                           ));
                         }}
-                        currentImage={img.url || undefined}
+                        currentImage={undefined}
                         enableCrop
                         cropAspectOptions={[
                           { label: '16:9', value: 16 / 9 },
@@ -3059,11 +3040,22 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         <Smartphone size={11} style={{ marginRight: 3, verticalAlign: -1 }} />
                         竖版封面
                       </label>
+                      <div className="hero-cover-preview-final hero-cover-preview-portrait">
+                        {(img.mobileUrl || img.url) ? (
+                          <img src={img.mobileUrl || img.url} alt={img.title || '封面图'} />
+                        ) : (
+                          <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
+                        )}
+                        <div className="hero-preview-text-overlay">
+                          <span className="hero-preview-text-title">{img.title || '标题'}</span>
+                          <span className="hero-preview-text-location">{img.location || '地点'}</span>
+                        </div>
+                      </div>
                       <ImageUploader
                         onImageUpload={(url) => {
                           replaceMobileImage(index, url);
                         }}
-                        currentImage={(img.mobileUrl || img.url) || undefined}
+                        currentImage={undefined}
                         enableCrop
                         cropAspectOptions={[
                           { label: '9:16', value: 9 / 16 },
@@ -3233,30 +3225,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
         document.body
       )}
 
-      {/* Full-screen hero preview modal */}
-      {previewHero && createPortal(
-        <div className="hero-fullpreview-overlay" onClick={() => setPreviewHero(null)}>
-          <button className="hero-fullpreview-close" onClick={() => setPreviewHero(null)}>
-            <X size={24} />
-          </button>
-          <div
-            className={`hero-fullpreview-container ${previewHero.mode === 'mobile' ? 'mobile' : 'desktop'}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={previewHero.mode === 'mobile'
-                ? (previewHero.img.mobileUrl || previewHero.img.url)
-                : previewHero.img.url}
-              alt={previewHero.img.title || '封面预览'}
-            />
-            <div className="hero-fullpreview-text">
-              <span className="hero-fullpreview-title">{previewHero.img.title || '标题'}</span>
-              <span className="hero-fullpreview-location">{previewHero.img.location || '地点'}</span>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
 
       {/* Hidden file input for hero local upload */}
       <input
