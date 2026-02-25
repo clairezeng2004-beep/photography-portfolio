@@ -3,14 +3,28 @@ import { useData } from '../context/DataContext';
 import './About.css';
 
 const About: React.FC = () => {
-  const { aboutInfo } = useData();
+  const { aboutInfo, litCities, collections } = useData();
 
   useEffect(() => { document.title = '小冰块 - 摄影集 - 关于'; }, []);
 
   const sectionLabel = (key: string, fallback: string) =>
     aboutInfo.sectionLabels?.[key] || fallback;
 
-  const hasStats = aboutInfo.stats.cities > 0 || aboutInfo.stats.photos || aboutInfo.stats.experience;
+  // Compute city/country counts from map data (litCities + collections)
+  const mapCountryCount = (() => {
+    const countries = new Set<string>();
+    collections.forEach(c => { if (c.geo?.country) countries.add(c.geo.country); });
+    litCities.forEach(g => { if (g.country) countries.add(g.country); });
+    return countries.size;
+  })();
+  const mapCityCount = (() => {
+    const cityKeys = new Set<string>();
+    collections.forEach(c => { if (c.geo) cityKeys.add(`${c.geo.continent}:${c.geo.city}`); });
+    litCities.forEach(g => cityKeys.add(`${g.continent}:${g.city}`));
+    return cityKeys.size;
+  })();
+
+  const hasStats = mapCountryCount > 0 || mapCityCount > 0 || aboutInfo.stats.experience;
 
   // Helper to render builtin section extra items
   const builtinExtraItems = (sectionId: string) => {
@@ -60,15 +74,15 @@ const About: React.FC = () => {
           <div className="about-section">
             <h2 className="about-section-title">{sectionLabel('stats', '统计数据')}</h2>
             <div className="about-stats">
-              {aboutInfo.stats.cities > 0 && (
+              {mapCountryCount > 0 && (
                 <div className="about-stat-item">
-                  <span className="about-stat-number">{aboutInfo.stats.cities}</span>
+                  <span className="about-stat-number">{mapCountryCount}</span>
                   <span className="about-stat-label">国家</span>
                 </div>
               )}
-              {aboutInfo.stats.photos && (
+              {mapCityCount > 0 && (
                 <div className="about-stat-item">
-                  <span className="about-stat-number">{aboutInfo.stats.photos}</span>
+                  <span className="about-stat-number">{mapCityCount}</span>
                   <span className="about-stat-label">城市</span>
                 </div>
               )}

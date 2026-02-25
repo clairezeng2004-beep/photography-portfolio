@@ -26,6 +26,10 @@ interface ImageUploaderProps {
   originalSource?: string;
   /** If set, the preview image will be constrained to this aspect ratio (width/height) */
   previewAspectRatio?: number;
+  /** Custom label for the replace button (default: "更换") */
+  replaceLabel?: string;
+  /** Custom click handler for the replace button; overrides default file-dialog behavior */
+  onReplaceClick?: () => void;
 }
 
 const DEFAULT_ASPECT_OPTIONS = [
@@ -376,6 +380,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   compressQuality = 1.0,
   originalSource,
   previewAspectRatio,
+  replaceLabel,
+  onReplaceClick,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -778,11 +784,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             {allowUpload && (
               <button
                 className="replace-image-btn"
-                onClick={handleReplaceClick}
-                title="更换图片"
+                onClick={onReplaceClick ? (e) => { e.stopPropagation(); onReplaceClick(); } : handleReplaceClick}
+                title={replaceLabel || "更换图片"}
               >
                 <RefreshCw size={14} />
-                <span>更换</span>
+                <span>{replaceLabel || '更换'}</span>
               </button>
             )}
             {onRemove && (

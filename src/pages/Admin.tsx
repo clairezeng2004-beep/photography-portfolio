@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -1593,32 +1593,32 @@ const Admin: React.FC = () => {
                   </div>
                   <div className="form-grid">
                     <div className="form-group">
-                      <label>国家数量</label>
+                      <label>国家数量 <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>（自动同步地图数据）</span></label>
                       <ClearableInput
                         type="number"
-                        value={editedAboutInfo.stats.cities}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value);
-                          setEditedAboutInfo(prev => ({
-                            ...prev,
-                            stats: { ...prev.stats, cities: val }
-                          }));
-                        }}
+                        value={(() => {
+                          const countries = new Set<string>();
+                          collections.forEach(c => { if (c.geo?.country) countries.add(c.geo.country); });
+                          litCities.forEach(g => { if (g.country) countries.add(g.country); });
+                          return countries.size;
+                        })()}
+                        readOnly
+                        style={{ background: '#f5f5f5', cursor: 'default' }}
                         placeholder="去过的国家数"
                       />
                     </div>
                     <div className="form-group">
-                      <label>城市数量</label>
+                      <label>城市数量 <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>（自动同步地图数据）</span></label>
                       <ClearableInput
                         type="text"
-                        value={editedAboutInfo.stats.photos}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setEditedAboutInfo(prev => ({
-                            ...prev,
-                            stats: { ...prev.stats, photos: val }
-                          }));
-                        }}
+                        value={(() => {
+                          const cityKeys = new Set<string>();
+                          collections.forEach(c => { if (c.geo) cityKeys.add(`${c.geo.continent}:${c.geo.city}`); });
+                          litCities.forEach(g => cityKeys.add(`${g.continent}:${g.city}`));
+                          return cityKeys.size;
+                        })()}
+                        readOnly
+                        style={{ background: '#f5f5f5', cursor: 'default' }}
                         placeholder="去过的城市数"
                       />
                     </div>
@@ -2868,6 +2868,18 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     setShowPicker(true);
   };
 
+  // Open picker always at collection list level (no auto-select)
+  const openPickerFresh = (target: number | 'add' | { type: 'mobile'; index: number }) => {
+    setPickerTarget(target);
+    setPickerFilter('');
+    setPickerSelectedCollection(null);
+    setShowPicker(true);
+  };
+
+  // Refs for local upload file inputs (desktop/mobile per hero item)
+  const heroLocalUploadRef = useRef<HTMLInputElement>(null);
+  const [heroLocalUploadTarget, setHeroLocalUploadTarget] = useState<number | { type: 'mobile'; index: number } | null>(null);
+
   const handlePickImage = (url: string, collectionTitle: string, collectionLocation: string, mobileUrl?: string) => {
     if (typeof pickerTarget === 'object' && pickerTarget.type === 'mobile') {
       replaceMobileImage(pickerTarget.index, url);
@@ -2887,6 +2899,32 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     }
     setShowPicker(false);
     setPickerSelectedCollection(null);
+  };
+
+  // Handle local file upload for hero slot replacement
+  const handleHeroLocalUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || heroLocalUploadTarget === null) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const url = ev.target?.result as string;
+      if (!url) return;
+      if (typeof heroLocalUploadTarget === 'object' && heroLocalUploadTarget.type === 'mobile') {
+        replaceMobileImage(heroLocalUploadTarget.index, url);
+      } else if (typeof heroLocalUploadTarget === 'number') {
+        setLocalImages(prev => prev.map((im, i) =>
+          i === heroLocalUploadTarget ? { ...im, url, mobileUrl: url } : im
+        ));
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+    setHeroLocalUploadTarget(null);
+  };
+
+  const triggerLocalUpload = (target: number | { type: 'mobile'; index: number }) => {
+    setHeroLocalUploadTarget(target);
+    setTimeout(() => heroLocalUploadRef.current?.click(), 0);
   };
 
   const handleSaveItem = async () => {
@@ -3047,10 +3085,17 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         previewAspectRatio={16 / 9}
                         allowUpload={true}
                         label="上传横版封面"
+                        replaceLabel="从作品集中选图"
+                        onReplaceClick={() => openPicker(index)}
                       />
-                      <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => openPicker(index)}>
-                        从作品集选图
-                      </button>
+                      <div className="hero-pick-btn-row">
+                        <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => openPickerFresh(index)}>
+                          选择其他作品集
+                        </button>
+                        <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => triggerLocalUpload(index)}>
+                          从本地上传
+                        </button>
+                      </div>
                     </div>
                     <div className="hero-cover-slot">
                       <label className="hero-cover-slot-label">
@@ -3075,10 +3120,17 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         previewAspectRatio={9 / 16}
                         allowUpload={true}
                         label="上传竖版封面"
+                        replaceLabel="从作品集中选图"
+                        onReplaceClick={() => openPicker({ type: 'mobile', index })}
                       />
-                      <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => openPicker({ type: 'mobile', index })}>
-                        从作品集选图
-                      </button>
+                      <div className="hero-pick-btn-row">
+                        <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => openPickerFresh({ type: 'mobile', index })}>
+                          选择其他作品集
+                        </button>
+                        <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => triggerLocalUpload({ type: 'mobile', index })}>
+                          从本地上传
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -3248,6 +3300,15 @@ const HeroManager: React.FC<HeroManagerProps> = ({
         </div>,
         document.body
       )}
+
+      {/* Hidden file input for hero local upload */}
+      <input
+        ref={heroLocalUploadRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleHeroLocalUpload}
+      />
     </div>
   );
 };

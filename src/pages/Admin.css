@@ -2744,7 +2744,14 @@
   margin-top: 6px;
   font-size: 11px !important;
   padding: 4px 10px !important;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-pick-btn-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
 }
 
 .btn-xs {
