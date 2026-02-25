@@ -1,11 +1,22 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import './Home.css';
 
 const Home: React.FC = () => {
-  const { collections, heroImages: savedHeroImages, animationConfig, aboutInfo } = useData();
+  const { collections: rawCollections, heroImages: savedHeroImages, animationConfig, aboutInfo } = useData();
+
+  const collections = useMemo(() => {
+    return [...rawCollections].sort((a, b) => {
+      if (b.year !== a.year) return b.year - a.year;
+      if ((b.month || 0) !== (a.month || 0)) return (b.month || 0) - (a.month || 0);
+      if (typeof a.order === 'number' && typeof b.order === 'number') {
+        return a.order - b.order;
+      }
+      return a.title.localeCompare(b.title);
+    });
+  }, [rawCollections]);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);

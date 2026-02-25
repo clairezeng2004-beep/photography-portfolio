@@ -74,8 +74,7 @@ const defaultAboutInfo: AboutInfo = {
   },
   "stats": {
     "cities": 3,
-    "photos": "200+",
-    "experience": "4"
+    "photos": "200+"
   }
 };
 

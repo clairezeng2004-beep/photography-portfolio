@@ -70,7 +70,13 @@ const About: React.FC = () => {
         </div>
 
         {/* Stats */}
-        {hasStats && !(aboutInfo.hiddenSections || []).includes('stats') && (
+        {!(aboutInfo.hiddenSections || []).includes('stats') && (() => {
+          const hasStatsExtra = (() => {
+            const section = (aboutInfo.customSections || []).find(s => s.id === '_builtin_stats');
+            return section && section.items.some(item => item.label || item.value);
+          })();
+          if (!hasStats && !hasStatsExtra) return null;
+          return (
           <div className="about-section">
             <h2 className="about-section-title">{sectionLabel('stats', '统计数据')}</h2>
             <div className="about-custom-items">
@@ -89,7 +95,8 @@ const About: React.FC = () => {
             </div>
             {builtinExtraItems('_builtin_stats')}
           </div>
-        )}
+          );
+        })()}
 
         {/* Custom Sections — exclude _builtin_ entries */}
         {(aboutInfo.customSections || []).filter(s => !s.id.startsWith('_builtin_')).map((section) => {
@@ -125,7 +132,14 @@ const About: React.FC = () => {
         })}
 
         {/* Contact */}
-        {!(aboutInfo.hiddenSections || []).includes('contact') && (
+        {!(aboutInfo.hiddenSections || []).includes('contact') && (() => {
+          const hasContactFields = aboutInfo.contact.email || aboutInfo.contact.instagram || aboutInfo.contact.phone || aboutInfo.contact.weibo;
+          const hasContactExtra = (() => {
+            const section = (aboutInfo.customSections || []).find(s => s.id === '_builtin_contact');
+            return section && section.items.some(item => item.label || item.value);
+          })();
+          if (!hasContactFields && !hasContactExtra) return null;
+          return (
         <div className="about-contact">
           <h2 className="about-subtitle">{sectionLabel('contact', 'Say Hello')}</h2>
           <div className="contact-links">
@@ -152,7 +166,8 @@ const About: React.FC = () => {
           </div>
           {builtinExtraItems('_builtin_contact')}
         </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

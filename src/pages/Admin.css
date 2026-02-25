@@ -2073,44 +2073,26 @@
   padding-bottom: 80px !important;
 }
 
-/* Floating save button */
-.about-floating-save {
-  position: fixed;
-  bottom: 32px;
-  right: 32px;
+/* Deletable contact field row */
+.deletable-field-row {
   display: flex;
+  gap: 6px;
   align-items: center;
-  gap: 8px;
-  padding: 14px 28px;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0.06em;
-  color: #faf9f7;
-  background: #2a2a2a;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  z-index: 100;
-  animation: floatSaveIn 0.3s ease;
 }
 
-.about-floating-save:hover {
-  background: #555;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+.deletable-field-row input {
+  flex: 1;
 }
 
-@keyframes floatSaveIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.form-group-deletable {
+  position: relative;
+}
+
+.add-contact-fields {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
 }
 
 .avatar-editor {

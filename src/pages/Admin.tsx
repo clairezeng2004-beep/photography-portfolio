@@ -460,6 +460,17 @@ const Admin: React.FC = () => {
     setEditedAboutInfo(aboutInfo);
   }, [aboutInfo]);
 
+  // Auto-save about info with debounce
+  const aboutSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (JSON.stringify(editedAboutInfo) === JSON.stringify(aboutInfo)) return;
+    if (aboutSaveTimerRef.current) clearTimeout(aboutSaveTimerRef.current);
+    aboutSaveTimerRef.current = setTimeout(() => {
+      updateAboutInfo(editedAboutInfo);
+    }, 800);
+    return () => { if (aboutSaveTimerRef.current) clearTimeout(aboutSaveTimerRef.current); };
+  }, [editedAboutInfo, aboutInfo, updateAboutInfo]);
+
   useEffect(() => {
     localStorage.setItem('last_collection_year', String(lastUsedYear));
   }, [lastUsedYear]);
@@ -631,13 +642,7 @@ const Admin: React.FC = () => {
     addPhoto(collectionId, photo);
   };
 
-  const handleSaveAbout = async () => {
-    await updateAboutInfo(editedAboutInfo);
-    showToast('关于我页面已保存');
-  };
-
-  // Track if about info has unsaved changes
-  const aboutHasChanges = JSON.stringify(editedAboutInfo) !== JSON.stringify(aboutInfo);
+  // About info is now auto-saved via debounced useEffect
 
   const getSectionLabel = (key: string, fallback: string) => {
     return editedAboutInfo.sectionLabels?.[key as keyof NonNullable<typeof editedAboutInfo.sectionLabels>] || fallback;
@@ -1521,66 +1526,101 @@ const Admin: React.FC = () => {
                     </button>
                   </div>
                   <div className="form-grid">
-                    <div className="form-group">
+                    {editedAboutInfo.contact.email && (
+                    <div className="form-group form-group-deletable">
                       <label>邮箱</label>
-                      <ClearableInput
-                        type="email"
-                        value={editedAboutInfo.contact.email}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setEditedAboutInfo(prev => ({
-                            ...prev,
-                            contact: { ...prev.contact, email: val }
-                          }));
-                        }}
-                      />
+                      <div className="deletable-field-row">
+                        <ClearableInput
+                          type="email"
+                          value={editedAboutInfo.contact.email}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditedAboutInfo(prev => ({
+                              ...prev,
+                              contact: { ...prev.contact, email: val }
+                            }));
+                          }}
+                        />
+                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => ({ ...prev, contact: { ...prev.contact, email: '' } }))} title="删除此项"><X size={14} /></button>
+                      </div>
                     </div>
-                    <div className="form-group">
+                    )}
+                    {editedAboutInfo.contact.instagram && (
+                    <div className="form-group form-group-deletable">
                       <label>Instagram</label>
-                      <ClearableInput
-                        type="url"
-                        value={editedAboutInfo.contact.instagram}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setEditedAboutInfo(prev => ({
-                            ...prev,
-                            contact: { ...prev.contact, instagram: val }
-                          }));
-                        }}
-                      />
+                      <div className="deletable-field-row">
+                        <ClearableInput
+                          type="url"
+                          value={editedAboutInfo.contact.instagram}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditedAboutInfo(prev => ({
+                              ...prev,
+                              contact: { ...prev.contact, instagram: val }
+                            }));
+                          }}
+                        />
+                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => ({ ...prev, contact: { ...prev.contact, instagram: '' } }))} title="删除此项"><X size={14} /></button>
+                      </div>
                     </div>
-                    <div className="form-group">
+                    )}
+                    {editedAboutInfo.contact.phone && (
+                    <div className="form-group form-group-deletable">
                       <label>电话</label>
-                      <ClearableInput
-                        type="text"
-                        value={editedAboutInfo.contact.phone}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setEditedAboutInfo(prev => ({
-                            ...prev,
-                            contact: { ...prev.contact, phone: val }
-                          }));
-                        }}
-                        placeholder="清空即不显示"
-                      />
+                      <div className="deletable-field-row">
+                        <ClearableInput
+                          type="text"
+                          value={editedAboutInfo.contact.phone}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditedAboutInfo(prev => ({
+                              ...prev,
+                              contact: { ...prev.contact, phone: val }
+                            }));
+                          }}
+                        />
+                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => ({ ...prev, contact: { ...prev.contact, phone: '' } }))} title="删除此项"><X size={14} /></button>
+                      </div>
                     </div>
-                    <div className="form-group">
+                    )}
+                    {editedAboutInfo.contact.weibo && (
+                    <div className="form-group form-group-deletable">
                       <label>微博</label>
-                      <ClearableInput
-                        type="url"
-                        value={editedAboutInfo.contact.weibo}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setEditedAboutInfo(prev => ({
-                            ...prev,
-                            contact: { ...prev.contact, weibo: val }
-                          }));
-                        }}
-                        placeholder="清空即不显示"
-                      />
+                      <div className="deletable-field-row">
+                        <ClearableInput
+                          type="url"
+                          value={editedAboutInfo.contact.weibo}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditedAboutInfo(prev => ({
+                              ...prev,
+                              contact: { ...prev.contact, weibo: val }
+                            }));
+                          }}
+                        />
+                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => ({ ...prev, contact: { ...prev.contact, weibo: '' } }))} title="删除此项"><X size={14} /></button>
+                      </div>
                     </div>
-
+                    )}
                   </div>
+                  {/* Add back deleted built-in contact fields */}
+                  {(() => {
+                    const missing: { key: string; label: string; placeholder: string }[] = [];
+                    if (!editedAboutInfo.contact.email) missing.push({ key: 'email', label: '邮箱', placeholder: 'hello@example.com' });
+                    if (!editedAboutInfo.contact.instagram) missing.push({ key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/...' });
+                    if (!editedAboutInfo.contact.phone) missing.push({ key: 'phone', label: '电话', placeholder: '+86 ...' });
+                    if (!editedAboutInfo.contact.weibo) missing.push({ key: 'weibo', label: '微博', placeholder: 'https://weibo.com/...' });
+                    if (missing.length === 0) return null;
+                    return (
+                      <div className="add-contact-fields">
+                        {missing.map(f => (
+                          <button key={f.key} type="button" className="btn btn-secondary btn-xs" onClick={() => setEditedAboutInfo(prev => ({ ...prev, contact: { ...prev.contact, [f.key]: f.placeholder } }))}>
+                            <Plus size={12} /> {f.label}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   {/* Extra sub-items for contact */}
                   {(() => {
                     const builtinSectionId = '_builtin_contact';
@@ -2039,15 +2079,6 @@ const Admin: React.FC = () => {
                 </button>
               </div>
 
-              {aboutHasChanges && (
-                <button
-                  className="about-floating-save"
-                  onClick={handleSaveAbout}
-                >
-                  <Save size={18} />
-                  保存更改
-                </button>
-              )}
             </div>
           )}
 

@@ -81,7 +81,6 @@ export interface AboutInfo {
   stats: {
     cities: number;
     photos: string;
-    experience: string;
   };
   sectionLabels?: {
     avatar?: string;
