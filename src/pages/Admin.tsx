@@ -1477,6 +1477,7 @@ const Admin: React.FC = () => {
                   </div>
                 </div>
 
+                {!(editedAboutInfo.hiddenSections || []).includes('contact') ? (
                 <div className="editor-section">
                   <div className="custom-section-header">
                     <ClearableInput
@@ -1504,6 +1505,19 @@ const Admin: React.FC = () => {
                       title="添加子项"
                     >
                       <Plus size={16} />
+                    </button>
+                    <button
+                      className="btn-icon danger small"
+                      onClick={() => {
+                        if (!window.confirm('确定删除「联系方式」区块？删除后可通过下方按钮恢复。')) return;
+                        setEditedAboutInfo(prev => ({
+                          ...prev,
+                          hiddenSections: [...(prev.hiddenSections || []).filter(s => s !== 'contact'), 'contact']
+                        }));
+                      }}
+                      title="删除此区块"
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                   <div className="form-grid">
@@ -1639,7 +1653,24 @@ const Admin: React.FC = () => {
                     );
                   })()}
                 </div>
+                ) : (
+                <div className="editor-section hidden-section-placeholder">
+                  <span className="hidden-section-label">联系方式（已隐藏）</span>
+                  <button
+                    className="btn btn-secondary small"
+                    onClick={() => {
+                      setEditedAboutInfo(prev => ({
+                        ...prev,
+                        hiddenSections: (prev.hiddenSections || []).filter(s => s !== 'contact')
+                      }));
+                    }}
+                  >
+                    恢复显示
+                  </button>
+                </div>
+                )}
 
+                {!(editedAboutInfo.hiddenSections || []).includes('stats') ? (
                 <div className="editor-section">
                   <div className="custom-section-header">
                     <ClearableInput
@@ -1667,6 +1698,19 @@ const Admin: React.FC = () => {
                       title="添加子项"
                     >
                       <Plus size={16} />
+                    </button>
+                    <button
+                      className="btn-icon danger small"
+                      onClick={() => {
+                        if (!window.confirm('确定删除「统计数据」区块？删除后可通过下方按钮恢复。')) return;
+                        setEditedAboutInfo(prev => ({
+                          ...prev,
+                          hiddenSections: [...(prev.hiddenSections || []).filter(s => s !== 'stats'), 'stats']
+                        }));
+                      }}
+                      title="删除此区块"
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                   <div className="form-grid">
@@ -1773,6 +1817,22 @@ const Admin: React.FC = () => {
                     );
                   })()}
                 </div>
+                ) : (
+                <div className="editor-section hidden-section-placeholder">
+                  <span className="hidden-section-label">统计数据（已隐藏）</span>
+                  <button
+                    className="btn btn-secondary small"
+                    onClick={() => {
+                      setEditedAboutInfo(prev => ({
+                        ...prev,
+                        hiddenSections: (prev.hiddenSections || []).filter(s => s !== 'stats')
+                      }));
+                    }}
+                  >
+                    恢复显示
+                  </button>
+                </div>
+                )}
 
                 {/* Custom Sections — exclude builtin extra-item sections */}
                 {(editedAboutInfo.customSections || []).filter(s => !s.id.startsWith('_builtin_')).map((section, _filteredIdx) => {

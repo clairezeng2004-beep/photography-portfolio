@@ -24,7 +24,7 @@ const About: React.FC = () => {
     return cityKeys.size;
   })();
 
-  const hasStats = mapCountryCount > 0 || mapCityCount > 0 || aboutInfo.stats.experience;
+  const hasStats = mapCountryCount > 0 || mapCityCount > 0;
 
   // Helper to render builtin section extra items
   const builtinExtraItems = (sectionId: string) => {
@@ -70,7 +70,7 @@ const About: React.FC = () => {
         </div>
 
         {/* Stats */}
-        {hasStats && (
+        {hasStats && !(aboutInfo.hiddenSections || []).includes('stats') && (
           <div className="about-section">
             <h2 className="about-section-title">{sectionLabel('stats', '统计数据')}</h2>
             <div className="about-custom-items">
@@ -84,12 +84,6 @@ const About: React.FC = () => {
                 <div className="about-custom-item">
                   <span className="about-custom-item-label">城市</span>
                   <span className="about-custom-item-value">{mapCityCount}</span>
-                </div>
-              )}
-              {aboutInfo.stats.experience && (
-                <div className="about-custom-item">
-                  <span className="about-custom-item-label">年经验</span>
-                  <span className="about-custom-item-value">{aboutInfo.stats.experience}</span>
                 </div>
               )}
             </div>
@@ -131,6 +125,7 @@ const About: React.FC = () => {
         })}
 
         {/* Contact */}
+        {!(aboutInfo.hiddenSections || []).includes('contact') && (
         <div className="about-contact">
           <h2 className="about-subtitle">{sectionLabel('contact', 'Say Hello')}</h2>
           <div className="contact-links">
@@ -157,6 +152,7 @@ const About: React.FC = () => {
           </div>
           {builtinExtraItems('_builtin_contact')}
         </div>
+        )}
       </div>
     </div>
   );

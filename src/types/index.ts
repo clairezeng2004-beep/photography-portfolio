@@ -92,6 +92,7 @@ export interface AboutInfo {
     [key: string]: string | undefined;
   };
   customSections?: AboutCustomSection[];
+  hiddenSections?: string[];
 }
 
 export interface HeroImage {
