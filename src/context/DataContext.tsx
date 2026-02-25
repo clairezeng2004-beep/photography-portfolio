@@ -167,6 +167,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const loadData = async () => {
       const useCloud = isSupabaseConfigured();
 
+      // Track whether cloud was reached AND confirmed empty for each key
+      // This prevents seed data from overwriting cloud data when cloud was unreachable
+      const cloudConfirmedEmpty = new Set<string>();
+
       // Load strategy:
       // 1. Load from IndexedDB first (instant, always available)
       // 2. If cloud is configured, also try cloud
@@ -216,8 +220,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return cloudVal;
         } else if (cloudReached && !cloudFound && localVal !== undefined) {
           // Cloud reachable but no data there — push local to cloud
+          cloudConfirmedEmpty.add(key);
           syncToCloud(key, localVal);
           return localVal;
+        } else if (cloudReached && !cloudFound) {
+          // Cloud reachable, confirmed empty, no local data either
+          cloudConfirmedEmpty.add(key);
+          return undefined;
         } else if (!cloudReached && localVal !== undefined) {
           // Cloud unreachable — use local, mark for sync
           if (useCloud) {
@@ -276,20 +285,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (seed.collections && seed.collections.length > 0) {
               const fixed = fixDuplicatePhotoIds(seed.collections);
               setCollections(fixed);
-              seedToCloud('photo_collections', fixed);
+              // ONLY seed to cloud if cloud confirmed empty (not just unreachable)
+              seedToCloud('photo_collections', fixed, cloudConfirmedEmpty.has('photo_collections'));
             }
-            if (seed.aboutInfo) { setAboutInfo(seed.aboutInfo); seedToCloud('about_info', seed.aboutInfo); }
-            if (seed.litCities) { setLitCities(seed.litCities); seedToCloud('lit_cities', seed.litCities); }
-            if (seed.heroImages && seed.heroImages.length > 0) { setHeroImages(seed.heroImages); seedToCloud('hero_images', seed.heroImages); }
-            if (seed.animationConfig) { setAnimationConfig(seed.animationConfig); seedToCloud('animation_config', seed.animationConfig); }
-            console.log('[DataContext] Loaded seed data from portfolio-data.json');
+            if (seed.aboutInfo) { setAboutInfo(seed.aboutInfo); seedToCloud('about_info', seed.aboutInfo, cloudConfirmedEmpty.has('about_info')); }
+            if (seed.litCities) { setLitCities(seed.litCities); seedToCloud('lit_cities', seed.litCities, cloudConfirmedEmpty.has('lit_cities')); }
+            if (seed.heroImages && seed.heroImages.length > 0) { setHeroImages(seed.heroImages); seedToCloud('hero_images', seed.heroImages, cloudConfirmedEmpty.has('hero_images')); }
+            if (seed.animationConfig) { setAnimationConfig(seed.animationConfig); seedToCloud('animation_config', seed.animationConfig, cloudConfirmedEmpty.has('animation_config')); }
+            console.log('[DataContext] Loaded seed data from portfolio-data.json (cloud seed:', cloudConfirmedEmpty.size > 0, ')');
           }
         } catch (e) {
           if (cancelled) return;
           console.log('[DataContext] No seed data file found, using defaults');
           setCollections(mockCollections);
-          seedToCloud('photo_collections', mockCollections);
-          seedToCloud('about_info', defaultAboutInfo);
+          seedToCloud('photo_collections', mockCollections, cloudConfirmedEmpty.has('photo_collections'));
+          seedToCloud('about_info', defaultAboutInfo, cloudConfirmedEmpty.has('about_info'));
         }
       }
 
@@ -301,10 +311,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     // Helper for seeding (fire-and-forget)
-    function seedToCloud<T>(key: string, value: T) {
+    // allowCloud: only write to cloud if we CONFIRMED cloud is empty (not just unreachable)
+    function seedToCloud<T>(key: string, value: T, allowCloud: boolean = false) {
       dbSet(key, value).catch(() => {});
-      if (isSupabaseConfigured()) {
+      if (allowCloud && isSupabaseConfigured()) {
+        console.log(`[DataContext] Seeding "${key}" to cloud (confirmed empty)`);
         supabaseSetWithRetry(key, value).catch(() => {});
+      } else if (isSupabaseConfigured() && !allowCloud) {
+        console.log(`[DataContext] NOT seeding "${key}" to cloud (cloud was unreachable, data may exist)`);
       }
     }
 
