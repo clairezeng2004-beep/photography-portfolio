@@ -249,8 +249,42 @@
 
   .footer-grid {
     flex-direction: column;
-    gap: 32px;
+    gap: 0;
     align-items: center;
+  }
+
+  /* Row 1: "更多" + "ROAMING ICE" side by side */
+  .footer-mobile-row1 {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 32px;
+  }
+
+  .footer-mobile-row1 .footer-column {
+    flex: none;
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-mobile-row1 .footer-column:first-child {
+    padding-left: 0;
+  }
+
+  /* Row 2: "保持联系" centered */
+  .footer-mobile-row2 {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .footer-mobile-row2 .footer-column {
+    flex: none;
+    align-items: center;
+    text-align: center;
+    padding-right: 0;
+    margin-left: 0;
   }
 
   .footer-column:first-child,

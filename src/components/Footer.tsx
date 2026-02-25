@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { subscribeEmail } from '../utils/newsletter';
+import { useIsMobile } from '../hooks/useIsMobile';
 import './Footer.css';
 
 const Footer: React.FC = () => {
+  const isMobile = useIsMobile();
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -55,59 +57,116 @@ const Footer: React.FC = () => {
 
       {/* Footer content grid */}
       <div className="footer-content">
-        <div className="footer-grid">
-          {/* Column 1: More links */}
-          <div className="footer-column">
-            <h3 className="footer-column-title">更多</h3>
-            <ul className="footer-links">
-              {navLinks.map(link => (
-                <li key={link.name}>
-                  <Link to={link.path}>{link.name}</Link>
-                </li>
-              ))}
-            </ul>
+        {isMobile ? (
+          <div className="footer-grid">
+            {/* Mobile Row 1: "更多" + "ROAMING ICE" side by side */}
+            <div className="footer-mobile-row1">
+              <div className="footer-column">
+                <h3 className="footer-column-title">更多</h3>
+                <ul className="footer-links">
+                  {navLinks.map(link => (
+                    <li key={link.name}>
+                      <Link to={link.path}>{link.name}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="footer-column footer-column-center">
+                <h3 className="footer-column-title">ROAMING ICE</h3>
+                <p className="footer-column-text">用镜头记录旅途中的光与影</p>
+              </div>
+            </div>
+            {/* Mobile Row 2: "保持联系" */}
+            <div className="footer-mobile-row2">
+              <div className="footer-column">
+                <h3 className="footer-column-title">保持联系</h3>
+                <p className="footer-column-text">新作品发布时，第一时间通知你。</p>
+                {submitted ? (
+                  <p className="footer-subscribed">感谢你的订阅！</p>
+                ) : (
+                  <>
+                    <form className="footer-subscribe-form" onSubmit={handleSubscribe}>
+                      <input
+                        type="email"
+                        placeholder="Email address"
+                        value={email}
+                        onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                        className={`footer-email-input ${error ? 'has-error' : ''}`}
+                        disabled={submitting}
+                      />
+                      <button type="submit" className="footer-submit-btn" aria-label="订阅" disabled={submitting}>
+                        {submitting ? (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="spin-icon">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                          </svg>
+                        ) : (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        )}
+                      </button>
+                    </form>
+                    {error && <span className="footer-error">{error}</span>}
+                  </>
+                )}
+              </div>
+            </div>
           </div>
+        ) : (
+          <div className="footer-grid">
+            {/* Column 1: More links */}
+            <div className="footer-column">
+              <h3 className="footer-column-title">更多</h3>
+              <ul className="footer-links">
+                {navLinks.map(link => (
+                  <li key={link.name}>
+                    <Link to={link.path}>{link.name}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          {/* Column 2: Roaming Ice */}
-          <div className="footer-column footer-column-center">
-            <h3 className="footer-column-title">ROAMING ICE</h3>
-            <p className="footer-column-text">用镜头记录旅途中的光与影</p>
-          </div>
+            {/* Column 2: Roaming Ice */}
+            <div className="footer-column footer-column-center">
+              <h3 className="footer-column-title">ROAMING ICE</h3>
+              <p className="footer-column-text">用镜头记录旅途中的光与影</p>
+            </div>
 
-          {/* Column 3: Subscribe */}
-          <div className="footer-column">
-            <h3 className="footer-column-title">保持联系</h3>
-            <p className="footer-column-text">新作品发布时，第一时间通知你。</p>
-            {submitted ? (
-              <p className="footer-subscribed">感谢你的订阅！</p>
-            ) : (
-              <>
-                <form className="footer-subscribe-form" onSubmit={handleSubscribe}>
-                  <input
-                    type="email"
-                    placeholder="Email address"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                    className={`footer-email-input ${error ? 'has-error' : ''}`}
-                    disabled={submitting}
-                  />
-                  <button type="submit" className="footer-submit-btn" aria-label="订阅" disabled={submitting}>
-                    {submitting ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="spin-icon">
-                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                      </svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    )}
-                  </button>
-                </form>
-                {error && <span className="footer-error">{error}</span>}
-              </>
-            )}
+            {/* Column 3: Subscribe */}
+            <div className="footer-column">
+              <h3 className="footer-column-title">保持联系</h3>
+              <p className="footer-column-text">新作品发布时，第一时间通知你。</p>
+              {submitted ? (
+                <p className="footer-subscribed">感谢你的订阅！</p>
+              ) : (
+                <>
+                  <form className="footer-subscribe-form" onSubmit={handleSubscribe}>
+                    <input
+                      type="email"
+                      placeholder="Email address"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                      className={`footer-email-input ${error ? 'has-error' : ''}`}
+                      disabled={submitting}
+                    />
+                    <button type="submit" className="footer-submit-btn" aria-label="订阅" disabled={submitting}>
+                      {submitting ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="spin-icon">
+                          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                      )}
+                    </button>
+                  </form>
+                  {error && <span className="footer-error">{error}</span>}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="footer-bottom">

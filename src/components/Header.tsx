@@ -59,6 +59,10 @@ const Header: React.FC = () => {
         </button>
       </div>
 
+      <div
+        className={`mobile-menu-backdrop ${isMenuOpen ? 'mobile-menu-backdrop-open' : ''}`}
+        onClick={() => setIsMenuOpen(false)}
+      />
       <div className={`mobile-menu ${isMenuOpen ? 'mobile-menu-open' : ''}`}>
         <nav className="mobile-nav">
           <Link to="/" className="mobile-nav-link">Home</Link>

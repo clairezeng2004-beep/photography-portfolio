@@ -829,8 +829,21 @@
 }
 
 @media (max-width: 768px) {
+  .hero-info-strip {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .hero-sep {
+    display: none;
+  }
+
   .hero-location {
-    font-size: 16px;
+    font-size: 22px;
+  }
+
+  .hero-title-text {
+    font-size: 12px;
   }
 
   .hero-dots { bottom: 44px; }
@@ -848,10 +861,16 @@
 
   .cards-section { padding: 0 24px 80px; }
   .cards-grid { grid-template-columns: 1fr; gap: 24px; }
+
+  /* Card city and year: ensure same font size */
+  .flip-card-front-info .card-location,
+  .simple-card-info .card-location,
+  .overlay-card-location { font-size: 12px; }
 }
 
 @media (max-width: 480px) {
-  .hero-location { font-size: 15px; }
+  .hero-location { font-size: 20px; }
+  .hero-title-text { font-size: 11px; }
   .intro-greeting { font-size: 22px; }
 
   .flip-card-front-info .card-title,
