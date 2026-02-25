@@ -10,23 +10,10 @@ const Footer: React.FC = () => {
   const [error, setError] = useState('');
 
   // Footer navigation links
-  const footerLinks = [
-    {
-      title: '更多',
-      links: [
-        { name: 'Home', path: '/' },
-        { name: 'Footprints', path: '/footprints' },
-        { name: 'About', path: '/about' },
-      ]
-    },
-    {
-      title: 'Roaming Ice',
-      content: '用镜头记录旅途中的光与影',
-    },
-    {
-      title: '保持联系',
-      content: '新作品发布时，第一时间通知你。',
-    }
+  const navLinks = [
+    { name: 'Home', path: '/' },
+    { name: 'Footprints', path: '/footprints' },
+    { name: 'About', path: '/about' },
   ];
 
   const scrollToTop = () => {
@@ -73,7 +60,7 @@ const Footer: React.FC = () => {
           <div className="footer-column">
             <h3 className="footer-column-title">SEE MORE</h3>
             <ul className="footer-links">
-              {footerLinks[0].links.map(link => (
+              {navLinks.map(link => (
                 <li key={link.name}>
                   <Link to={link.path}>{link.name}</Link>
                 </li>
@@ -84,13 +71,13 @@ const Footer: React.FC = () => {
           {/* Column 2: Roaming Ice */}
           <div className="footer-column">
             <h3 className="footer-column-title">ROAMING ICE</h3>
-            <p className="footer-column-text">{footerLinks[1].content}</p>
+            <p className="footer-column-text">用镜头记录旅途中的光与影</p>
           </div>
 
           {/* Column 3: Subscribe */}
           <div className="footer-column">
             <h3 className="footer-column-title">STAY IN TOUCH</h3>
-            <p className="footer-column-text">{footerLinks[2].content}</p>
+            <p className="footer-column-text">新作品发布时，第一时间通知你。</p>
             {submitted ? (
               <p className="footer-subscribed">感谢你的订阅！</p>
             ) : (
