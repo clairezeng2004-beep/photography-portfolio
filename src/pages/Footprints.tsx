@@ -621,28 +621,8 @@ const Footprints: React.FC = () => {
   // Zoom handlers — use a ref for the wheel handler to avoid passive listener issues
   const svgContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const el = svgContainerRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
-      setZoom(prev => {
-        const newZoom = Math.max(0.5, Math.min(5, prev * factor));
-        const rect = el.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-        const scale = newZoom / prev;
-        setPan(p => ({
-          x: mx - scale * (mx - p.x),
-          y: my - scale * (my - p.y),
-        }));
-        return newZoom;
-      });
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
+  // Wheel events on the map should NOT be captured — let the page scroll normally.
+  // Zoom is only controlled by the +/− buttons.
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
@@ -986,7 +966,7 @@ const Footprints: React.FC = () => {
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
-          style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
         >
           {/* Zoom controls */}
           <div className="map-zoom-controls">
