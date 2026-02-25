@@ -2616,8 +2616,8 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   </select>
                 </div>
                 <div className="inline-edit-geo-fields" style={{ marginTop: 8 }}>
-                  <div className="form-group form-group-inline">
-                    <label style={{ fontSize: 12, color: '#888', minWidth: 40 }}>城市</label>
+                  <div className="geo-field-inline">
+                    <label>城市</label>
                     <input
                       type="text"
                       className="inline-edit-location"
@@ -2626,8 +2626,8 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                       placeholder="城市名"
                     />
                   </div>
-                  <div className="form-group form-group-inline">
-                    <label style={{ fontSize: 12, color: '#888', minWidth: 40 }}>国家</label>
+                  <div className="geo-field-inline">
+                    <label>国家</label>
                     <input
                       type="text"
                       className="inline-edit-location"
@@ -2637,7 +2637,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                     />
                   </div>
                 </div>
-                {geo && (<div className="card-geo-badge" style={{ marginTop: 8 }}><Globe size={12} /><span>{geo.city}，{geo.country}</span></div>)}
               </div>
             )}
           </div>

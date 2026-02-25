@@ -1571,19 +1571,23 @@
   gap: 12px;
 }
 
-.inline-edit-geo-fields .form-group-inline {
+.inline-edit-geo-fields .geo-field-inline {
   flex: 1;
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 0;
 }
 
-.inline-edit-geo-fields .form-group-inline label {
+.inline-edit-geo-fields .geo-field-inline label {
   flex-shrink: 0;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  font-style: italic;
+  color: #999;
+  min-width: 28px;
 }
 
-.inline-edit-geo-fields .inline-edit-location {
+.inline-edit-geo-fields .geo-field-inline .inline-edit-location {
   flex: 1;
 }
 
