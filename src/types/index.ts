@@ -38,6 +38,16 @@ export interface PhotoCollection {
   order?: number;
 }
 
+export interface AboutCustomSection {
+  id: string;
+  title: string;
+  items: {
+    id: string;
+    label: string;
+    value: string;
+  }[];
+}
+
 export interface AboutInfo {
   name: string;
   title: string;
@@ -70,7 +80,9 @@ export interface AboutInfo {
     bio?: string;
     contact?: string;
     stats?: string;
+    [key: string]: string | undefined;
   };
+  customSections?: AboutCustomSection[];
 }
 
 export interface HeroImage {

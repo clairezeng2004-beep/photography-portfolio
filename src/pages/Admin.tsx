@@ -7,7 +7,7 @@ import {
   Folder, Camera, MapPin, Calendar, Globe,
   ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload
 } from 'lucide-react';
-import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage } from '../types';
+import { PhotoCollection, Photo, AboutInfo, AboutCustomSection, GeoInfo, HeroImage } from '../types';
 import { useData } from '../context/DataContext';
 import {
   CITY_DATABASE,
@@ -1396,6 +1396,126 @@ const Admin: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Custom Sections */}
+                {(editedAboutInfo.customSections || []).map((section, sIdx) => (
+                  <div key={section.id} className="editor-section custom-section-editor">
+                    <div className="custom-section-header">
+                      <input
+                        type="text"
+                        className="section-label-input"
+                        value={section.title}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditedAboutInfo(prev => {
+                            const sections = [...(prev.customSections || [])];
+                            sections[sIdx] = { ...sections[sIdx], title: val };
+                            return { ...prev, customSections: sections };
+                          });
+                        }}
+                        placeholder="区块标题"
+                      />
+                      <button
+                        className="btn-icon danger small"
+                        onClick={() => {
+                          setEditedAboutInfo(prev => ({
+                            ...prev,
+                            customSections: (prev.customSections || []).filter((_, i) => i !== sIdx)
+                          }));
+                        }}
+                        title="删除此区块"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <div className="custom-section-items">
+                      {section.items.map((item, iIdx) => (
+                        <div key={item.id} className="custom-section-item">
+                          <div className="custom-section-item-fields">
+                            <input
+                              type="text"
+                              value={item.label}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditedAboutInfo(prev => {
+                                  const sections = [...(prev.customSections || [])];
+                                  const items = [...sections[sIdx].items];
+                                  items[iIdx] = { ...items[iIdx], label: val };
+                                  sections[sIdx] = { ...sections[sIdx], items };
+                                  return { ...prev, customSections: sections };
+                                });
+                              }}
+                              placeholder="小标题"
+                              className="custom-item-label-input"
+                            />
+                            <input
+                              type="text"
+                              value={item.value}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditedAboutInfo(prev => {
+                                  const sections = [...(prev.customSections || [])];
+                                  const items = [...sections[sIdx].items];
+                                  items[iIdx] = { ...items[iIdx], value: val };
+                                  sections[sIdx] = { ...sections[sIdx], items };
+                                  return { ...prev, customSections: sections };
+                                });
+                              }}
+                              placeholder="内容"
+                              className="custom-item-value-input"
+                            />
+                          </div>
+                          <button
+                            className="btn-icon danger small"
+                            onClick={() => {
+                              setEditedAboutInfo(prev => {
+                                const sections = [...(prev.customSections || [])];
+                                const items = sections[sIdx].items.filter((_, i) => i !== iIdx);
+                                sections[sIdx] = { ...sections[sIdx], items };
+                                return { ...prev, customSections: sections };
+                              });
+                            }}
+                            title="删除此项"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        className="btn btn-secondary small"
+                        onClick={() => {
+                          setEditedAboutInfo(prev => {
+                            const sections = [...(prev.customSections || [])];
+                            const newItem = { id: Date.now().toString(), label: '', value: '' };
+                            sections[sIdx] = { ...sections[sIdx], items: [...sections[sIdx].items, newItem] };
+                            return { ...prev, customSections: sections };
+                          });
+                        }}
+                      >
+                        <Plus size={14} />
+                        添加子项
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  className="btn btn-secondary add-custom-section-btn"
+                  onClick={() => {
+                    const newSection: AboutCustomSection = {
+                      id: Date.now().toString(),
+                      title: '新区块',
+                      items: [{ id: `${Date.now()}-1`, label: '', value: '' }],
+                    };
+                    setEditedAboutInfo(prev => ({
+                      ...prev,
+                      customSections: [...(prev.customSections || []), newSection],
+                    }));
+                  }}
+                >
+                  <Plus size={16} />
+                  添加自定义区块
+                </button>
               </div>
 
               {aboutHasChanges && (

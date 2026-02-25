@@ -36,6 +36,18 @@
   display: block;
 }
 
+/* ============ SUBTITLE TEXT ============ */
+.about-subtitle-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px;
+  font-weight: 400;
+  font-style: italic;
+  color: #888;
+  margin-bottom: 32px;
+  letter-spacing: 0.03em;
+}
+
+/* ============ BIO ============ */
 .about-text p {
   font-family: 'Noto Serif SC', serif;
   font-size: 16px;
@@ -51,10 +63,89 @@
   color: #2a2a2a;
 }
 
+/* ============ SECTIONS (stats, custom) ============ */
+.about-section {
+  margin-top: 48px;
+  padding-top: 36px;
+  border-top: 1px solid #e8e6e2;
+}
+
+.about-section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  font-style: italic;
+  margin-bottom: 24px;
+  color: #2a2a2a;
+}
+
+/* Stats */
+.about-stats {
+  display: flex;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+
+.about-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.about-stat-number {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px;
+  font-weight: 400;
+  color: #2a2a2a;
+  letter-spacing: 0.02em;
+}
+
+.about-stat-label {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 300;
+  color: #999;
+  letter-spacing: 0.06em;
+}
+
+/* Custom section items */
+.about-custom-items {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.about-custom-item {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+}
+
+.about-custom-item-label {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #2a2a2a;
+  letter-spacing: 0.02em;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.about-custom-item-value {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 15px;
+  font-weight: 300;
+  color: #666;
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+}
+
 /* ============ CONTACT ============ */
 .about-contact {
-  margin-top: 64px;
-  padding-top: 48px;
+  margin-top: 48px;
+  padding-top: 36px;
   border-top: 1px solid #e8e6e2;
 }
 
@@ -109,5 +200,22 @@
 
   .about-text p {
     font-size: 15px;
+  }
+
+  .about-stats {
+    gap: 32px;
+  }
+
+  .about-stat-number {
+    font-size: 26px;
+  }
+
+  .about-custom-item {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .about-custom-item-label {
+    min-width: unset;
   }
 }

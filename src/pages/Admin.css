@@ -1788,6 +1788,73 @@
 
 .avatar-editor {
   margin-bottom: 0;
+  max-width: 200px;
+}
+
+/* Custom Section Editor */
+.custom-section-editor {
+  position: relative;
+}
+
+.custom-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-section-header .section-label-input {
+  flex: 1;
+}
+
+.custom-section-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.custom-section-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-section-item-fields {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
+}
+
+.custom-item-label-input,
+.custom-item-value-input {
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  border-bottom: 1px solid #e8e6e2;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  color: #2a2a2a;
+  background: transparent;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.custom-item-label-input {
+  font-weight: 400;
+}
+
+.custom-item-value-input {
+  font-weight: 300;
+  color: #555;
+}
+
+.custom-item-label-input:focus,
+.custom-item-value-input:focus {
+  border-bottom-color: #999;
+}
+
+.add-custom-section-btn {
+  margin-top: 16px;
 }
 
 .bio-editor {
