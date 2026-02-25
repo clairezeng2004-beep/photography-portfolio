@@ -415,7 +415,11 @@ const Footprints: React.FC = () => {
   const [previewCollection, setPreviewCollection] = useState<PhotoCollection | null>(null);
   const [previewPage, setPreviewPage] = useState(0);
   const [hoveredCity, setHoveredCity] = useState<string | null>(null);
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; city: string; country: string; hasPhoto: boolean } | null>(null);
+  const [hoverCard, setHoverCard] = useState<{
+    x: number; y: number;
+    cityGroup: CityGroup;
+  } | null>(null);
+  const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Card entrance animation state (same as Home)
@@ -569,18 +573,52 @@ const Footprints: React.FC = () => {
     return p ? { x: p[0], y: p[1] } : null;
   }, [projection]);
 
-  const handleMarkerHover = useCallback((e: React.MouseEvent, city: string, country: string, hasPhoto: boolean) => {
-    if (!svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    setTooltip({
+  const handleMarkerEnter = useCallback((e: React.MouseEvent, geo: GeoInfo, cityGroup?: CityGroup) => {
+    setHoveredCity(geo.city);
+    if (!cityGroup || !svgContainerRef.current) return;
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    const rect = svgContainerRef.current.getBoundingClientRect();
+    setHoverCard({
       x: e.clientX - rect.left,
-      y: e.clientY - rect.top - 12,
-      city,
-      country,
-      hasPhoto,
+      y: e.clientY - rect.top,
+      cityGroup,
     });
-    setHoveredCity(city);
   }, []);
+
+  const handleMarkerLeave = useCallback(() => {
+    setHoveredCity(null);
+    // Delay hiding so user can move mouse into the card
+    hoverTimeout.current = setTimeout(() => {
+      setHoverCard(null);
+    }, 200);
+  }, []);
+
+  const handleCardEnter = useCallback(() => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+  }, []);
+
+  const handleCardLeave = useCallback(() => {
+    setHoveredCity(null);
+    setHoverCard(null);
+  }, []);
+
+  // Mobile: tap toggles hover card
+  const handleMarkerClick = useCallback((cityGroup?: CityGroup, geo?: GeoInfo, x?: number, y?: number) => {
+    if (dragMoved.current) return;
+    if (!cityGroup || !geo) return;
+    // If tapping same city, close
+    if (hoverCard && hoverCard.cityGroup.key === cityGroup.key) {
+      setHoverCard(null);
+      setHoveredCity(null);
+      return;
+    }
+    setHoveredCity(geo.city);
+    setHoverCard({
+      x: x || 0,
+      y: y || 0,
+      cityGroup,
+    });
+  }, [hoverCard]);
 
   // Determine which features to show based on continent
   const visibleFeatures = useMemo(() => {
@@ -973,7 +1011,7 @@ const Footprints: React.FC = () => {
             ref={svgRef}
             viewBox={`0 0 ${vc.width} ${vc.height}`}
             className="footprints-svg-map"
-            onMouseLeave={() => { setTooltip(null); setHoveredCity(null); }}
+            onMouseLeave={() => { setHoveredCity(null); }}
           >
             <defs>
               <linearGradient id="oceanGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -1147,12 +1185,12 @@ const Footprints: React.FC = () => {
                       cy={y}
                       r={hasPhoto ? (isHovered ? 6.5 : 5) : (isHovered ? 4 : 3)}
                       className={`city-marker ${hasPhoto ? 'marker-photo' : 'marker-nophoto'} ${isHovered ? 'marker-hovered' : ''}`}
-                      onMouseEnter={(e) => handleMarkerHover(e, geo.city, geo.country, hasPhoto)}
-                      onMouseMove={(e) => handleMarkerHover(e, geo.city, geo.country, hasPhoto)}
-                      onMouseLeave={() => { setTooltip(null); setHoveredCity(null); }}
-                      onClick={() => {
-                        if (dragMoved.current) return;
-                        if (cityGroup) { setSelectedCityGroup(cityGroup); setPreviewCollection(null); setPreviewPage(0); }
+                      onMouseEnter={(e) => handleMarkerEnter(e, geo, cityGroup)}
+                      onMouseLeave={handleMarkerLeave}
+                      onClick={(e) => {
+                        if (!hasPhoto) return;
+                        const rect = svgContainerRef.current?.getBoundingClientRect();
+                        handleMarkerClick(cityGroup, geo, rect ? e.clientX - rect.left : 0, rect ? e.clientY - rect.top : 0);
                       }}
                     />
                   </g>
@@ -1191,20 +1229,88 @@ const Footprints: React.FC = () => {
             </g>
           </svg>
 
-          {/* Tooltip */}
-          {tooltip && (
-            <div
-              className="map-tooltip"
-              style={{
-                left: tooltip.x,
-                top: tooltip.y,
-                transform: 'translate(-50%, -100%)',
-              }}
-            >
-              <span className="tooltip-city">{tooltip.city}</span>
-              <span className="tooltip-country">{tooltip.country}</span>
-            </div>
-          )}
+          {/* Hover card for city collections */}
+          {hoverCard && (() => {
+            const { cityGroup } = hoverCard;
+            const { geo, collections: cityCollections, totalPhotos } = cityGroup;
+            const coverImg = cityCollections[0]?.cardCoverImage || cityCollections[0]?.coverImage;
+            // Position: calculate based on SVG container coordinates
+            // Use the marker's projected position for stable placement
+            const { lat: mLat, lng: mLng } = getLatLng(geo);
+            const mPos = projectCity(mLat, mLng);
+            if (!mPos) return null;
+            // Convert SVG coords to container coords considering zoom/pan
+            const containerX = mPos.x * zoom + pan.x + (vc.width / 2) * (1 - zoom);
+            const containerY = mPos.y * zoom + pan.y + (vc.height / 2) * (1 - zoom);
+            // Get container dimensions for edge detection
+            const containerEl = svgContainerRef.current;
+            const containerW = containerEl ? containerEl.clientWidth : vc.width;
+            const containerH = containerEl ? containerEl.clientHeight : vc.height;
+            const scaleX = containerW / vc.width;
+            const scaleY = containerH / vc.height;
+            const px = containerX * scaleX;
+            const py = containerY * scaleY;
+            // Card dimensions
+            const cardW = 260;
+            const cardH = cityCollections.length > 1 ? 210 : 190;
+            // Decide if card goes above or below, left or right
+            const goUp = py > cardH + 20;
+            const goLeft = px + cardW + 20 > containerW;
+            const cardStyle: React.CSSProperties = {
+              position: 'absolute',
+              left: goLeft ? px - cardW - 8 : px + 12,
+              top: goUp ? py - cardH - 12 : py + 16,
+              width: cardW,
+              zIndex: 20,
+            };
+
+            return (
+              <div
+                className="map-hover-card"
+                style={cardStyle}
+                onMouseEnter={handleCardEnter}
+                onMouseLeave={handleCardLeave}
+              >
+                {coverImg && (
+                  <div className="hover-card-cover">
+                    <img src={coverImg} alt={geo.city} draggable={false} />
+                    <div className="hover-card-cover-overlay" />
+                  </div>
+                )}
+                <div className="hover-card-body">
+                  <h4 className="hover-card-city">{geo.city}</h4>
+                  <p className="hover-card-meta">
+                    {geo.country} · {totalPhotos} photos
+                    {cityCollections.length > 1 ? ` · ${cityCollections.length} collections` : ''}
+                  </p>
+                  {cityCollections.length <= 2 && cityCollections.map(c => (
+                    <Link
+                      key={c.id}
+                      to={`/gallery/${c.id}`}
+                      className="hover-card-link"
+                      onClick={() => { setHoverCard(null); setHoveredCity(null); }}
+                    >
+                      {c.title} →
+                    </Link>
+                  ))}
+                  {cityCollections.length > 2 && (
+                    <button
+                      className="hover-card-more"
+                      onClick={() => {
+                        setSelectedCityGroup(cityGroup);
+                        setPreviewCollection(null);
+                        setPreviewPage(0);
+                        setHoverCard(null);
+                        setHoveredCity(null);
+                      }}
+                    >
+                      查看全部 {cityCollections.length} 个图集 →
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
