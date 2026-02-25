@@ -2312,7 +2312,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
   // Collapsible section states — 4 categories
   type EditSection = 'cover' | 'info' | 'location' | 'photos';
-  const [openSections, setOpenSections] = useState<Set<EditSection>>(new Set<EditSection>(['cover', 'info']));
+  const [openSections, setOpenSections] = useState<Set<EditSection>>(new Set<EditSection>(['cover']));
   const toggleSection = (s: EditSection) => setOpenSections(prev => {
     const next = new Set<EditSection>(prev);
     if (next.has(s)) next.delete(s); else next.add(s);
@@ -2856,14 +2856,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     setShowPicker(true);
   };
 
-  // Open picker always at collection list level (no auto-select)
-  const openPickerFresh = (target: number | 'add' | { type: 'mobile'; index: number }) => {
-    setPickerTarget(target);
-    setPickerFilter('');
-    setPickerSelectedCollection(null);
-    setShowPicker(true);
-  };
-
   // Refs for local upload file inputs (desktop/mobile per hero item)
   const heroLocalUploadRef = useRef<HTMLInputElement>(null);
   const [heroLocalUploadTarget, setHeroLocalUploadTarget] = useState<number | { type: 'mobile'; index: number } | null>(null);
@@ -2925,11 +2917,6 @@ const HeroManager: React.FC<HeroManagerProps> = ({
     reader.readAsDataURL(file);
     e.target.value = '';
     setHeroLocalUploadTarget(null);
-  };
-
-  const triggerLocalUpload = (target: number | { type: 'mobile'; index: number }) => {
-    setHeroLocalUploadTarget(target);
-    setTimeout(() => heroLocalUploadRef.current?.click(), 0);
   };
 
   const handleSaveItem = async () => {

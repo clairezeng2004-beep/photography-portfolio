@@ -70,6 +70,10 @@
   min-width: 0;
 }
 
+.footer-column-center {
+  text-align: center;
+}
+
 .footer-column-title {
   font-family: 'Noto Serif SC', serif;
   font-size: 14px;

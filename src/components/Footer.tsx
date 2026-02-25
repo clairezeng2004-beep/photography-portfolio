@@ -69,7 +69,7 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Column 2: Roaming Ice */}
-          <div className="footer-column">
+          <div className="footer-column footer-column-center">
             <h3 className="footer-column-title">ROAMING ICE</h3>
             <p className="footer-column-text">用镜头记录旅途中的光与影</p>
           </div>

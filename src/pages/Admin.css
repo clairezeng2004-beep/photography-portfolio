@@ -1140,6 +1140,9 @@
   background: transparent;
   border: none;
   padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
 }
 
 .card-cover-final-actions .uploaded-image > img {
@@ -1528,8 +1531,8 @@
 .inline-edit-title {
   width: 100%;
   font-family: 'Noto Serif SC', serif;
-  font-size: 22px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 400;
   letter-spacing: 0.04em;
   color: #2a2a2a;
   border: none;
