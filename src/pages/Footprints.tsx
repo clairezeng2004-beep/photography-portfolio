@@ -156,10 +156,16 @@ function filterOverlappingLabels(
     }
   }
 
+  // Track which labels have been attempted to be placed
+  const attempted = new Set<string>();
+
   for (const item of sorted) {
     // Skip marker-only items (they exist solely for avoidance data)
     if (item.label === '') continue;
-
+    
+    const itemKey = item.key;
+    if (attempted.has(itemKey)) continue;
+    
     const estWidth = item.label.length * charWidth;
     const isLitCity = item.priority >= 10;
 
@@ -209,23 +215,84 @@ function filterOverlappingLabels(
 
       visible.add(item.key);
       placed.push({ x: bestX, y: bestY, w: estWidth, key: item.key, isCity: true });
+      attempted.add(itemKey);
     } else {
-      // For region/country labels: hide if overlapping
-      const overlapsLabel = placed.some(p =>
-        Math.abs(p.x - item.x) < (estWidth + p.w) * 0.4 &&
-        Math.abs(p.y - item.y) < minDistY * 0.8
+      // For region/country labels: more permissive placement
+      let placedSuccessfully = false;
+      
+      // First try original position
+      let overlaps = placed.some(p =>
+        Math.abs(p.x - item.x) < (estWidth + p.w) * 0.35 &&
+        Math.abs(p.y - item.y) < minDistY * 0.7
       );
-      if (overlapsLabel) continue;
-
-      // Only hide if marker is VERY close (direct overlap)
-      const overlapsMarker = allMarkers.some(m =>
-        Math.abs(m.x - item.x) < estWidth * 0.3 + 4 &&
-        Math.abs(m.y - item.y) < minDistY * 0.6
-      );
-      if (overlapsMarker) continue;
-
-      visible.add(item.key);
-      placed.push({ x: item.x, y: item.y, w: estWidth, key: item.key, isCity: false });
+      
+      if (!overlaps) {
+        // Check marker overlap (more permissive than before)
+        const overlapsMarker = allMarkers.some(m =>
+          Math.abs(m.x - item.x) < estWidth * 0.4 + 4 &&
+          Math.abs(m.y - item.y) < minDistY * 0.7
+        );
+        
+        if (!overlapsMarker) {
+          // Try to place
+          placed.push({ x: item.x, y: item.y, w: estWidth, key: item.key, isCity: false });
+          visible.add(item.key);
+          attempted.add(itemKey);
+          placedSuccessfully = true;
+        }
+      }
+      
+      if (!placedSuccessfully) {
+        // Try nudging if original position fails
+        const nudges = [
+          { dx: 0, dy: 0 },  // already tried
+          { dx: 0, dy: -minDistY * 0.7 },
+          { dx: 0, dy: minDistY * 0.9 },
+          { dx: estWidth * 0.4, dy: 0 },
+          { dx: -(estWidth * 0.4), dy: 0 },
+        ];
+        
+        for (const nudge of nudges) {
+          if (nudge.dx === 0 && nudge.dy === 0) continue; // already tried
+          
+          const nx = item.x + nudge.dx;
+          const ny = item.y + nudge.dy;
+          overlaps = placed.some(p =>
+            Math.abs(p.x - nx) < (estWidth + p.w) * 0.35 &&
+            Math.abs(p.y - ny) < minDistY * 0.7
+          );
+          
+          if (!overlaps) {
+            // Check marker overlap for nudged position
+            const overlapsMarker = allMarkers.some(m =>
+              Math.abs(m.x - nx) < estWidth * 0.4 + 4 &&
+              Math.abs(m.y - ny) < minDistY * 0.7
+            );
+            
+            if (!overlapsMarker) {
+              // Place with nudge
+              placed.push({ x: nx, y: ny, w: estWidth, key: item.key, isCity: false });
+              visible.add(item.key);
+              offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
+              attempted.add(itemKey);
+              placedSuccessfully = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (!placedSuccessfully) {
+        // If all attempts fail, still try to place with more aggressive nudging
+        const finalNudge = { dx: 0, dy: -minDistY * 1.2 };
+        const finalX = item.x + finalNudge.dx;
+        const finalY = item.y + finalNudge.dy;
+        
+        placed.push({ x: finalX, y: finalY, w: estWidth, key: item.key, isCity: false });
+        visible.add(item.key);
+        offsets.set(item.key, finalNudge);
+        attempted.add(itemKey);
+      }
     }
   }
   return { visible, offsets };

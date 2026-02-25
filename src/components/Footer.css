@@ -49,12 +49,85 @@
   margin-bottom: 32px;
 }
 
-/* Subscribe section */
-.footer-subscribe-section {
-  text-align: center;
+/* Footer content grid */
+.footer-content {
+  padding: 0 60px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 40px;
   margin-bottom: 36px;
-  max-width: 360px;
-  width: 100%;
+}
+
+.footer-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.footer-column-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: #888;
+  text-transform: uppercase;
+  margin: 0 0 16px;
+  font-style: italic;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 8px;
+}
+
+.footer-links a {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  color: #666;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-links a:hover {
+  color: #2a2a2a;
+}
+
+.footer-column-text {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+/* Subscribe section */
+.footer-subscribe-form {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #d5d2cc;
+  background: #fff;
+}
+
+.footer-email-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'Playfair Display', serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #2a2a2a;
+  padding: 10px 14px;
 }
 
 .footer-subscribe-heading {
