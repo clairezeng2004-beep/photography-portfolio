@@ -997,37 +997,201 @@
   gap: 14px;
 }
 
-/* Small cover preview */
-.card-edit-cover-compact {
+/* Small cover preview — final effect with text overlay */
+.card-edit-covers-final {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
   width: 100%;
-  aspect-ratio: 3 / 4;
-  max-height: 200px;
-  overflow: hidden;
-  border-radius: 4px;
-  border: 1px solid #e8e6e2;
 }
 
-.card-edit-cover-compact img {
+.card-cover-final-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-cover-final-preview {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #1a1a1a;
+}
+
+.card-cover-final-landscape {
+  aspect-ratio: 4 / 3;
+}
+
+.card-cover-final-portrait {
+  aspect-ratio: 3 / 4;
+}
+
+.card-cover-final-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
-/* Cover management block */
-.card-edit-block-cover {
+.card-cover-final-empty {
   width: 100%;
-  max-width: none;
-}
-
-.card-edit-cover-uploads {
+  height: 100%;
   display: flex;
-  gap: 8px;
-  margin-bottom: 6px;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  min-height: 80px;
 }
 
-.card-edit-cover-upload-item {
-  flex: 1;
-  min-width: 0;
+.card-cover-final-text-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 16px 14px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.card-cover-final-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-cover-final-location {
+  font-family: 'Playfair Display', serif;
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.08em;
+  font-style: italic;
+}
+
+/* Card-style text overlay (for portrait — matches Home simple-card style) */
+.card-cover-final-text-card {
+  padding: 28px 14px 12px;
+}
+
+/* Cover actions — show only action buttons, hide image preview */
+.card-cover-final-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.card-cover-final-actions .image-uploader {
+  width: 100%;
+}
+
+.card-cover-final-actions .uploaded-image {
+  position: relative;
+  aspect-ratio: unset !important;
+  height: auto;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.card-cover-final-actions .uploaded-image > img {
+  display: none;
+}
+
+.card-cover-final-actions .uploaded-image .uploaded-image-actions {
+  position: static;
+  opacity: 1;
+  display: flex;
+  gap: 6px;
+  background: none;
+  padding: 0;
+  justify-content: flex-start;
+}
+
+.card-cover-final-actions .uploaded-image .uploaded-image-actions button {
+  position: static;
+  background: none;
+  border: 1px solid #e8e6e2;
+  border-radius: 3px;
+  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #666;
+  opacity: 1;
+  transform: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.card-cover-final-actions .uploaded-image .uploaded-image-actions button:hover {
+  border-color: #2a2a2a;
+  color: #2a2a2a;
+  background: none;
+}
+
+.card-cover-final-actions .uploaded-image .uploaded-image-actions button span {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 11px;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+.card-cover-final-actions .upload-area {
+  padding: 6px 12px;
+  border: 1px dashed #e8e6e2;
+  border-radius: 3px;
+  background: none;
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.card-cover-final-actions .upload-area svg {
+  width: 14px;
+  height: 14px;
+}
+
+.card-cover-final-actions .upload-area p {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 11px;
+  font-weight: 300;
+  color: #666;
+  margin: 0;
+}
+
+.card-cover-final-actions .upload-area .upload-hint {
+  display: none;
+}
+
+/* Cover picker panel */
+.card-cover-picker-panel {
+  width: 100%;
+  border: 1px solid #e8e6e2;
+  border-radius: 4px;
+  padding: 10px;
+  background: #faf9f7;
+}
+
+.card-cover-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
 .cover-upload-label {

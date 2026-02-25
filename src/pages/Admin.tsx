@@ -2316,6 +2316,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [, setShowPhotosSection] = useState(false);
   const [, setShowLocationTimeSection] = useState(false);
   const [cropProcessing, setCropProcessing] = useState(false);
+  const [showCoverPicker, setShowCoverPicker] = useState<'landscape' | 'portrait' | null>(null);
 
   // Move photo state — multi-select
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
@@ -2485,35 +2486,103 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
         <div className="card-edit-panel">
           {/* Row 1: Cover + Meta info */}
           <div className="card-edit-row card-edit-row-meta">
-            {/* Cover preview (small) */}
-            <div className="card-edit-cover-compact">
-              <img src={cardCoverImage || coverImage || collection.cardCoverImage || collection.coverImage} alt={collection.title} />
-            </div>
-
-            {/* Cover management (compact) */}
-            <div className="card-edit-block card-edit-block-cover">
-              <h4 className="card-edit-block-title">封面管理</h4>
-              <div className="card-edit-cover-uploads">
-                <div className="card-edit-cover-upload-item">
-                  <span className="cover-upload-label">横版</span>
-                  <ImageUploader onImageUpload={(url) => { setCoverImage(url); autoCropToPortrait(url).then(setCardCoverImage).catch(() => {}); }} onCropOriginal={(originalUrl) => { autoCropToPortrait(originalUrl).then(setCardCoverImage).catch(() => {}); }} currentImage={coverImage} onRemove={() => { setCoverImage(''); setCardCoverImage(''); }} label="更换" enableCrop cropAspectOptions={[{ label: '16:9', value: 16 / 9 },{ label: '4:3', value: 4 / 3 }]} defaultCropAspect={4 / 3} defaultOutputWidth={2400} previewAspectRatio={4 / 3} />
+            {/* Cover previews — final effect with text overlay */}
+            <div className="card-edit-covers-final">
+              {/* Landscape cover (4:3) */}
+              <div className="card-cover-final-slot">
+                <span className="cover-upload-label">横版封面</span>
+                <div className="card-cover-final-preview card-cover-final-landscape">
+                  {coverImage ? (
+                    <img src={coverImage} alt={title || collection.title} />
+                  ) : (
+                    <div className="card-cover-final-empty"><ImageIcon size={20} /></div>
+                  )}
+                  <div className="card-cover-final-text-overlay">
+                    <span className="card-cover-final-title">{title || collection.title || '标题'}</span>
+                    <span className="card-cover-final-location">{location || collection.location || '地点'} · {year || collection.year}</span>
+                  </div>
                 </div>
-                <div className="card-edit-cover-upload-item">
-                  <span className="cover-upload-label">竖版</span>
-                  <ImageUploader onImageUpload={(url) => setCardCoverImage(url)} currentImage={cardCoverImage} onRemove={() => setCardCoverImage('')} label="上传" enableCrop cropAspectOptions={[{ label: '3:4', value: 3 / 4 }]} defaultCropAspect={3 / 4} defaultOutputWidth={1200} previewAspectRatio={3 / 4} />
+                <div className="card-cover-final-actions">
+                  <ImageUploader
+                    onImageUpload={(url) => { setCoverImage(url); autoCropToPortrait(url).then(setCardCoverImage).catch(() => {}); }}
+                    onCropOriginal={(originalUrl) => { autoCropToPortrait(originalUrl).then(setCardCoverImage).catch(() => {}); }}
+                    currentImage={coverImage}
+                    onRemove={() => { setCoverImage(''); setCardCoverImage(''); }}
+                    label="更换"
+                    enableCrop
+                    cropAspectOptions={[{ label: '16:9', value: 16 / 9 },{ label: '4:3', value: 4 / 3 }]}
+                    defaultCropAspect={4 / 3}
+                    defaultOutputWidth={2400}
+                    previewAspectRatio={4 / 3}
+                    onReplaceClick={() => setShowCoverPicker('landscape')}
+                  />
                 </div>
               </div>
-              {collection.photos.length > 0 && (
+              {/* Portrait cover (3:4) */}
+              <div className="card-cover-final-slot">
+                <span className="cover-upload-label">竖版封面</span>
+                <div className="card-cover-final-preview card-cover-final-portrait">
+                  {(cardCoverImage || coverImage) ? (
+                    <img src={cardCoverImage || coverImage} alt={title || collection.title} />
+                  ) : (
+                    <div className="card-cover-final-empty"><ImageIcon size={20} /></div>
+                  )}
+                  <div className="card-cover-final-text-overlay card-cover-final-text-card">
+                    <span className="card-cover-final-title">{title || collection.title || '标题'}</span>
+                    <span className="card-cover-final-location">{location || collection.location || '地点'} · {year || collection.year}</span>
+                  </div>
+                </div>
+                <div className="card-cover-final-actions">
+                  <ImageUploader
+                    onImageUpload={(url) => setCardCoverImage(url)}
+                    currentImage={cardCoverImage}
+                    onRemove={() => setCardCoverImage('')}
+                    label="更换"
+                    enableCrop
+                    cropAspectOptions={[{ label: '3:4', value: 3 / 4 }]}
+                    defaultCropAspect={3 / 4}
+                    defaultOutputWidth={1200}
+                    previewAspectRatio={3 / 4}
+                    onReplaceClick={() => setShowCoverPicker('portrait')}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Cover picker from collection photos */}
+            {showCoverPicker && collection.photos.length > 0 && (
+              <div className="card-cover-picker-panel">
+                <div className="card-cover-picker-header">
+                  <span className="card-edit-block-title">从作品集中选择 · {showCoverPicker === 'landscape' ? '横版' : '竖版'}</span>
+                  <button type="button" className="btn-icon" onClick={() => setShowCoverPicker(null)}><X size={14} /></button>
+                </div>
                 <div className="cover-picker-grid cover-picker-grid-compact">
                   {collection.photos.map(photo => (
-                    <button type="button" key={photo.id} className="cover-picker-item" disabled={cropProcessing} onClick={async () => { setCropProcessing(true); try { const src = photo.url; const [landscape, portrait] = await Promise.allSettled([autoCropToLandscape(src), autoCropToPortrait(src)]); setCoverImage(landscape.status === 'fulfilled' ? landscape.value : src); if (portrait.status === 'fulfilled') setCardCoverImage(portrait.value); } catch (err) { console.error('Cover crop failed:', err); } setCropProcessing(false); }}>
+                    <button type="button" key={photo.id} className="cover-picker-item" disabled={cropProcessing} onClick={async () => {
+                      setCropProcessing(true);
+                      try {
+                        const src = photo.url;
+                        if (showCoverPicker === 'landscape') {
+                          const cropped = await autoCropToLandscape(src);
+                          setCoverImage(cropped);
+                          if (!cardCoverImage) {
+                            autoCropToPortrait(src).then(setCardCoverImage).catch(() => {});
+                          }
+                        } else {
+                          const cropped = await autoCropToPortrait(src);
+                          setCardCoverImage(cropped);
+                        }
+                      } catch (err) { console.error('Cover crop failed:', err); }
+                      setCropProcessing(false);
+                      setShowCoverPicker(null);
+                    }}>
                       <img src={photo.thumbnail || photo.url} alt={photo.alt} />
                       <span>{cropProcessing ? '...' : '选'}</span>
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Title */}
             <div className="card-edit-block card-edit-block-title-area">
