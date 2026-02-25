@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage, AnimationConfig } from '../types';
 import { mockCollections } from '../data/mockData';
 import { dbGet, dbSet } from '../utils/storage';
-import { isSupabaseConfigured, supabaseGetDetailed, supabaseSetWithRetry } from '../utils/supabase';
+import { isSupabaseConfigured, supabaseGetDetailed, supabaseSetWithRetry, createBackup } from '../utils/supabase';
 import { syncImgbbKeyFromCloud } from '../utils/imageHost';
 import { syncNewsletterKeyFromCloud } from '../utils/newsletter';
 
@@ -353,6 +353,44 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Refs for auto-backup (access latest state without re-creating callbacks)
+  const collectionsRef = useRef(collections);
+  useEffect(() => { collectionsRef.current = collections; }, [collections]);
+
+  const aboutInfoRef = useRef(aboutInfo);
+  useEffect(() => { aboutInfoRef.current = aboutInfo; }, [aboutInfo]);
+
+  const litCitiesRef = useRef(litCities);
+  useEffect(() => { litCitiesRef.current = litCities; }, [litCities]);
+
+  const heroImagesRef = useRef(heroImages);
+  useEffect(() => { heroImagesRef.current = heroImages; }, [heroImages]);
+
+  const animationConfigRef = useRef(animationConfig);
+  useEffect(() => { animationConfigRef.current = animationConfig; }, [animationConfig]);
+
+  // Auto-backup: throttle to at most once per 5 minutes
+  const lastBackupTimeRef = useRef(0);
+  const BACKUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+  const triggerAutoBackup = useCallback(() => {
+    if (!isSupabaseConfigured()) return;
+    const now = Date.now();
+    if (now - lastBackupTimeRef.current < BACKUP_INTERVAL) return;
+    lastBackupTimeRef.current = now;
+
+    const snapshot = {
+      photo_collections: collectionsRef.current,
+      about_info: aboutInfoRef.current,
+      lit_cities: litCitiesRef.current,
+      hero_images: heroImagesRef.current,
+      animation_config: animationConfigRef.current,
+    };
+    createBackup(snapshot).then(ok => {
+      if (ok) console.log('[AutoBackup] snapshot created');
+    });
+  }, []);
+
   /**
    * Save locally (instant) and trigger background cloud sync.
    * Always returns true (local save is reliable).
@@ -374,8 +412,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Trigger background cloud sync (non-blocking)
     syncToCloud(key, value);
 
+    // Trigger auto-backup (throttled, non-blocking)
+    triggerAutoBackup();
+
     return true; // Local save succeeded — UI can proceed
-  }, [syncToCloud]);
+  }, [syncToCloud, triggerAutoBackup]);
 
   const updateCollections = useCallback(async (newCollections: PhotoCollection[]): Promise<boolean> => {
     if (!dataLoaded) {
@@ -391,9 +432,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setAboutInfo(newAboutInfo);
     return save('about_info', newAboutInfo);
   }, [save, dataLoaded]);
-
-  const collectionsRef = useRef(collections);
-  useEffect(() => { collectionsRef.current = collections; }, [collections]);
 
   const addPhoto = useCallback(async (collectionId: string, photo: Photo): Promise<boolean> => {
     if (!dataLoaded) return false;

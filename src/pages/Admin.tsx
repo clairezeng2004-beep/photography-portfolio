@@ -5,7 +5,7 @@ import {
   Plus, Edit, Trash2, Save, X,
   User, Image as ImageIcon, Settings, LogOut,
   Folder, Camera, MapPin, Calendar, Globe,
-  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload, Eye
+  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload, Eye, History, RotateCcw
 } from 'lucide-react';
 import { PhotoCollection, Photo, AboutInfo, AboutCustomSection, AboutCustomSectionSubItem, GeoInfo, HeroImage } from '../types';
 import { useData } from '../context/DataContext';
@@ -21,6 +21,7 @@ import {
 import ImageUploader from '../components/ImageUploader';
 import { getR2WorkerUrl, setR2WorkerUrl, getR2Secret, setR2Secret, isImageHostConfigured, countBase64Images, migrateAllToR2, MigrationProgress } from '../utils/imageHost';
 import { getNewsletterApiKey, setNewsletterApiKey, isNewsletterConfigured } from '../utils/newsletter';
+import { listBackups, getBackup, deleteBackup, createBackup, BackupEntry, isSupabaseConfigured } from '../utils/supabase';
 import Toast from '../components/Toast';
 import './Admin.css';
 
@@ -288,6 +289,77 @@ const Admin: React.FC = () => {
   // Migration state
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationProgress, setMigrationProgress] = useState<MigrationProgress | null>(null);
+
+  // Backup management state
+  const [showBackupPanel, setShowBackupPanel] = useState(false);
+  const [backupList, setBackupList] = useState<BackupEntry[]>([]);
+  const [loadingBackups, setLoadingBackups] = useState(false);
+  const [restoringBackup, setRestoringBackup] = useState<string | null>(null);
+
+  const loadBackupList = useCallback(async () => {
+    setLoadingBackups(true);
+    try {
+      const list = await listBackups();
+      setBackupList(list);
+    } catch (e) {
+      console.error('[Backup] Failed to load list:', e);
+    }
+    setLoadingBackups(false);
+  }, []);
+
+  const handleCreateBackupNow = useCallback(async () => {
+    const snapshot = {
+      photo_collections: collections,
+      about_info: aboutInfo,
+      lit_cities: litCities,
+      hero_images: heroImages,
+      animation_config: animationConfig,
+    };
+    const ok = await createBackup(snapshot);
+    if (ok) {
+      showToast('备份创建成功');
+      loadBackupList();
+    } else {
+      showToast('备份创建失败');
+    }
+  }, [collections, aboutInfo, litCities, heroImages, animationConfig]);
+
+  const handleRestoreBackup = useCallback(async (entry: BackupEntry) => {
+    if (!window.confirm(`确定要恢复到 ${entry.label} 的备份吗？当前数据将被替换。`)) return;
+    setRestoringBackup(entry.key);
+    try {
+      const data = await getBackup(entry.key);
+      if (!data) {
+        showToast('备份数据读取失败');
+        setRestoringBackup(null);
+        return;
+      }
+      // Restore all data keys
+      const promises: Promise<boolean>[] = [];
+      if (data.photo_collections) promises.push(updateCollections(data.photo_collections));
+      if (data.about_info) promises.push(updateAboutInfo(data.about_info));
+      if (data.lit_cities) promises.push(updateLitCities(data.lit_cities));
+      if (data.hero_images) promises.push(updateHeroImages(data.hero_images));
+      if (data.animation_config) promises.push(updateAnimationConfig(data.animation_config));
+      await Promise.all(promises);
+      showToast('数据已恢复');
+    } catch (e) {
+      console.error('[Backup] restore failed:', e);
+      showToast('恢复失败');
+    }
+    setRestoringBackup(null);
+  }, [updateCollections, updateAboutInfo, updateLitCities, updateHeroImages, updateAnimationConfig]);
+
+  const handleDeleteBackup = useCallback(async (entry: BackupEntry) => {
+    if (!window.confirm(`确定要删除 ${entry.label} 的备份吗？`)) return;
+    try {
+      await deleteBackup(entry.key);
+      showToast('备份已删除');
+      loadBackupList();
+    } catch (e) {
+      showToast('删除失败');
+    }
+  }, [loadBackupList]);
 
   const base64Count = useMemo(() => {
     return countBase64Images(collections, heroImages, aboutInfo.avatar);
@@ -895,6 +967,59 @@ const Admin: React.FC = () => {
           )}
 
           <div className="admin-sidebar-divider" />
+
+          {/* Backup management */}
+          <button
+            className={`nav-item${showBackupPanel ? ' active' : ''}`}
+            onClick={() => {
+              const next = !showBackupPanel;
+              setShowBackupPanel(next);
+              if (next) loadBackupList();
+            }}
+          >
+            <History size={20} />
+            <span>备份管理</span>
+          </button>
+          {showBackupPanel && (
+            <div className="imgbb-config-panel">
+              <button className="imgbb-save-btn" onClick={handleCreateBackupNow} style={{ marginBottom: 10, width: '100%' }}>
+                立即创建备份
+              </button>
+              {loadingBackups ? (
+                <div style={{ textAlign: 'center', color: '#999', fontSize: 12, padding: '8px 0' }}>加载中...</div>
+              ) : backupList.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#999', fontSize: 12, padding: '8px 0' }}>暂无备份</div>
+              ) : (
+                <div className="backup-list">
+                  {backupList.map(entry => (
+                    <div key={entry.key} className="backup-item">
+                      <span className="backup-time">{entry.label}</span>
+                      <div className="backup-actions">
+                        <button
+                          className="backup-restore-btn"
+                          onClick={() => handleRestoreBackup(entry)}
+                          disabled={restoringBackup !== null}
+                          title="恢复"
+                        >
+                          {restoringBackup === entry.key ? '...' : <RotateCcw size={13} />}
+                        </button>
+                        <button
+                          className="backup-delete-btn"
+                          onClick={() => handleDeleteBackup(entry)}
+                          title="删除"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: '#aaa', marginTop: 8, lineHeight: 1.4 }}>
+                系统在每次编辑保存时自动备份（每5分钟最多1次），最多保留10份。
+              </div>
+            </div>
+          )}
 
           <button className="nav-item" onClick={handleExportData}>
             <Download size={20} />

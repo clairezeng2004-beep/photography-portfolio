@@ -124,3 +124,99 @@ export async function supabaseDelete(key: string): Promise<void> {
     throw error;
   }
 }
+
+/* ============================================================
+   Cloud Backup — automatic snapshots stored in app_data table
+   Key format: backup__<timestamp>
+   ============================================================ */
+
+const BACKUP_KEY_PREFIX = 'backup__';
+const MAX_BACKUPS = 10; // Keep at most 10 backups
+
+export interface BackupEntry {
+  key: string;
+  timestamp: number;       // epoch ms
+  label: string;           // human-readable time
+}
+
+/** Create a full-data backup snapshot */
+export async function createBackup(snapshot: Record<string, any>): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  const now = Date.now();
+  const backupKey = `${BACKUP_KEY_PREFIX}${now}`;
+
+  try {
+    await supabaseSet(backupKey, snapshot);
+    console.log(`[Backup] Created backup: ${backupKey}`);
+
+    // Prune old backups beyond MAX_BACKUPS
+    pruneOldBackups().catch(e => console.warn('[Backup] prune failed:', e));
+
+    return true;
+  } catch (e) {
+    console.error('[Backup] Failed to create backup:', e);
+    return false;
+  }
+}
+
+/** List all backup entries (newest first) */
+export async function listBackups(): Promise<BackupEntry[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  const supabase = getSupabase();
+  const { data, error } = await withTimeout(
+    supabase
+      .from('app_data')
+      .select('key, updated_at')
+      .like('key', `${BACKUP_KEY_PREFIX}%`)
+      .order('updated_at', { ascending: false }),
+    READ_TIMEOUT,
+    'LIST backups'
+  );
+
+  if (error) {
+    console.error('[Backup] list failed:', error.message);
+    return [];
+  }
+
+  return (data || []).map((row: any) => {
+    const ts = parseInt(row.key.replace(BACKUP_KEY_PREFIX, ''), 10);
+    return {
+      key: row.key,
+      timestamp: ts,
+      label: new Date(ts).toLocaleString('zh-CN', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+      }),
+    };
+  });
+}
+
+/** Get a specific backup's data */
+export async function getBackup(key: string): Promise<Record<string, any> | null> {
+  if (!isSupabaseConfigured()) return null;
+  const result = await supabaseGetDetailed<Record<string, any>>(key);
+  return result.found ? (result.value || null) : null;
+}
+
+/** Delete a specific backup */
+export async function deleteBackup(key: string): Promise<void> {
+  await supabaseDelete(key);
+}
+
+/** Remove oldest backups if count exceeds MAX_BACKUPS */
+async function pruneOldBackups(): Promise<void> {
+  const all = await listBackups();
+  if (all.length <= MAX_BACKUPS) return;
+
+  const toDelete = all.slice(MAX_BACKUPS);
+  for (const entry of toDelete) {
+    try {
+      await supabaseDelete(entry.key);
+      console.log(`[Backup] Pruned old backup: ${entry.key}`);
+    } catch (e) {
+      console.warn(`[Backup] Failed to prune ${entry.key}:`, e);
+    }
+  }
+}
