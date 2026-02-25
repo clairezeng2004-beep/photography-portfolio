@@ -949,6 +949,31 @@ const Admin: React.FC = () => {
                     </div>
                     
                     <div className="modal-body">
+                      <div className="form-group">
+                        <label>上传作品集图片</label>
+                        <ImageUploader
+                          onImageUpload={(url, thumb) => handleAddNewPhotos([{ imageUrl: url, thumbnailUrl: thumb }])}
+                          onMultiImageUpload={handleAddNewPhotos}
+                          label="上传作品集图片"
+                          multiple
+                        />
+                        {newCollection.photos && newCollection.photos.length > 0 && (
+                          <div className="new-photos-grid">
+                            {newCollection.photos.map(photo => (
+                              <div key={photo.id} className="new-photo-card">
+                                <img src={photo.thumbnail || photo.url} alt={photo.alt} />
+                                <button
+                                  className="remove-photo-btn"
+                                  onClick={() => handleRemoveNewPhoto(photo.id)}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="form-row">
                         <div className="form-group">
                           <label>标题 *</label>
@@ -1034,31 +1059,6 @@ const Admin: React.FC = () => {
                             ))}
                           </select>
                         </div>
-                      </div>
-
-                      <div className="form-group">
-                        <label>作品集图片（先上传）</label>
-                        <ImageUploader
-                          onImageUpload={(url, thumb) => handleAddNewPhotos([{ imageUrl: url, thumbnailUrl: thumb }])}
-                          onMultiImageUpload={handleAddNewPhotos}
-                          label="上传作品集图片"
-                          multiple
-                        />
-                        {newCollection.photos && newCollection.photos.length > 0 && (
-                          <div className="new-photos-grid">
-                            {newCollection.photos.map(photo => (
-                              <div key={photo.id} className="new-photo-card">
-                                <img src={photo.thumbnail || photo.url} alt={photo.alt} />
-                                <button
-                                  className="remove-photo-btn"
-                                  onClick={() => handleRemoveNewPhoto(photo.id)}
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
                       <div className="form-group">
@@ -1220,6 +1220,7 @@ const Admin: React.FC = () => {
                           <CollectionCard
                             key={collection.id}
                             collection={collection}
+                            allCollections={collections}
                             isEditing={isEditing}
                             onToggleEdit={() => setEditingCollection(isEditing ? null : collection.id)}
                             onSave={async (updatedData) => {
@@ -1260,6 +1261,43 @@ const Admin: React.FC = () => {
                                   : c
                               );
                               await updateCollections(updated);
+                            }}
+                            onMovePhotos={async (photoIds, targetId, newTitle) => {
+                              const photosToMove = collection.photos.filter(p => photoIds.includes(p.id));
+                              if (photosToMove.length === 0) return;
+                              let updated = collections.map(c =>
+                                c.id === collection.id
+                                  ? { ...c, photos: c.photos.filter(p => !photoIds.includes(p.id)) }
+                                  : c
+                              );
+                              if (targetId === 'new' && newTitle) {
+                                const extracted = extractFromTitle(newTitle);
+                                let geo: GeoInfo | undefined;
+                                if (extracted.location) {
+                                  const resolved = resolveGeoFromCity(extracted.location);
+                                  if (resolved) geo = resolved;
+                                }
+                                const newCol: PhotoCollection = {
+                                  id: Date.now().toString(),
+                                  title: newTitle,
+                                  location: extracted.location || collection.location,
+                                  year: extracted.year || collection.year,
+                                  description: '',
+                                  coverImage: photosToMove[0]?.url || '',
+                                  photos: photosToMove,
+                                  createdAt: new Date().toISOString().split('T')[0],
+                                  geo,
+                                };
+                                updated = [...updated, newCol];
+                              } else {
+                                updated = updated.map(c =>
+                                  c.id === targetId
+                                    ? { ...c, photos: [...c.photos, ...photosToMove] }
+                                    : c
+                                );
+                              }
+                              await updateCollections(updated);
+                              showToast(`${photosToMove.length} 张照片已移动`);
                             }}
                             onMoveUp={() => reorderCollections(globalIndex, globalIndex - 1)}
                             onMoveDown={() => reorderCollections(globalIndex, globalIndex + 1)}
@@ -1392,12 +1430,34 @@ const Admin: React.FC = () => {
                 </div>
 
                 <div className="editor-section">
-                  <ClearableInput
-                    type="text"
-                    className="section-label-input"
-                    value={getSectionLabel('contact', '联系方式')}
-                    onChange={(e) => updateSectionLabel('contact', e.target.value)}
-                  />
+                  <div className="custom-section-header">
+                    <ClearableInput
+                      type="text"
+                      className="section-label-input"
+                      value={getSectionLabel('contact', '联系方式')}
+                      onChange={(e) => updateSectionLabel('contact', e.target.value)}
+                    />
+                    <button
+                      className="btn-icon"
+                      onClick={() => {
+                        const builtinSectionId = '_builtin_contact';
+                        setEditedAboutInfo(prev => {
+                          const sections = [...(prev.customSections || [])];
+                          const idx = sections.findIndex(s => s.id === builtinSectionId);
+                          const newItem = { id: Date.now().toString(), label: '', value: '' };
+                          if (idx >= 0) {
+                            sections[idx] = { ...sections[idx], items: [...sections[idx].items, newItem] };
+                          } else {
+                            sections.push({ id: builtinSectionId, title: getSectionLabel('contact', '联系方式'), items: [newItem] });
+                          }
+                          return { ...prev, customSections: sections };
+                        });
+                      }}
+                      title="添加子项"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
                   <div className="form-grid">
                     <div className="form-group">
                       <label>邮箱</label>
@@ -1497,37 +1557,40 @@ const Admin: React.FC = () => {
                             </button>
                           </div>
                         ))}
-                        <button
-                          className="btn btn-secondary small"
-                          onClick={() => {
-                            setEditedAboutInfo(prev => {
-                              const sections = [...(prev.customSections || [])];
-                              const idx = sections.findIndex(s => s.id === builtinSectionId);
-                              const newItem = { id: Date.now().toString(), label: '', value: '' };
-                              if (idx >= 0) {
-                                sections[idx] = { ...sections[idx], items: [...sections[idx].items, newItem] };
-                              } else {
-                                sections.push({ id: builtinSectionId, title: getSectionLabel('contact', '联系方式'), items: [newItem] });
-                              }
-                              return { ...prev, customSections: sections };
-                            });
-                          }}
-                        >
-                          <Plus size={14} />
-                          添加子项
-                        </button>
                       </div>
                     );
                   })()}
                 </div>
 
                 <div className="editor-section">
-                  <ClearableInput
-                    type="text"
-                    className="section-label-input"
-                    value={getSectionLabel('stats', '统计数据')}
-                    onChange={(e) => updateSectionLabel('stats', e.target.value)}
-                  />
+                  <div className="custom-section-header">
+                    <ClearableInput
+                      type="text"
+                      className="section-label-input"
+                      value={getSectionLabel('stats', '统计数据')}
+                      onChange={(e) => updateSectionLabel('stats', e.target.value)}
+                    />
+                    <button
+                      className="btn-icon"
+                      onClick={() => {
+                        const builtinSectionId = '_builtin_stats';
+                        setEditedAboutInfo(prev => {
+                          const sections = [...(prev.customSections || [])];
+                          const idx = sections.findIndex(s => s.id === builtinSectionId);
+                          const newItem = { id: Date.now().toString(), label: '', value: '' };
+                          if (idx >= 0) {
+                            sections[idx] = { ...sections[idx], items: [...sections[idx].items, newItem] };
+                          } else {
+                            sections.push({ id: builtinSectionId, title: getSectionLabel('stats', '统计数据'), items: [newItem] });
+                          }
+                          return { ...prev, customSections: sections };
+                        });
+                      }}
+                      title="添加子项"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
                   <div className="form-grid">
                     <div className="form-group">
                       <label>国家数量</label>
@@ -1628,25 +1691,6 @@ const Admin: React.FC = () => {
                             </button>
                           </div>
                         ))}
-                        <button
-                          className="btn btn-secondary small"
-                          onClick={() => {
-                            setEditedAboutInfo(prev => {
-                              const sections = [...(prev.customSections || [])];
-                              const idx = sections.findIndex(s => s.id === builtinSectionId);
-                              const newItem = { id: Date.now().toString(), label: '', value: '' };
-                              if (idx >= 0) {
-                                sections[idx] = { ...sections[idx], items: [...sections[idx].items, newItem] };
-                              } else {
-                                sections.push({ id: builtinSectionId, title: getSectionLabel('stats', '统计数据'), items: [newItem] });
-                              }
-                              return { ...prev, customSections: sections };
-                            });
-                          }}
-                        >
-                          <Plus size={14} />
-                          添加子项
-                        </button>
                       </div>
                     );
                   })()}
@@ -1912,21 +1956,28 @@ const MapManager: React.FC<MapManagerProps> = ({ litCities, updateLitCities, col
     return keys;
   }, [litCities]);
 
-  // All cities from database, filtered
+  // All cities from database, filtered, lit cities first
   const filteredCities = useMemo(() => {
+    let cities: CityEntry[];
     if (searchText) {
       const results = searchCities(searchText);
-      if (filterContinent !== 'all') {
-        return results.filter(c => c.continent === filterContinent);
-      }
-      return results;
+      cities = filterContinent !== 'all'
+        ? results.filter(c => c.continent === filterContinent)
+        : results;
+    } else {
+      cities = filterContinent !== 'all'
+        ? CITY_DATABASE.filter(c => c.continent === filterContinent)
+        : [...CITY_DATABASE];
     }
-    let cities = CITY_DATABASE;
-    if (filterContinent !== 'all') {
-      cities = cities.filter(c => c.continent === filterContinent);
-    }
-    return cities;
-  }, [filterContinent, searchText]);
+    // Sort: lit cities first (collection > manual > unlit)
+    return cities.sort((a, b) => {
+      const aKey = `${a.continent}:${a.city}`;
+      const bKey = `${b.continent}:${b.city}`;
+      const aLit = collectionCityKeys.has(aKey) ? 2 : manualCityKeys.has(aKey) ? 1 : 0;
+      const bLit = collectionCityKeys.has(bKey) ? 2 : manualCityKeys.has(bKey) ? 1 : 0;
+      return bLit - aLit;
+    });
+  }, [filterContinent, searchText, collectionCityKeys, manualCityKeys]);
 
   const isCityLit = (entry: CityEntry): 'collection' | 'manual' | false => {
     const key = `${entry.continent}:${entry.city}`;
@@ -2058,6 +2109,7 @@ const MapManager: React.FC<MapManagerProps> = ({ litCities, updateLitCities, col
    ============================================================ */
 interface CollectionCardProps {
   collection: PhotoCollection;
+  allCollections: PhotoCollection[];
   isEditing: boolean;
   onToggleEdit: () => void;
   onSave: (data: Partial<PhotoCollection>) => void;
@@ -2066,6 +2118,7 @@ interface CollectionCardProps {
   onAddPhotos?: (images: { imageUrl: string; thumbnailUrl: string }[]) => void;
   onRemovePhoto: (photoId: string) => void;
   onUpdatePhoto: (photoId: string, data: Partial<Photo>) => void;
+  onMovePhotos: (photoIds: string[], targetCollectionId: string | 'new', newCollectionTitle?: string) => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onMoveToPosition: (toIndex: number) => void;
@@ -2076,7 +2129,7 @@ interface CollectionCardProps {
 }
 
 const CollectionCard: React.FC<CollectionCardProps> = ({
-  collection, isEditing, onToggleEdit, onSave, onDelete, onAddPhoto, onAddPhotos, onRemovePhoto, onUpdatePhoto,
+  collection, allCollections, isEditing, onToggleEdit, onSave, onDelete, onAddPhoto, onAddPhotos, onRemovePhoto, onUpdatePhoto, onMovePhotos,
   onMoveUp, onMoveDown, onMoveToPosition, isFirst, isLast, currentIndex, totalCount
 }) => {
   const [title, setTitle] = useState(collection.title);
@@ -2094,6 +2147,11 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [showPhotosSection, setShowPhotosSection] = useState(false);
   const [showLocationTimeSection, setShowLocationTimeSection] = useState(false);
   const [cropProcessing, setCropProcessing] = useState(false);
+
+  // Move photo state
+  const [movePhotoId, setMovePhotoId] = useState<string | null>(null);
+  const [moveTargetId, setMoveTargetId] = useState<string>('');
+  const [moveNewTitle, setMoveNewTitle] = useState('');
 
   // City search state
   const [citySearchText, setCitySearchText] = useState('');
@@ -2467,6 +2525,14 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                             <ImageIcon size={12} />
                             <span>封面</span>
                           </button>
+                          <button
+                            className="move-photo-btn"
+                            onClick={() => { setMovePhotoId(photo.id); setMoveTargetId(''); setMoveNewTitle(''); }}
+                            title="移动到其他作品集"
+                          >
+                            <Folder size={12} />
+                            <span>移动</span>
+                          </button>
                         </div>
                         <div className="photo-card-fields">
                           <div className="photo-layout-toggle">
@@ -2505,6 +2571,60 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                       </div>
                     ))}
                   </div>
+
+                  {/* Move Photo Modal */}
+                  {movePhotoId && createPortal(
+                    <div className="modal-overlay" onClick={() => setMovePhotoId(null)}>
+                      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+                        <div className="modal-header">
+                          <h3>移动图片</h3>
+                          <button className="btn-icon" onClick={() => setMovePhotoId(null)}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body">
+                          <div className="form-group">
+                            <label>目标作品集</label>
+                            <select
+                              value={moveTargetId}
+                              onChange={(e) => setMoveTargetId(e.target.value)}
+                              style={{ width: '100%', padding: '10px 0', border: 'none', borderBottom: '1px solid #e8e6e2', fontFamily: "'Noto Serif SC', serif", fontSize: 15, fontWeight: 300, color: '#2a2a2a', background: 'transparent', cursor: 'pointer' }}
+                            >
+                              <option value="">请选择...</option>
+                              {allCollections.filter(c => c.id !== collection.id).map(c => (
+                                <option key={c.id} value={c.id}>{c.title} ({c.photos.length}张)</option>
+                              ))}
+                              <option value="new">+ 新建作品集</option>
+                            </select>
+                          </div>
+                          {moveTargetId === 'new' && (
+                            <div className="form-group">
+                              <label>新作品集标题</label>
+                              <ClearableInput
+                                type="text"
+                                value={moveNewTitle}
+                                onChange={(e) => setMoveNewTitle(e.target.value)}
+                                placeholder="例如：2024巴黎"
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <div className="modal-footer">
+                          <button className="btn btn-secondary" onClick={() => setMovePhotoId(null)}>取消</button>
+                          <button
+                            className="btn btn-primary"
+                            disabled={!moveTargetId || (moveTargetId === 'new' && !moveNewTitle.trim())}
+                            onClick={() => {
+                              onMovePhotos([movePhotoId], moveTargetId, moveNewTitle.trim() || undefined);
+                              setMovePhotoId(null);
+                            }}
+                          >
+                            <Check size={14} />
+                            确认移动
+                          </button>
+                        </div>
+                      </div>
+                    </div>,
+                    document.body
+                  )}
                 </div>
               )}
             </div>
@@ -2615,7 +2735,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
             {collection.geo && (
               <div className="card-geo-badge clickable" onClick={() => { setShowCoverSection(false); setShowDescriptionSection(false); setShowPhotosSection(false); setShowLocationTimeSection(true); onToggleEdit(); }} title="点击编辑地点">
                 <Globe size={12} />
-                <span>{collection.geo.city}, {collection.geo.country}</span>
+                <span>{collection.geo.city}，{collection.geo.country}</span>
               </div>
             )}
             {!collection.geo && (
@@ -2656,6 +2776,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
   const [pickerFilter, setPickerFilter] = useState('');
   const [pickerSelectedCollection, setPickerSelectedCollection] = useState<PhotoCollection | null>(null);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [previewHero, setPreviewHero] = useState<{ img: HeroImage; mode: 'desktop' | 'mobile' } | null>(null);
 
   // Initialize local images: if heroImages is set, use it; otherwise derive from collections
   useEffect(() => {
@@ -2856,7 +2977,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
               <div className="hero-item-detail">
                 {/* Hero preview - simulates real cover look */}
                 <div className="hero-detail-preview">
-                  <div className="hero-preview-desktop" title="桌面端预览">
+                  <div className="hero-preview-desktop" title="点击查看大图" style={{ cursor: 'pointer' }} onClick={() => setPreviewHero({ img, mode: 'desktop' })}>
                     <div className="hero-preview-label">桌面端</div>
                     {img.url ? (
                       <img src={img.url} alt={img.title || '封面图'} />
@@ -2868,7 +2989,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                       <span className="hero-preview-text-location">{img.location || '地点'}</span>
                     </div>
                   </div>
-                  <div className="hero-preview-mobile" title="手机端预览">
+                  <div className="hero-preview-mobile" title="点击查看大图" style={{ cursor: 'pointer' }} onClick={() => setPreviewHero({ img, mode: 'mobile' })}>
                     <div className="hero-preview-label">手机端</div>
                     {(img.mobileUrl || img.url) ? (
                       <img src={img.mobileUrl || img.url} alt={img.title || '封面图'} />
@@ -3098,6 +3219,31 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                 ))}
               </div>
             )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Full-screen hero preview modal */}
+      {previewHero && createPortal(
+        <div className="hero-fullpreview-overlay" onClick={() => setPreviewHero(null)}>
+          <button className="hero-fullpreview-close" onClick={() => setPreviewHero(null)}>
+            <X size={24} />
+          </button>
+          <div
+            className={`hero-fullpreview-container ${previewHero.mode === 'mobile' ? 'mobile' : 'desktop'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={previewHero.mode === 'mobile'
+                ? (previewHero.img.mobileUrl || previewHero.img.url)
+                : previewHero.img.url}
+              alt={previewHero.img.title || '封面预览'}
+            />
+            <div className="hero-fullpreview-text">
+              <span className="hero-fullpreview-title">{previewHero.img.title || '标题'}</span>
+              <span className="hero-fullpreview-location">{previewHero.img.location || '地点'}</span>
+            </div>
           </div>
         </div>,
         document.body
