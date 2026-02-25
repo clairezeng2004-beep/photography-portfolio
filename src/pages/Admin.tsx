@@ -3040,6 +3040,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
 
                   {/* 更换封面 — 横版 + 竖版并排，带最终效果预览 */}
                   <div className="hero-covers-row">
+                    {/* 横版封面 */}
                     <div className="hero-cover-slot">
                       <label className="hero-cover-slot-label">横版封面</label>
                       <div className="hero-cover-preview-final hero-cover-preview-landscape">
@@ -3048,9 +3049,12 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         ) : (
                           <div className="hero-item-placeholder"><ImageIcon size={24} /></div>
                         )}
-                        <div className="hero-preview-text-overlay">
-                          <span className="hero-preview-text-title">{img.title || '标题'}</span>
-                          <span className="hero-preview-text-location">{img.location || '地点'}</span>
+                        <div className="hero-preview-text-overlay-real">
+                          <div className="hero-preview-info-strip">
+                            <span className="hero-preview-real-title">{img.title || '标题'}</span>
+                            <span className="hero-preview-real-sep">——</span>
+                            <span className="hero-preview-real-location">{img.location || '地点'}</span>
+                          </div>
                         </div>
                       </div>
                       <ImageUploader
@@ -3063,7 +3067,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                             } : im
                           ));
                         }}
-                        currentImage={undefined}
+                        currentImage={img.url || undefined}
                         enableCrop
                         cropAspectOptions={[
                           { label: '16:9', value: 16 / 9 },
@@ -3077,18 +3081,11 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         previewAspectRatio={16 / 9}
                         allowUpload={true}
                         label="上传横版封面"
-                        replaceLabel="从作品集中选图"
+                        replaceLabel="更换"
                         onReplaceClick={() => openPicker(index)}
                       />
-                      <div className="hero-pick-btn-row">
-                        <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => openPickerFresh(index)}>
-                          选择其他作品集
-                        </button>
-                        <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => triggerLocalUpload(index)}>
-                          从本地上传
-                        </button>
-                      </div>
                     </div>
+                    {/* 竖版封面 */}
                     <div className="hero-cover-slot">
                       <label className="hero-cover-slot-label">
                         <Smartphone size={11} style={{ marginRight: 3, verticalAlign: -1 }} />
@@ -3100,16 +3097,16 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         ) : (
                           <div className="hero-item-placeholder"><ImageIcon size={18} /></div>
                         )}
-                        <div className="hero-preview-text-overlay">
-                          <span className="hero-preview-text-title">{img.title || '标题'}</span>
-                          <span className="hero-preview-text-location">{img.location || '地点'}</span>
+                        <div className="hero-preview-text-overlay-real hero-preview-overlay-portrait">
+                          <span className="hero-preview-real-title">{img.title || '标题'}</span>
+                          <span className="hero-preview-real-location">{img.location || '地点'}</span>
                         </div>
                       </div>
                       <ImageUploader
                         onImageUpload={(url) => {
                           replaceMobileImage(index, url);
                         }}
-                        currentImage={undefined}
+                        currentImage={img.mobileUrl || img.url || undefined}
                         enableCrop
                         cropAspectOptions={[
                           { label: '9:16', value: 9 / 16 },
@@ -3123,17 +3120,9 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         previewAspectRatio={9 / 16}
                         allowUpload={true}
                         label="上传竖版封面"
-                        replaceLabel="从作品集中选图"
+                        replaceLabel="更换"
                         onReplaceClick={() => openPicker({ type: 'mobile', index })}
                       />
-                      <div className="hero-pick-btn-row">
-                        <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => openPickerFresh({ type: 'mobile', index })}>
-                          选择其他作品集
-                        </button>
-                        <button className="btn btn-secondary btn-xs hero-pick-btn" onClick={() => triggerLocalUpload({ type: 'mobile', index })}>
-                          从本地上传
-                        </button>
-                      </div>
                     </div>
                   </div>
 

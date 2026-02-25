@@ -1321,14 +1321,13 @@
 /* Thumbnail grid */
 .photos-thumb-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 6px;
   margin-top: 12px;
 }
 
 .photo-thumb-item {
   position: relative;
-  aspect-ratio: 1;
   overflow: hidden;
   cursor: pointer;
   border: 2px solid transparent;
@@ -1337,8 +1336,8 @@
 
 .photo-thumb-item img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  display: block;
 }
 
 .photo-thumb-item:hover {
@@ -3138,7 +3137,7 @@
   max-height: none;
 }
 
-/* Make portrait same HEIGHT as landscape */
+/* Make portrait show at REAL ratio, not forced landscape height */
 .hero-covers-row {
   display: flex;
   gap: 16px;
@@ -3151,16 +3150,12 @@
 }
 
 .hero-covers-row .hero-cover-slot:last-child .hero-cover-preview-final {
-  aspect-ratio: unset;
-  /* Portrait matches landscape height via JS-set style or fixed height fallback */
-  height: 0;
-  padding-bottom: 56.25%; /* 16:9 ratio fallback to match landscape */
-  position: relative;
+  aspect-ratio: 9 / 16;
+  max-height: 320px;
 }
 
 .hero-covers-row .hero-cover-slot:last-child .hero-cover-preview-final img {
-  position: absolute;
-  inset: 0;
+  /* no absolute positioning needed — natural aspect ratio */
 }
 
 .hero-cover-preview-final img {
@@ -3198,6 +3193,101 @@
   font-style: italic;
   font-size: 10px;
   color: rgba(255, 255, 255, 0.7);
+}
+
+/* ---- Real hero text overlay: matches actual Home page layout ---- */
+.hero-preview-text-overlay-real {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 16%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%);
+  pointer-events: none;
+}
+
+.hero-preview-info-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-preview-real-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.4;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+.hero-preview-real-sep {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1;
+}
+
+.hero-preview-real-location {
+  font-family: 'Playfair Display', serif;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+  line-height: 1;
+}
+
+/* Portrait overlay: vertical stack centered at bottom */
+.hero-preview-overlay-portrait {
+  padding-bottom: 12%;
+  align-items: center;
+  gap: 4px;
+}
+
+.hero-preview-overlay-portrait .hero-preview-real-title {
+  font-size: 12px;
+}
+
+.hero-preview-overlay-portrait .hero-preview-real-location {
+  font-size: 9px;
+}
+
+/* Hide ImageUploader preview image in hero slots — only show action buttons */
+.hero-cover-slot .image-uploader .uploaded-image {
+  aspect-ratio: unset !important;
+  height: auto;
+  position: relative;
+}
+
+.hero-cover-slot .image-uploader .uploaded-image > img {
+  display: none;
+}
+
+.hero-cover-slot .image-uploader .uploaded-image .uploaded-image-actions {
+  position: static;
+  background: none;
+  opacity: 1;
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.hero-cover-slot .image-uploader .uploaded-image .crop-image-btn,
+.hero-cover-slot .image-uploader .uploaded-image .replace-image-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  background: #f5f4f2;
+  border-radius: 4px;
+  color: #555;
+}
+
+.hero-cover-slot .image-uploader .uploaded-image .crop-image-btn:hover,
+.hero-cover-slot .image-uploader .uploaded-image .replace-image-btn:hover {
+  background: #eae8e5;
+  color: #2a2a2a;
 }
 
 .hero-cover-slot {
