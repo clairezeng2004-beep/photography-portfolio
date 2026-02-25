@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Photo } from '../types';
@@ -51,6 +51,33 @@ const Gallery: React.FC = () => {
   const hasAnnotations = collection?.photos.some(p => p.caption || p.footnote) ?? false;
   const photoRows = useMemo(() => collection ? groupPhotoRows(collection.photos) : [], [collection]);
 
+  // Lightbox state
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const allPhotos = collection?.photos ?? [];
+
+  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+  const goPrev = useCallback(() => {
+    setLightboxIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev);
+  }, []);
+  const goNext = useCallback(() => {
+    setLightboxIndex(prev => prev !== null && prev < allPhotos.length - 1 ? prev + 1 : prev);
+  }, [allPhotos.length]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      else if (e.key === 'ArrowLeft') goPrev();
+      else if (e.key === 'ArrowRight') goNext();
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKey);
+    };
+  }, [lightboxIndex, closeLightbox, goPrev, goNext]);
+
   if (!collection) {
     return (
       <div className="gallery-page">
@@ -65,7 +92,13 @@ const Gallery: React.FC = () => {
 
   const renderPhotoCell = (photo: Photo, index: number) => (
     <div className="gallery-photo-cell" key={photo.id}>
-      <img src={photo.url} alt={photo.alt} loading="lazy" />
+      <img
+        src={photo.url}
+        alt={photo.alt}
+        loading="lazy"
+        className="gallery-photo-clickable"
+        onClick={() => setLightboxIndex(index)}
+      />
       {photo.footnote && (
         <div className="photo-footnote-block">
           <p className="photo-footnote">{photo.footnote}</p>
@@ -166,13 +199,50 @@ const Gallery: React.FC = () => {
       )}
 
       {/* Footer Nav */}
-      <div className="gallery-footer-nav">
-        <Link to="/" className="gallery-footer-link">Home</Link>
-        <span className="gallery-footer-sep">/</span>
-        <Link to="/footprints" className="gallery-footer-link">Footprints</Link>
-        <span className="gallery-footer-sep">/</span>
-        <Link to="/about" className="gallery-footer-link">About</Link>
-      </div>
+
+      {/* Lightbox */}
+      {lightboxIndex !== null && allPhotos[lightboxIndex] && (
+        <div className="lightbox-overlay" onClick={closeLightbox}>
+          <button className="lightbox-close" onClick={closeLightbox} aria-label="关闭">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          {lightboxIndex > 0 && (
+            <button
+              className="lightbox-arrow lightbox-arrow-left"
+              onClick={(e) => { e.stopPropagation(); goPrev(); }}
+              aria-label="上一张"
+            >
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          )}
+          {lightboxIndex < allPhotos.length - 1 && (
+            <button
+              className="lightbox-arrow lightbox-arrow-right"
+              onClick={(e) => { e.stopPropagation(); goNext(); }}
+              aria-label="下一张"
+            >
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          )}
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={allPhotos[lightboxIndex].url}
+              alt={allPhotos[lightboxIndex].alt}
+              className="lightbox-image"
+            />
+          </div>
+          <div className="lightbox-counter">
+            {lightboxIndex + 1} / {allPhotos.length}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

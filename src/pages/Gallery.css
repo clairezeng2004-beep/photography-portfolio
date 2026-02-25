@@ -299,6 +299,103 @@
   margin-bottom: 32px;
 }
 
+/* ============ LIGHTBOX ============ */
+.gallery-photo-clickable {
+  cursor: zoom-in;
+  transition: opacity 0.2s ease;
+}
+
+.gallery-photo-clickable:hover {
+  opacity: 0.92;
+}
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: lightboxFadeIn 0.25s ease;
+}
+
+@keyframes lightboxFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.lightbox-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 90vw;
+  max-height: 88vh;
+}
+
+.lightbox-image {
+  max-width: 90vw;
+  max-height: 88vh;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  z-index: 2001;
+  padding: 8px;
+  transition: color 0.2s ease;
+}
+
+.lightbox-close:hover {
+  color: #fff;
+}
+
+.lightbox-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  z-index: 2001;
+  padding: 12px;
+  transition: color 0.2s ease;
+}
+
+.lightbox-arrow:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.lightbox-arrow-left {
+  left: 16px;
+}
+
+.lightbox-arrow-right {
+  right: 16px;
+}
+
+.lightbox-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
 /* ============ RESPONSIVE ============ */
 @media (max-width: 768px) {
   .gallery-page {
@@ -358,7 +455,9 @@
     font-size: 16px;
   }
 
-  .gallery-footer {
-    padding: 40px 24px;
-  }
+  .lightbox-arrow { padding: 8px; }
+  .lightbox-arrow-left { left: 8px; }
+  .lightbox-arrow-right { right: 8px; }
+  .lightbox-arrow svg { width: 28px; height: 28px; }
+  .lightbox-close { top: 12px; right: 12px; }
 }
