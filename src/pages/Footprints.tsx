@@ -379,8 +379,10 @@ const Footprints: React.FC = () => {
   // Zoom/pan state
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const dragMoved = useRef(false);
 
   // China province GeoJSON (loaded on demand)
   const [chinaGeoJson, setChinaGeoJson] = useState<any>(null);
@@ -523,26 +525,42 @@ const Footprints: React.FC = () => {
   // Zoom handlers
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = -e.deltaY * 0.001;
-    setZoom(prev => Math.max(0.5, Math.min(5, prev + delta * prev)));
+    const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+    setZoom(prev => {
+      const newZoom = Math.max(0.5, Math.min(5, prev * factor));
+      // Zoom towards mouse position
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const scale = newZoom / prev;
+      setPan(p => ({
+        x: mx - scale * (mx - p.x),
+        y: my - scale * (my - p.y),
+      }));
+      return newZoom;
+    });
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
     isPanning.current = true;
+    dragMoved.current = false;
+    setIsDragging(true);
     panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }, [pan]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isPanning.current) return;
     const dx = e.clientX - panStart.current.x;
     const dy = e.clientY - panStart.current.y;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved.current = true;
     setPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy });
   }, []);
 
   const handlePointerUp = useCallback(() => {
     isPanning.current = false;
+    setIsDragging(false);
   }, []);
 
   const handleResetZoom = useCallback(() => {
@@ -863,7 +881,7 @@ const Footprints: React.FC = () => {
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
-          style={{ cursor: isPanning.current ? 'grabbing' : 'grab', touchAction: 'none' }}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
         >
           {/* Zoom controls */}
           <div className="map-zoom-controls">
@@ -1056,6 +1074,7 @@ const Footprints: React.FC = () => {
                       onMouseMove={(e) => handleMarkerHover(e, geo.city, geo.country, hasPhoto)}
                       onMouseLeave={() => { setTooltip(null); setHoveredCity(null); }}
                       onClick={() => {
+                        if (dragMoved.current) return;
                         if (cityGroup) { setSelectedCityGroup(cityGroup); setPreviewCollection(null); setPreviewPage(0); }
                       }}
                     />
