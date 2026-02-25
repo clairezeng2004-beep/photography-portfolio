@@ -8,7 +8,6 @@ import * as topojson from 'topojson-client';
 import { geoMercator, geoPath, GeoPermissibleObjects } from 'd3-geo';
 import worldData from 'world-atlas/countries-110m.json';
 import './Footprints.css';
-import './Home.css';
 
 type Continent = 'all' | 'china' | 'asia' | 'europe';
 
@@ -309,7 +308,7 @@ const COUNTRY_NUMERIC_TO_NAME: Record<string, string> = {
    ============================================================ */
 
 const Footprints: React.FC = () => {
-  const { collections, litCities, animationConfig } = useData();
+  const { collections, litCities } = useData();
   const [activeContinent, setActiveContinent] = useState<Continent>('all');
 
   useEffect(() => { document.title = '小冰块 - 摄影集 - 足迹'; }, []);
@@ -323,8 +322,6 @@ const Footprints: React.FC = () => {
   // Card entrance animation state (same as Home)
   const [visibleCards, setVisibleCards] = useState<Set<string>>(new Set());
   const cardObserverRef = useRef<IntersectionObserver | null>(null);
-
-  const { cardAnimation } = animationConfig;
 
   useEffect(() => {
     cardObserverRef.current = new IntersectionObserver(
@@ -1106,80 +1103,19 @@ const Footprints: React.FC = () => {
               const isVisible = visibleCards.has(group.key);
               const handleClick = () => { setSelectedCityGroup(group); setPreviewCollection(null); setPreviewPage(0); };
 
-              if (cardAnimation === 'float-flip') {
-                return (
-                  <div
-                    key={group.key}
-                    className={`card card-anim-float-flip ${isVisible ? 'visible' : ''}`}
-                    data-id={group.key}
-                    ref={cityCardRef}
-                  >
-                    <div className="overlay-card-link" onClick={handleClick} style={{ cursor: 'pointer' }}>
-                      <div className="overlay-card">
-                        <img src={cardImage} alt={displayTitle} className="overlay-card-image" loading="lazy" draggable={false} />
-                        <div className="overlay-card-hover">
-                          <div className="overlay-card-border">
-                            <h3 className="overlay-card-title">{displayTitle}</h3>
-                            <p className="overlay-card-location">{locationText}</p>
-                            <span className="overlay-card-readmore">More</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (cardAnimation === 'flip') {
-                return (
-                  <div
-                    key={group.key}
-                    className={`card card-anim-flip ${isVisible ? 'visible' : ''}`}
-                    data-id={group.key}
-                    ref={cityCardRef}
-                  >
-                    <div className="flip-card-link" onClick={handleClick} style={{ cursor: 'pointer' }}>
-                      <div className="flip-card">
-                        <div className="flip-card-front">
-                          <img src={cardImage} alt={displayTitle} className="flip-card-image" loading="lazy" draggable={false} />
-                          <div className="flip-card-front-info">
-                            <h3 className="card-title">{displayTitle}</h3>
-                            <p className="card-location">{locationText}</p>
-                          </div>
-                        </div>
-                        <div className="flip-card-back">
-                          <img src={cardImage} alt={displayTitle} className="flip-card-image flip-card-back-image" loading="lazy" draggable={false} />
-                          <div className="flip-card-back-overlay">
-                            <h3 className="flip-card-back-title">{displayTitle}</h3>
-                            <p className="flip-card-hover-loc">{locationText}</p>
-                            <span className="flip-card-read-more">More</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              // All other animations: simple card
-              const animClass = `card card-anim-${cardAnimation} ${isVisible ? 'visible' : ''}`;
               return (
                 <div
                   key={group.key}
-                  className={animClass}
+                  className={`fp-card ${isVisible ? 'visible' : ''}`}
                   data-id={group.key}
                   ref={cityCardRef}
+                  onClick={handleClick}
                 >
-                  <div className="simple-card-link" onClick={handleClick} style={{ cursor: 'pointer' }}>
-                    <div className="simple-card">
-                      <img src={cardImage} alt={displayTitle} className="simple-card-image" loading="lazy" draggable={false} />
-                      <div className="simple-card-info">
-                        <h3 className="card-title">{displayTitle}</h3>
-                        <p className="card-location">{locationText}</p>
-                      </div>
-                      <div className="simple-card-hover-loc">
-                        <span>{locationText}</span>
-                      </div>
+                  <div className="fp-card-image">
+                    <img src={cardImage} alt={displayTitle} loading="lazy" draggable={false} />
+                    <div className="fp-card-overlay">
+                      <h3 className="fp-card-title">{displayTitle}</h3>
+                      <span className="fp-card-location">{locationText}</span>
                     </div>
                   </div>
                 </div>

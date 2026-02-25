@@ -154,7 +154,8 @@ const Gallery: React.FC = () => {
                 <div className="rec-card-image">
                   <img src={c.cardCoverImage || c.coverImage || c.photos?.[0]?.url} alt={c.title} loading="lazy" />
                   <div className="rec-card-overlay">
-                    <h3 className="rec-card-title">{c.location}</h3>
+                    <h3 className="rec-card-title">{c.title}</h3>
+                    <span className="rec-card-location">{c.location}</span>
                     <span className="rec-card-year">{c.year}</span>
                   </div>
                 </div>

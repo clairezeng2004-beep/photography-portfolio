@@ -426,6 +426,76 @@
   gap: 18px;
 }
 
+/* ============ FOOTPRINT CARDS (always-visible overlay) ============ */
+.fp-card {
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.fp-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fp-card-image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: #e8e6e2;
+}
+
+.fp-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.fp-card:hover .fp-card-image img {
+  transform: scale(1.05);
+}
+
+.fp-card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  transition: background 0.4s ease;
+  text-align: center;
+  padding: 20px;
+  gap: 6px;
+}
+
+.fp-card:hover .fp-card-overlay {
+  background: rgba(0, 0, 0, 0.38);
+}
+
+.fp-card-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: #fff;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+}
+
+.fp-card-location {
+  font-family: 'Playfair Display', serif;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  font-style: italic;
+}
+
 /* ============ PREVIEW MODAL ============ */
 .preview-overlay {
   position: fixed;
@@ -768,7 +838,9 @@
   .filter-btn { padding: 8px 20px; font-size: 12px; }
   .map-section { padding: 0 24px 40px; }
   .city-list-section { padding: 24px 24px 80px; }
-  .city-list { grid-template-columns: 1fr; gap: 24px; }
+  .city-list { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .fp-card-title { font-size: 16px; }
+  .fp-card-location { font-size: 10px; }
   .city-card-name { font-size: 19px; }
   .preview-modal { width: 95vw; }
   .preview-info { padding: 20px 24px 28px; }
@@ -789,8 +861,9 @@
 
 @media (max-width: 480px) {
   .footprints-title { font-size: 28px; }
-  .city-list { grid-template-columns: 1fr; }
+  .city-list { grid-template-columns: repeat(2, 1fr); }
   .filter-btn { padding: 8px 16px; font-size: 11px; }
+  .fp-card-title { font-size: 14px; }
   .city-label { font-size: 6px; }
   .country-label { font-size: 6px; }
   .province-label-lit { font-size: 8px; }
