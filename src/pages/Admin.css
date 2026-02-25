@@ -1559,6 +1559,27 @@
   margin-bottom: 12px;
 }
 
+.inline-edit-geo-fields {
+  display: flex;
+  gap: 12px;
+}
+
+.inline-edit-geo-fields .form-group-inline {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+.inline-edit-geo-fields .form-group-inline label {
+  flex-shrink: 0;
+}
+
+.inline-edit-geo-fields .inline-edit-location {
+  flex: 1;
+}
+
 .inline-edit-meta svg {
   color: #bbb;
   width: 13px;

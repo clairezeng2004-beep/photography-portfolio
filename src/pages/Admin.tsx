@@ -2615,6 +2615,28 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                     {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (<option key={m} value={m}>{m}月</option>))}
                   </select>
                 </div>
+                <div className="inline-edit-geo-fields" style={{ marginTop: 8 }}>
+                  <div className="form-group form-group-inline">
+                    <label style={{ fontSize: 12, color: '#888', minWidth: 40 }}>城市</label>
+                    <input
+                      type="text"
+                      className="inline-edit-location"
+                      value={geo?.city || ''}
+                      onChange={(e) => setGeo(prev => prev ? { ...prev, city: e.target.value } : { continent: 'asia', country: '', countryCode: '', city: e.target.value, lat: 0, lng: 0 })}
+                      placeholder="城市名"
+                    />
+                  </div>
+                  <div className="form-group form-group-inline">
+                    <label style={{ fontSize: 12, color: '#888', minWidth: 40 }}>国家</label>
+                    <input
+                      type="text"
+                      className="inline-edit-location"
+                      value={geo?.country || ''}
+                      onChange={(e) => setGeo(prev => prev ? { ...prev, country: e.target.value } : { continent: 'asia', country: e.target.value, countryCode: '', city: '', lat: 0, lng: 0 })}
+                      placeholder="国家名"
+                    />
+                  </div>
+                </div>
                 {geo && (<div className="card-geo-badge" style={{ marginTop: 8 }}><Globe size={12} /><span>{geo.city}，{geo.country}</span></div>)}
               </div>
             )}
