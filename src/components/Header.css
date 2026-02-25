@@ -164,10 +164,8 @@
     min-width: 180px;
     max-width: 260px;
     left: auto;
-    background: rgba(250, 249, 247, 0.98);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.08);
+    background: #2a2a2a;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
     transform: translateX(100%);
     opacity: 1;
     visibility: hidden;
@@ -212,7 +210,7 @@
     font-size: 14px;
     font-weight: 400;
     letter-spacing: 0.15em;
-    color: #666;
+    color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
     padding: 18px 0;
     font-style: italic;
@@ -220,6 +218,6 @@
   }
 
   .mobile-nav-link:hover {
-    color: #2a2a2a;
+    color: #fff;
   }
 }
