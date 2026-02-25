@@ -909,10 +909,10 @@
   .preview-modal { width: 95vw; }
   .preview-info { padding: 20px 24px 28px; }
   .preview-title { font-size: 18px; }
-  .city-label { font-size: 7px; }
-  .country-label { font-size: 7px; }
-  .province-label-lit { font-size: 9px; }
-  .province-label-dim { font-size: 8px; }
+  .city-label { font-size: 10px; stroke-width: 3px; }
+  .country-label { font-size: 10px; stroke-width: 3px; }
+  .province-label-lit { font-size: 12px; }
+  .province-label-dim { font-size: 10px; }
   .map-zoom-controls { top: 10px; right: 10px; }
   .zoom-btn { width: 32px; height: 32px; font-size: 16px; }
   .city-preview-modal { width: 95vw; }
@@ -928,8 +928,8 @@
   .city-list { grid-template-columns: repeat(2, 1fr); }
   .filter-btn { padding: 8px 16px; font-size: 11px; }
   .fp-card-title { font-size: 14px; }
-  .city-label { font-size: 6px; }
-  .country-label { font-size: 6px; }
-  .province-label-lit { font-size: 8px; }
-  .province-label-dim { font-size: 7px; }
+  .city-label { font-size: 9px; stroke-width: 3px; }
+  .country-label { font-size: 9px; stroke-width: 3px; }
+  .province-label-lit { font-size: 11px; }
+  .province-label-dim { font-size: 9px; }
 }

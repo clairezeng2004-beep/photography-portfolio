@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { PhotoCollection, GeoInfo } from '../types';
 import { CITY_DATABASE, CHINA_PROVINCES } from '../data/geoData';
 import * as topojson from 'topojson-client';
@@ -397,6 +398,7 @@ const COUNTRY_NUMERIC_TO_NAME: Record<string, string> = {
 
 const Footprints: React.FC = () => {
   const { collections, litCities } = useData();
+  const isMobile = useIsMobile();
   const [activeContinent, setActiveContinent] = useState<Continent>('all');
 
   useEffect(() => { document.title = '小冰块 - 摄影集 - 足迹'; }, []);
@@ -591,11 +593,22 @@ const Footprints: React.FC = () => {
     setHoverCard(null);
   }, []);
 
-  // Mobile: tap toggles hover card
+  // Mobile: tap directly opens city preview modal; Desktop: tap toggles hover card
   const handleMarkerClick = useCallback((cityGroup?: CityGroup, geo?: GeoInfo, x?: number, y?: number) => {
     if (dragMoved.current) return;
     if (!cityGroup || !geo) return;
-    // If tapping same city, close
+
+    if (isMobile) {
+      // Mobile: directly open the city preview modal
+      setSelectedCityGroup(cityGroup);
+      setPreviewCollection(null);
+      setPreviewPage(0);
+      setHoverCard(null);
+      setHoveredCity(null);
+      return;
+    }
+
+    // Desktop: toggle hover card
     if (hoverCard && hoverCard.cityGroup.key === cityGroup.key) {
       setHoverCard(null);
       setHoveredCity(null);
@@ -607,7 +620,7 @@ const Footprints: React.FC = () => {
       y: y || 0,
       cityGroup,
     });
-  }, [hoverCard]);
+  }, [hoverCard, isMobile]);
 
   // Determine which features to show based on continent
   const visibleFeatures = useMemo(() => {
@@ -625,13 +638,14 @@ const Footprints: React.FC = () => {
   // Zoom is only controlled by the +/− buttons.
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
     isPanning.current = true;
     dragMoved.current = false;
     setIsDragging(true);
     const currentPan = panRef.current;
     panStart.current = { x: e.clientX, y: e.clientY, panX: currentPan.x, panY: currentPan.y };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    e.preventDefault();
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -1149,6 +1163,20 @@ const Footprints: React.FC = () => {
                         <circle cx={x} cy={y} r={20} className="marker-pulse-outer" />
                         <circle cx={x} cy={y} r={14} className="marker-pulse-inner" />
                       </>
+                    )}
+                    {/* Larger invisible hit area for mobile tapping */}
+                    {hasPhoto && isMobile && (
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={18}
+                        fill="transparent"
+                        style={{ cursor: 'pointer' }}
+                        onClick={(e) => {
+                          const rect = svgContainerRef.current?.getBoundingClientRect();
+                          handleMarkerClick(cityGroup, geo, rect ? e.clientX - rect.left : 0, rect ? e.clientY - rect.top : 0);
+                        }}
+                      />
                     )}
                     <circle
                       cx={x}
