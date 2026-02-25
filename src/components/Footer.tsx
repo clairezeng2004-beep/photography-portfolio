@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { subscribeEmail } from '../utils/newsletter';
 import './Footer.css';
 
