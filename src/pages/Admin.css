@@ -976,34 +976,34 @@
 /* ============ INLINE EDIT MODE ============ */
 .collection-card.editing {
   border-color: #ccc;
-  grid-column: 1 / -1;
 }
 
 .card-edit-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: 0;
+  padding: 16px;
 }
 
 .card-edit-row {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* Row 1: compact meta row */
+/* Row 1: meta fields stacked vertically */
 .card-edit-row-meta {
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 14px;
 }
 
 /* Small cover preview */
 .card-edit-cover-compact {
-  flex: 0 0 48px;
-  height: 64px;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 200px;
   overflow: hidden;
-  border-radius: 3px;
+  border-radius: 4px;
   border: 1px solid #e8e6e2;
 }
 
@@ -1013,17 +1013,16 @@
   object-fit: cover;
 }
 
-/* Cover management block (compact) */
+/* Cover management block */
 .card-edit-block-cover {
-  flex: 0 0 auto;
-  min-width: 140px;
-  max-width: 220px;
+  width: 100%;
+  max-width: none;
 }
 
 .card-edit-cover-uploads {
   display: flex;
-  gap: 6px;
-  margin-bottom: 4px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .card-edit-cover-upload-item {
@@ -1040,9 +1039,9 @@
 }
 
 .cover-picker-grid-compact {
-  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
-  gap: 3px;
-  margin-top: 4px;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 4px;
+  margin-top: 6px;
 }
 
 .cover-picker-grid-compact .cover-picker-item {
@@ -1050,21 +1049,20 @@
 }
 
 .cover-picker-grid-compact .cover-picker-item img {
-  height: 28px;
+  height: 32px;
 }
 
 .card-edit-block {
-  flex: 1;
+  width: 100%;
   min-width: 0;
 }
 
 .card-edit-block-photos {
-  flex: 1;
   width: 100%;
 }
 
 .card-edit-block-title {
-  margin: 0 0 4px 0;
+  margin: 0 0 6px 0;
   font-family: 'Noto Serif SC', serif;
   font-size: 11px;
   font-weight: 400;
@@ -1078,24 +1076,24 @@
   gap: 6px;
 }
 
-/* Row 2: photos full width */
+/* Row 2: photos */
 .card-edit-row-photos {
   border-top: 1px solid #e8e6e2;
-  padding-top: 8px;
+  padding-top: 12px;
+  margin-top: 4px;
 }
 
 .card-edit-block-title-area {
-  flex: 0 0 auto;
-  min-width: 120px;
+  width: 100%;
 }
 
 .card-edit-block-actions {
-  flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: stretch;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
   justify-content: flex-start;
+  padding-top: 4px;
 }
 
 .card-edit-photos-header {

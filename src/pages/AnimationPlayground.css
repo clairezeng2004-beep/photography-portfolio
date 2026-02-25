@@ -943,6 +943,243 @@
 .page-preview-scroll-reveal.page-preview-active { opacity: 1; transform: translateY(0); clip-path: inset(0 0 0 0); }
 .page-preview-scroll-reveal.page-preview-exit { opacity: 0; transform: translateY(-20px); clip-path: inset(0 0 10% 0); }
 
+/* ============ CARD EDIT LAYOUT COMPARE ============ */
+.edit-layout-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.edit-layout-option {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edit-layout-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-layout-label-tag {
+  display: inline-block;
+  width: fit-content;
+  font-family: 'Playfair Display', serif;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border: 1px solid #e8e6e2;
+  color: #999;
+  font-style: italic;
+}
+
+.edit-layout-label-tag.current {
+  border-color: #2a2a2a;
+  background: #2a2a2a;
+  color: #faf9f7;
+}
+
+.edit-layout-label-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: #2a2a2a;
+  letter-spacing: 0.04em;
+}
+
+.edit-layout-label-desc {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #999;
+}
+
+/* ---- Demo card shells ---- */
+.edit-layout-demo {
+  border: 1px solid #e8e6e2;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* Vertical layout demo */
+.edit-demo-vertical {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-demo-cover {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 220px;
+  overflow: hidden;
+  background: #e8e6e2;
+}
+
+.edit-demo-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-demo-fields {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-demo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-demo-field label {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 10px;
+  font-weight: 400;
+  color: #999;
+  letter-spacing: 0.04em;
+}
+
+.edit-demo-input {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 300;
+  color: #2a2a2a;
+  padding: 6px 10px;
+  border: 1px solid #e8e6e2;
+  background: #faf9f7;
+}
+
+.edit-demo-textarea {
+  min-height: 40px;
+  line-height: 1.6;
+}
+
+.edit-demo-meta-row {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-demo-input-sm {
+  flex: 1;
+}
+
+.edit-demo-input-xs {
+  flex: 0 0 60px;
+  text-align: center;
+}
+
+.edit-demo-cover-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.edit-demo-btn {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 11px;
+  font-weight: 300;
+  color: #666;
+  padding: 4px 12px;
+  border: 1px solid #e8e6e2;
+  background: #faf9f7;
+  text-align: center;
+}
+
+.edit-demo-btn-primary {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: #faf9f7;
+  padding: 5px 16px;
+  background: #2a2a2a;
+  border: none;
+}
+
+.edit-demo-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-demo-photos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid #e8e6e2;
+  padding-top: 12px;
+}
+
+.edit-demo-photos label {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 10px;
+  font-weight: 400;
+  color: #999;
+  letter-spacing: 0.04em;
+}
+
+.edit-demo-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 4px;
+}
+
+.edit-demo-photo-thumb {
+  aspect-ratio: 1;
+  background: #e8e6e2;
+  border-radius: 2px;
+}
+
+/* Horizontal layout demo */
+.edit-demo-horizontal {
+  display: flex;
+  min-height: 280px;
+}
+
+.edit-demo-h-left {
+  flex: 0 0 200px;
+}
+
+.edit-demo-cover-h {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+}
+
+.edit-demo-cover-h img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-demo-h-right {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-demo-h-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-demo-field-row {
+  display: flex;
+  gap: 10px;
+}
+
+.edit-demo-field-row .edit-demo-field {
+  flex: 1;
+  min-width: 0;
+}
+
 /* ============ STICKY BAR ============ */
 .playground-sticky-bar {
   position: fixed;
@@ -1044,5 +1281,14 @@
 
   .preview-window-page {
     height: 300px;
+  }
+
+  .edit-layout-compare {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .edit-demo-h-left {
+    flex: 0 0 140px;
   }
 }

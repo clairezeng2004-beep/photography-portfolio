@@ -413,6 +413,116 @@ const FloatFlipDualPreview: React.FC<{ playing: boolean }> = ({ playing }) => {
 };
 
 /* ============================================================
+   Card Edit Layout Preview — compare vertical vs horizontal
+   ============================================================ */
+const EDIT_DEMO = {
+  title: '冬日東京',
+  location: 'Tokyo',
+  year: '2024',
+  description: '穿行在清冷的街巷，感受这座城市独特的温柔。',
+  image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80',
+};
+
+const CardEditLayoutPreview: React.FC<{ layout: 'vertical' | 'horizontal' }> = ({ layout }) => {
+  return (
+    <div className={`edit-layout-demo edit-layout-${layout}`}>
+      {layout === 'vertical' ? (
+        <div className="edit-demo-vertical">
+          <div className="edit-demo-cover">
+            <img src={EDIT_DEMO.image} alt="" />
+          </div>
+          <div className="edit-demo-fields">
+            <div className="edit-demo-field">
+              <label>标题</label>
+              <div className="edit-demo-input">{EDIT_DEMO.title}</div>
+            </div>
+            <div className="edit-demo-field">
+              <label>描述</label>
+              <div className="edit-demo-input edit-demo-textarea">{EDIT_DEMO.description}</div>
+            </div>
+            <div className="edit-demo-field">
+              <label>地点</label>
+              <div className="edit-demo-meta-row">
+                <div className="edit-demo-input edit-demo-input-sm">{EDIT_DEMO.location}</div>
+                <div className="edit-demo-input edit-demo-input-xs">{EDIT_DEMO.year}</div>
+              </div>
+            </div>
+            <div className="edit-demo-field">
+              <label>封面</label>
+              <div className="edit-demo-cover-btns">
+                <span className="edit-demo-btn">横版</span>
+                <span className="edit-demo-btn">竖版</span>
+              </div>
+            </div>
+            <div className="edit-demo-actions">
+              <span className="edit-demo-btn-primary">完成</span>
+              <span className="edit-demo-btn">取消</span>
+            </div>
+            <div className="edit-demo-photos">
+              <label>照片 · 12张</label>
+              <div className="edit-demo-photo-grid">
+                {[1,2,3,4,5,6].map(i => (
+                  <div key={i} className="edit-demo-photo-thumb" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="edit-demo-horizontal">
+          <div className="edit-demo-h-left">
+            <div className="edit-demo-cover edit-demo-cover-h">
+              <img src={EDIT_DEMO.image} alt="" />
+            </div>
+          </div>
+          <div className="edit-demo-h-right">
+            <div className="edit-demo-h-meta">
+              <div className="edit-demo-field">
+                <label>标题</label>
+                <div className="edit-demo-input">{EDIT_DEMO.title}</div>
+              </div>
+              <div className="edit-demo-field">
+                <label>描述</label>
+                <div className="edit-demo-input edit-demo-textarea">{EDIT_DEMO.description}</div>
+              </div>
+              <div className="edit-demo-field-row">
+                <div className="edit-demo-field">
+                  <label>地点</label>
+                  <div className="edit-demo-input edit-demo-input-sm">{EDIT_DEMO.location}</div>
+                </div>
+                <div className="edit-demo-field">
+                  <label>年份</label>
+                  <div className="edit-demo-input edit-demo-input-xs">{EDIT_DEMO.year}</div>
+                </div>
+                <div className="edit-demo-field">
+                  <label>封面</label>
+                  <div className="edit-demo-cover-btns">
+                    <span className="edit-demo-btn">横版</span>
+                    <span className="edit-demo-btn">竖版</span>
+                  </div>
+                </div>
+              </div>
+              <div className="edit-demo-actions">
+                <span className="edit-demo-btn-primary">完成</span>
+                <span className="edit-demo-btn">取消</span>
+              </div>
+            </div>
+            <div className="edit-demo-photos">
+              <label>照片 · 12张</label>
+              <div className="edit-demo-photo-grid">
+                {[1,2,3,4,5,6,7,8].map(i => (
+                  <div key={i} className="edit-demo-photo-thumb" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ============================================================
    Page list for preview
    ============================================================ */
 const PREVIEW_PAGES = [
@@ -647,6 +757,35 @@ const AnimationPlayground: React.FC = () => {
             <CardPreview animation={card} playing={cardPlay} />
           </div>
         )}
+      </section>
+
+      {/* ===== CARD EDIT LAYOUT SECTION ===== */}
+      <section className="playground-section">
+        <div className="section-head">
+          <div>
+            <h2>Card Edit Layout 编辑面板布局</h2>
+            <p>后台作品集卡片编辑时的面板布局对比</p>
+          </div>
+        </div>
+
+        <div className="edit-layout-compare">
+          <div className="edit-layout-option">
+            <div className="edit-layout-label">
+              <span className="edit-layout-label-tag current">当前</span>
+              <span className="edit-layout-label-title">竖版 · 卡片内编辑</span>
+              <span className="edit-layout-label-desc">编辑面板在卡片内垂直展开，不改变网格布局</span>
+            </div>
+            <CardEditLayoutPreview layout="vertical" />
+          </div>
+          <div className="edit-layout-option">
+            <div className="edit-layout-label">
+              <span className="edit-layout-label-tag">备选</span>
+              <span className="edit-layout-label-title">横版 · 全宽展开</span>
+              <span className="edit-layout-label-desc">卡片展开占满整行，封面+表单并排显示</span>
+            </div>
+            <CardEditLayoutPreview layout="horizontal" />
+          </div>
+        </div>
       </section>
 
       {/* ===== PAGE TRANSITION SECTION ===== */}

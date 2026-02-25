@@ -2439,24 +2439,24 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
   return (
     <div className={`collection-card ${isEditing ? 'editing' : ''}`}>
-      <div className="card-image">
-        <img src={isEditing ? (cardCoverImage || coverImage) : (collection.cardCoverImage || collection.coverImage)} alt={collection.title} />
-        <div className="card-overlay">
-          <button className="btn-icon" onClick={(e) => { e.stopPropagation(); onToggleEdit(); }} title={isEditing ? '取消' : '编辑'}>
-            {isEditing ? <X size={18} /> : <Edit size={18} />}
-          </button>
-          <button className="btn-icon danger" onClick={(e) => { e.stopPropagation(); onDelete(); }} title="删除">
-            <Trash2 size={18} />
-          </button>
-        </div>
-        {!isEditing && (
+      {!isEditing && (
+        <div className="card-image">
+          <img src={collection.cardCoverImage || collection.coverImage} alt={collection.title} />
+          <div className="card-overlay">
+            <button className="btn-icon" onClick={(e) => { e.stopPropagation(); onToggleEdit(); }} title="编辑">
+              <Edit size={18} />
+            </button>
+            <button className="btn-icon danger" onClick={(e) => { e.stopPropagation(); onDelete(); }} title="删除">
+              <Trash2 size={18} />
+            </button>
+          </div>
           <div className="card-reorder-btns">
             <button className="btn-icon reorder-btn" onClick={(e) => { e.stopPropagation(); onMoveUp(); }} disabled={isFirst} title="上移"><ChevronUp size={16} /></button>
             <input type="number" className="card-order-input" value={currentIndex + 1} min={1} max={totalCount} onClick={(e) => e.stopPropagation()} onChange={(e) => { const val = parseInt(e.target.value); if (Number.isFinite(val) && val >= 1 && val <= totalCount) onMoveToPosition(val - 1); }} title="输入数字调整排序" />
             <button className="btn-icon reorder-btn" onClick={(e) => { e.stopPropagation(); onMoveDown(); }} disabled={isLast} title="下移"><ChevronDown size={16} /></button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {!isEditing && (
         <div className="card-body">
