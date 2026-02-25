@@ -5,7 +5,7 @@ import {
   Plus, Edit, Trash2, Save, X,
   User, Image as ImageIcon, Settings, LogOut,
   Folder, Camera, MapPin, Calendar, Globe,
-  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload, Eye
+  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload
 } from 'lucide-react';
 import { PhotoCollection, Photo, AboutInfo, AboutCustomSection, AboutCustomSectionSubItem, GeoInfo, HeroImage } from '../types';
 import { useData } from '../context/DataContext';
@@ -2222,7 +2222,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   // Collapsible section states
   const [showCoverSection, setShowCoverSection] = useState(false);
   const [showDescriptionSection, setShowDescriptionSection] = useState(false);
-  const [showPhotosSection, setShowPhotosSection] = useState(false);
+  const [, setShowPhotosSection] = useState(false);
   const [showLocationTimeSection, setShowLocationTimeSection] = useState(false);
   const [cropProcessing, setCropProcessing] = useState(false);
 
