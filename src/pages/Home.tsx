@@ -42,11 +42,17 @@ const Home: React.FC = () => {
     if (heroImages.length <= 1) return;
     const timer = setInterval(() => {
       if (!isDragging) {
-        setCurrentSlide((prev) => prev + 1);
+        if (heroTransition === 'slide') {
+          // slide mode: let currentSlide grow; handleSlideTransitionEnd will silently jump back
+          setCurrentSlide((prev) => prev + 1);
+        } else {
+          // Non-slide modes: wrap around with modulo
+          setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+        }
       }
     }, 8000);
     return () => clearInterval(timer);
-  }, [heroImages.length, isDragging]);
+  }, [heroImages.length, isDragging, heroTransition]);
 
   // Intersection observer for card + intro animations
   useEffect(() => {
@@ -110,12 +116,20 @@ const Home: React.FC = () => {
     setIsDragging(false);
     const threshold = 80;
     if (translateX < -threshold) {
-      setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+      if (heroTransition === 'slide') {
+        setCurrentSlide((prev) => prev + 1);
+      } else {
+        setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+      }
     } else if (translateX > threshold) {
-      setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+      if (heroTransition === 'slide') {
+        setCurrentSlide((prev) => prev - 1);
+      } else {
+        setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+      }
     }
     setTranslateX(0);
-  }, [isDragging, translateX, heroImages.length]);
+  }, [isDragging, translateX, heroImages.length, heroTransition]);
 
   const handleHeroClick = useCallback(() => {
     if (Math.abs(translateX) > 5) return;
@@ -126,12 +140,20 @@ const Home: React.FC = () => {
 
   const goHeroPrev = () => {
     if (heroImages.length <= 1) return;
-    setCurrentSlide((prev) => prev - 1);
+    if (heroTransition === 'slide') {
+      setCurrentSlide((prev) => prev - 1);
+    } else {
+      setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+    }
   };
 
   const goHeroNext = () => {
     if (heroImages.length <= 1) return;
-    setCurrentSlide((prev) => prev + 1);
+    if (heroTransition === 'slide') {
+      setCurrentSlide((prev) => prev + 1);
+    } else {
+      setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+    }
   };
 
   // Scroll down handler for hero scroll hint
@@ -180,6 +202,11 @@ const Home: React.FC = () => {
      HERO RENDER
      ============================================================ */
   const renderHero = () => {
+    // Safe display index for non-slide modes (always in [0, heroImages.length))
+    const displayIdx = heroImages.length > 0
+      ? ((currentSlide % heroImages.length) + heroImages.length) % heroImages.length
+      : 0;
+
     if (heroTransition === 'slide') {
       return (
         <div
@@ -214,7 +241,7 @@ const Home: React.FC = () => {
               src={img.url}
               alt={img.title}
               className="hero-stack-img hero-fade-img"
-              style={{ opacity: i === currentSlide ? 1 : 0 }}
+              style={{ opacity: i === displayIdx ? 1 : 0 }}
               onLoad={() => i === 0 && setHeroLoaded(true)}
               draggable={false}
             />
@@ -233,8 +260,8 @@ const Home: React.FC = () => {
               alt={img.title}
               className="hero-stack-img hero-zoom-img"
               style={{
-                opacity: i === currentSlide ? 1 : 0,
-                transform: i === currentSlide ? 'scale(1)' : 'scale(1.15)',
+                opacity: i === displayIdx ? 1 : 0,
+                transform: i === displayIdx ? 'scale(1)' : 'scale(1.15)',
               }}
               onLoad={() => i === 0 && setHeroLoaded(true)}
               draggable={false}
@@ -252,8 +279,8 @@ const Home: React.FC = () => {
               key={i}
               src={img.url}
               alt={img.title}
-              className={`hero-stack-img hero-kb-img ${i === currentSlide ? 'active' : ''}`}
-              style={{ opacity: i === currentSlide ? 1 : 0 }}
+              className={`hero-stack-img hero-kb-img ${i === displayIdx ? 'active' : ''}`}
+              style={{ opacity: i === displayIdx ? 1 : 0 }}
               onLoad={() => i === 0 && setHeroLoaded(true)}
               draggable={false}
             />
@@ -272,8 +299,8 @@ const Home: React.FC = () => {
             alt={img.title}
             className="hero-stack-img hero-blur-img"
             style={{
-              opacity: i === currentSlide ? 1 : 0,
-              filter: i === currentSlide ? 'blur(0)' : 'blur(12px)',
+              opacity: i === displayIdx ? 1 : 0,
+              filter: i === displayIdx ? 'blur(0)' : 'blur(12px)',
             }}
             onLoad={() => i === 0 && setHeroLoaded(true)}
             draggable={false}

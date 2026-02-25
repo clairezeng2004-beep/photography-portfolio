@@ -126,7 +126,7 @@ async function autoCropToAspect(
         canvas.height = outputHeight;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, sx, sy, sw, sh, 0, 0, outputWidth, outputHeight);
-        resolve(canvas.toDataURL('image/jpeg', 0.92));
+        resolve(canvas.toDataURL('image/jpeg', 0.97));
       } catch (err) {
         reject(err);
       } finally {
@@ -141,7 +141,7 @@ async function autoCropToAspect(
   });
 }
 
-function autoCropToLandscape(imageUrl: string, outputWidth: number = 2400): Promise<string> {
+function autoCropToLandscape(imageUrl: string, outputWidth: number = 3200): Promise<string> {
   return autoCropToAspect(imageUrl, 4 / 3, outputWidth);
 }
 
@@ -150,7 +150,7 @@ function autoCropToLandscape(imageUrl: string, outputWidth: number = 2400): Prom
    ============================================================ */
 function autoCropToPortrait(
   imageUrl: string,
-  outputWidth: number = 1200
+  outputWidth: number = 1800
 ): Promise<string> {
   return autoCropToAspect(imageUrl, 3 / 4, outputWidth);
 }
