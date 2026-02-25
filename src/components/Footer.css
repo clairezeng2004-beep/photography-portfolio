@@ -51,8 +51,9 @@
 
 /* Footer content grid */
 .footer-content {
-  padding: 0 60px 32px;
-  max-width: 1200px;
+  padding: 0 0 32px;
+  width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -60,7 +61,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 40px;
+  gap: 80px;
   margin-bottom: 36px;
 }
 
@@ -70,14 +71,12 @@
 }
 
 .footer-column-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  color: #888;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: #666;
   margin: 0 0 16px;
-  font-style: italic;
 }
 
 .footer-links {
@@ -226,6 +225,11 @@
 @media (max-width: 768px) {
   .footer {
     padding: 0 24px 24px;
+  }
+
+  .footer-grid {
+    flex-direction: column;
+    gap: 32px;
   }
 
   .footer-subscribe-section {

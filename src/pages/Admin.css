@@ -895,8 +895,8 @@
 .card-body h3 {
   margin: 0 0 10px 0;
   font-family: 'Noto Serif SC', serif;
-  font-size: 18px;
-  font-weight: 400;
+  font-size: 20px;
+  font-weight: 500;
   letter-spacing: 0.04em;
   color: #2a2a2a;
 }
@@ -1054,8 +1054,10 @@
   position: relative;
   width: 100%;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 0;
   background: #1a1a1a;
+  margin: 0 -16px;
+  width: calc(100% + 32px);
 }
 
 .card-cover-final-portrait {
@@ -1094,7 +1096,7 @@
 
 .card-cover-final-title {
   font-family: 'Noto Serif SC', serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: #fff;
   line-height: 1.4;
@@ -1527,14 +1529,14 @@
 .inline-edit-title {
   width: 100%;
   font-family: 'Noto Serif SC', serif;
-  font-size: 18px;
-  font-weight: 400;
+  font-size: 22px;
+  font-weight: 500;
   letter-spacing: 0.04em;
   color: #2a2a2a;
   border: none;
   border-bottom: 1px solid #e8e6e2;
   background: transparent;
-  padding: 4px 0;
+  padding: 6px 0;
   margin-bottom: 10px;
   outline: none;
 }

@@ -58,7 +58,7 @@ const Footer: React.FC = () => {
         <div className="footer-grid">
           {/* Column 1: More links */}
           <div className="footer-column">
-            <h3 className="footer-column-title">SEE MORE</h3>
+            <h3 className="footer-column-title">更多</h3>
             <ul className="footer-links">
               {navLinks.map(link => (
                 <li key={link.name}>
@@ -76,7 +76,7 @@ const Footer: React.FC = () => {
 
           {/* Column 3: Subscribe */}
           <div className="footer-column">
-            <h3 className="footer-column-title">STAY IN TOUCH</h3>
+            <h3 className="footer-column-title">保持联系</h3>
             <p className="footer-column-text">新作品发布时，第一时间通知你。</p>
             {submitted ? (
               <p className="footer-subscribed">感谢你的订阅！</p>
