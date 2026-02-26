@@ -581,7 +581,7 @@ const Footprints: React.FC = () => {
     // Delay hiding so user can move mouse into the card
     hoverTimeout.current = setTimeout(() => {
       setHoverCard(null);
-    }, 200);
+    }, 400);
   }, []);
 
   const handleCardEnter = useCallback(() => {
@@ -589,8 +589,11 @@ const Footprints: React.FC = () => {
   }, []);
 
   const handleCardLeave = useCallback(() => {
-    setHoveredCity(null);
-    setHoverCard(null);
+    // Small delay so accidental mouse-out doesn't instantly close the card
+    hoverTimeout.current = setTimeout(() => {
+      setHoveredCity(null);
+      setHoverCard(null);
+    }, 150);
   }, []);
 
   // Mobile: tap directly opens city preview modal; Desktop: tap toggles hover card
@@ -1164,14 +1167,16 @@ const Footprints: React.FC = () => {
                         <circle cx={x} cy={y} r={14} className="marker-pulse-inner" />
                       </>
                     )}
-                    {/* Larger invisible hit area for mobile tapping */}
-                    {hasPhoto && isMobile && (
+                    {/* Larger invisible hit area for easier hover & tapping */}
+                    {hasPhoto && (
                       <circle
                         cx={x}
                         cy={y}
-                        r={18}
+                        r={isMobile ? 18 : 20}
                         fill="transparent"
                         style={{ cursor: 'pointer' }}
+                        onMouseEnter={(e) => handleMarkerEnter(e, geo, cityGroup)}
+                        onMouseLeave={handleMarkerLeave}
                         onClick={(e) => {
                           const rect = svgContainerRef.current?.getBoundingClientRect();
                           handleMarkerClick(cityGroup, geo, rect ? e.clientX - rect.left : 0, rect ? e.clientY - rect.top : 0);
@@ -1183,8 +1188,9 @@ const Footprints: React.FC = () => {
                       cy={y}
                       r={hasPhoto ? (isHovered ? 6.5 : 5) : (isHovered ? 4 : 3)}
                       className={`city-marker ${hasPhoto ? 'marker-photo' : 'marker-nophoto'} ${isHovered ? 'marker-hovered' : ''}`}
-                      onMouseEnter={(e) => handleMarkerEnter(e, geo, cityGroup)}
-                      onMouseLeave={handleMarkerLeave}
+                      style={hasPhoto ? { pointerEvents: 'none' } : undefined}
+                      onMouseEnter={!hasPhoto ? (e) => handleMarkerEnter(e, geo) : undefined}
+                      onMouseLeave={!hasPhoto ? handleMarkerLeave : undefined}
                       onClick={(e) => {
                         if (!hasPhoto) return;
                         const rect = svgContainerRef.current?.getBoundingClientRect();
@@ -1254,21 +1260,40 @@ const Footprints: React.FC = () => {
             // Decide if card goes above or below, left or right
             const goUp = py > cardH + 20;
             const goLeft = px + cardW + 20 > containerW;
+            const gap = 4; // minimal gap between marker and card for easier mouse transition
             const cardStyle: React.CSSProperties = {
               position: 'absolute',
-              left: goLeft ? px - cardW - 8 : px + 12,
-              top: goUp ? py - cardH - 12 : py + 16,
+              left: goLeft ? px - cardW - gap : px + gap,
+              top: goUp ? py - cardH - gap : py + gap,
               width: cardW,
               zIndex: 20,
             };
+            // Bridge style: transparent connector between marker and card
+            const bridgeSize = 24;
+            const bridgeStyle: React.CSSProperties = {
+              position: 'absolute',
+              left: goLeft ? px - bridgeSize : px,
+              top: goUp ? py - bridgeSize : py,
+              width: goLeft ? bridgeSize + gap + 4 : gap + bridgeSize,
+              height: goUp ? bridgeSize + gap + 4 : gap + bridgeSize,
+              zIndex: 19,
+              background: 'transparent',
+            };
 
             return (
-              <div
-                className="map-hover-card"
-                style={cardStyle}
-                onMouseEnter={handleCardEnter}
-                onMouseLeave={handleCardLeave}
-              >
+              <>
+                {/* Invisible bridge area between marker and card to prevent losing hover */}
+                <div
+                  style={bridgeStyle}
+                  onMouseEnter={handleCardEnter}
+                  onMouseLeave={handleCardLeave}
+                />
+                <div
+                  className="map-hover-card"
+                  style={cardStyle}
+                  onMouseEnter={handleCardEnter}
+                  onMouseLeave={handleCardLeave}
+                >
                 {coverImg && (
                   <div className="hover-card-cover">
                     <img src={coverImg} alt={geo.city} draggable={false} />
@@ -1307,6 +1332,7 @@ const Footprints: React.FC = () => {
                   )}
                 </div>
               </div>
+              </>
             );
           })()}
         </div>
