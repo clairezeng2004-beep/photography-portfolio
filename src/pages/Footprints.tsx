@@ -147,9 +147,9 @@ function filterOverlappingLabels(
   );
   const visible = new Set<string>();
   const offsets = new Map<string, { dx: number; dy: number }>();
-  const placed: { x: number; y: number; w: number; key: string; isCity: boolean }[] = [];
+  const placed: { x: number; y: number; w: number; h: number; key: string; isCity: boolean }[] = [];
 
-  // Collect ALL city marker positions (both with and without photos) for region label avoidance
+  // Collect ALL city marker positions (both with and without photos) for label avoidance
   const allMarkers: { x: number; y: number }[] = [];
   for (const item of sorted) {
     if (item.markerX !== undefined && item.markerY !== undefined) {
@@ -159,6 +159,33 @@ function filterOverlappingLabels(
 
   // Track which labels have been attempted to be placed
   const attempted = new Set<string>();
+
+  // Helper: check if label at (lx, ly) with width estW overlaps any marker
+  // excluding the marker belonging to the same city (ownMx, ownMy)
+  const overlapsAnyMarker = (lx: number, ly: number, estW: number, ownMx?: number, ownMy?: number): boolean => {
+    const markerR = 6; // visual marker radius + small buffer
+    for (const m of allMarkers) {
+      // Skip the city's own marker
+      if (ownMx !== undefined && ownMy !== undefined && m.x === ownMx && m.y === ownMy) continue;
+      // Check if the label's bounding box overlaps the marker circle
+      const halfW = estW * 0.5;
+      const halfH = minDistY * 0.5;
+      const closestX = Math.max(lx - halfW, Math.min(m.x, lx + halfW));
+      const closestY = Math.max(ly - halfH, Math.min(m.y, ly + halfH));
+      const dist = Math.sqrt((closestX - m.x) ** 2 + (closestY - m.y) ** 2);
+      if (dist < markerR) return true;
+    }
+    return false;
+  };
+
+  // Helper: check if label overlaps any already-placed label
+  const overlapsPlaced = (lx: number, ly: number, estW: number, cityOnly: boolean): boolean => {
+    return placed.some(p => {
+      if (cityOnly && !p.isCity) return false;
+      return Math.abs(p.x - lx) < (estW + p.w) * 0.45 &&
+             Math.abs(p.y - ly) < minDistY * 0.85;
+    });
+  };
 
   for (const item of sorted) {
     // Skip marker-only items (they exist solely for avoidance data)
@@ -171,20 +198,19 @@ function filterOverlappingLabels(
     const isLitCity = item.priority >= 10;
 
     if (isLitCity) {
-      // For lit city labels: try to nudge instead of hiding
-      // Labels originate at marker center; nudge to clear positions around the marker
-      const markerR = 8; // clearance radius from marker center
+      // For lit city labels: try to nudge to avoid both other labels AND other markers
+      const markerR = 10; // clearance radius from own marker center
       let bestX = item.x;
       let bestY = item.y;
       let resolved = false;
 
       // Try directions: above, right, left, below, then diagonals
       const nudges = [
-        { dx: 0, dy: -(markerR + minDistY * 0.5) },               // above
-        { dx: estWidth * 0.5 + markerR, dy: 0 },                  // right
-        { dx: -(estWidth * 0.5 + markerR), dy: 0 },               // left
-        { dx: 0, dy: markerR + minDistY * 0.6 },                  // below
-        { dx: estWidth * 0.4 + 4, dy: -(markerR + minDistY * 0.3) },  // upper-right
+        { dx: 0, dy: -(markerR + minDistY * 0.5) },                     // above
+        { dx: estWidth * 0.5 + markerR, dy: 0 },                        // right
+        { dx: -(estWidth * 0.5 + markerR), dy: 0 },                     // left
+        { dx: 0, dy: markerR + minDistY * 0.6 },                        // below
+        { dx: estWidth * 0.4 + 4, dy: -(markerR + minDistY * 0.3) },    // upper-right
         { dx: -(estWidth * 0.4 + 4), dy: -(markerR + minDistY * 0.3) }, // upper-left
         { dx: estWidth * 0.4 + 4, dy: markerR + minDistY * 0.3 },       // lower-right
         { dx: -(estWidth * 0.4 + 4), dy: markerR + minDistY * 0.3 },    // lower-left
@@ -193,49 +219,39 @@ function filterOverlappingLabels(
       for (const nudge of nudges) {
         const nx = item.x + nudge.dx;
         const ny = item.y + nudge.dy;
-        const overlaps = placed.some(p => {
-          if (!p.isCity) return false; // only avoid other lit city labels
-          return Math.abs(p.x - nx) < (estWidth + p.w) * 0.45 &&
-                 Math.abs(p.y - ny) < minDistY * 0.85;
-        });
-        if (!overlaps) {
-          bestX = nx;
-          bestY = ny;
-          resolved = true;
-          offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
-          break;
-        }
+        // Check overlap with other placed labels
+        if (overlapsPlaced(nx, ny, estWidth, true)) continue;
+        // Check overlap with other city markers (not own)
+        if (overlapsAnyMarker(nx, ny, estWidth, item.markerX, item.markerY)) continue;
+        bestX = nx;
+        bestY = ny;
+        resolved = true;
+        offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
+        break;
       }
 
       if (!resolved) {
-        // If all nudges fail, still show but push above with extra clearance
-        const fallbackDy = -(8 + minDistY * 1.2);
-        bestY = item.y + fallbackDy;
-        offsets.set(item.key, { dx: 0, dy: fallbackDy });
+        // If all nudges fail, hide this city label (lower photo count loses)
+        attempted.add(itemKey);
+        continue;
       }
 
       visible.add(item.key);
-      placed.push({ x: bestX, y: bestY, w: estWidth, key: item.key, isCity: true });
+      placed.push({ x: bestX, y: bestY, w: estWidth, h: minDistY, key: item.key, isCity: true });
       attempted.add(itemKey);
     } else {
       // For region/country labels: try to place, but HIDE if can't find non-overlapping spot
       let placedSuccessfully = false;
       
       // First try original position
-      let overlaps = placed.some(p =>
-        Math.abs(p.x - item.x) < (estWidth + p.w) * 0.45 &&
-        Math.abs(p.y - item.y) < minDistY * 0.85
-      );
-      
-      if (!overlaps) {
-        // Check marker overlap
-        const overlapsMarker = allMarkers.some(m =>
+      if (!overlapsPlaced(item.x, item.y, estWidth, false)) {
+        const markerHit = allMarkers.some(m =>
           Math.abs(m.x - item.x) < estWidth * 0.4 + 4 &&
           Math.abs(m.y - item.y) < minDistY * 0.7
         );
         
-        if (!overlapsMarker) {
-          placed.push({ x: item.x, y: item.y, w: estWidth, key: item.key, isCity: false });
+        if (!markerHit) {
+          placed.push({ x: item.x, y: item.y, w: estWidth, h: minDistY, key: item.key, isCity: false });
           visible.add(item.key);
           attempted.add(itemKey);
           placedSuccessfully = true;
@@ -256,25 +272,20 @@ function filterOverlappingLabels(
         for (const nudge of nudges) {
           const nx = item.x + nudge.dx;
           const ny = item.y + nudge.dy;
-          overlaps = placed.some(p =>
-            Math.abs(p.x - nx) < (estWidth + p.w) * 0.45 &&
-            Math.abs(p.y - ny) < minDistY * 0.85
+          if (overlapsPlaced(nx, ny, estWidth, false)) continue;
+          
+          const markerHit = allMarkers.some(m =>
+            Math.abs(m.x - nx) < estWidth * 0.4 + 4 &&
+            Math.abs(m.y - ny) < minDistY * 0.7
           );
           
-          if (!overlaps) {
-            const overlapsMarker = allMarkers.some(m =>
-              Math.abs(m.x - nx) < estWidth * 0.4 + 4 &&
-              Math.abs(m.y - ny) < minDistY * 0.7
-            );
-            
-            if (!overlapsMarker) {
-              placed.push({ x: nx, y: ny, w: estWidth, key: item.key, isCity: false });
-              visible.add(item.key);
-              offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
-              attempted.add(itemKey);
-              placedSuccessfully = true;
-              break;
-            }
+          if (!markerHit) {
+            placed.push({ x: nx, y: ny, w: estWidth, h: minDistY, key: item.key, isCity: false });
+            visible.add(item.key);
+            offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
+            attempted.add(itemKey);
+            placedSuccessfully = true;
+            break;
           }
         }
       }
