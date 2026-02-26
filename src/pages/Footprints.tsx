@@ -643,6 +643,9 @@ const Footprints: React.FC = () => {
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
+    // Don't start panning if the click is inside the hover card or bridge
+    const target = e.target as HTMLElement;
+    if (target.closest('.map-hover-card')) return;
     isPanning.current = true;
     dragMoved.current = false;
     setIsDragging(true);
