@@ -389,6 +389,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     createBackup(snapshot).then(ok => {
       if (ok) console.log('[AutoBackup] snapshot created');
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**

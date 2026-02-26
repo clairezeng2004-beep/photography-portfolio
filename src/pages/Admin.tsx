@@ -21,7 +21,7 @@ import {
 import ImageUploader from '../components/ImageUploader';
 import { getR2WorkerUrl, setR2WorkerUrl, getR2Secret, setR2Secret, isImageHostConfigured, countBase64Images, migrateAllToR2, MigrationProgress } from '../utils/imageHost';
 import { getNewsletterApiKey, setNewsletterApiKey, isNewsletterConfigured } from '../utils/newsletter';
-import { listBackups, getBackup, deleteBackup, createBackup, BackupEntry, isSupabaseConfigured } from '../utils/supabase';
+import { listBackups, getBackup, deleteBackup, createBackup, BackupEntry } from '../utils/supabase';
 import Toast from '../components/Toast';
 import './Admin.css';
 
@@ -322,7 +322,7 @@ const Admin: React.FC = () => {
     } else {
       showToast('备份创建失败');
     }
-  }, [collections, aboutInfo, litCities, heroImages, animationConfig]);
+  }, [collections, aboutInfo, litCities, heroImages, animationConfig, loadBackupList, showToast]);
 
   const handleRestoreBackup = useCallback(async (entry: BackupEntry) => {
     if (!window.confirm(`确定要恢复到 ${entry.label} 的备份吗？当前数据将被替换。`)) return;
@@ -348,7 +348,7 @@ const Admin: React.FC = () => {
       showToast('恢复失败');
     }
     setRestoringBackup(null);
-  }, [updateCollections, updateAboutInfo, updateLitCities, updateHeroImages, updateAnimationConfig]);
+  }, [updateCollections, updateAboutInfo, updateLitCities, updateHeroImages, updateAnimationConfig, showToast]);
 
   const handleDeleteBackup = useCallback(async (entry: BackupEntry) => {
     if (!window.confirm(`确定要删除 ${entry.label} 的备份吗？`)) return;
@@ -359,7 +359,7 @@ const Admin: React.FC = () => {
     } catch (e) {
       showToast('删除失败');
     }
-  }, [loadBackupList]);
+  }, [loadBackupList, showToast]);
 
   const base64Count = useMemo(() => {
     return countBase64Images(collections, heroImages, aboutInfo.avatar);
