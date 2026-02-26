@@ -93,7 +93,7 @@
   font-weight: 500;
   letter-spacing: 0.08em;
   color: #666;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
 }
 
 .footer-links {
@@ -103,7 +103,7 @@
 }
 
 .footer-links li {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .footer-links a {
@@ -123,7 +123,11 @@
   font-size: 14px;
   color: #666;
   line-height: 1.6;
-  margin: 0 0 20px;
+  margin: 0 0 14px;
+}
+
+.footer-column-center .footer-column-text {
+  margin-bottom: 0;
 }
 
 /* Subscribe section */
