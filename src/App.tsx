@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { DataProvider, useData } from './context/DataContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import PageTransitionWrapper from './components/PageTransitionWrapper';
@@ -37,9 +38,11 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <DataProvider>
-      <AppContent />
-    </DataProvider>
+    <ErrorBoundary>
+      <DataProvider>
+        <AppContent />
+      </DataProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -11,12 +11,25 @@ interface Props {
 const PageTransitionWrapper: React.FC<Props> = ({ children, transition }) => {
   const location = useLocation();
   const [displayChildren, setDisplayChildren] = useState(children);
-  const [stage, setStage] = useState<'enter' | 'active' | 'exit'>('active');
+  const [stage, setStage] = useState<'enter' | 'active' | 'exit'>('enter');
   const prevPathRef = useRef(location.pathname);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(false);
 
   useEffect(() => {
-    if (location.pathname === prevPathRef.current) return;
+    if (location.pathname === prevPathRef.current && isMountedRef.current) return;
+    if (!isMountedRef.current) {
+      // First mount: skip exit phase, just enter → active
+      isMountedRef.current = true;
+      setStage('enter');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setStage('active');
+        });
+      });
+      return;
+    }
+
     if (transition === 'none') {
       setDisplayChildren(children);
       prevPathRef.current = location.pathname;
@@ -44,16 +57,6 @@ const PageTransitionWrapper: React.FC<Props> = ({ children, transition }) => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [location.pathname, children, transition]);
-
-  // Initial mount
-  useEffect(() => {
-    setStage('enter');
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setStage('active');
-      });
-    });
-  }, []);
 
   if (transition === 'none') {
     return <>{children}</>;

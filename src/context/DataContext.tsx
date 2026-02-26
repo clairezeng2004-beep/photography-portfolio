@@ -168,29 +168,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const useCloud = isSupabaseConfigured();
 
       // Track whether cloud was reached AND confirmed empty for each key
-      // This prevents seed data from overwriting cloud data when cloud was unreachable
       const cloudConfirmedEmpty = new Set<string>();
 
-      // Load strategy:
-      // 1. Load from IndexedDB first (instant, always available)
-      // 2. If cloud is configured, also try cloud
-      // 3. If cloud has data, use cloud (authority) and update local cache
-      // 4. If cloud fails/unreachable, use local data
-      // 5. If local has data but cloud doesn't, sync local to cloud
-      async function loadKey<T>(key: string): Promise<T | undefined> {
+      // ── Phase 1: Fast local load (IndexedDB / localStorage) ──
+      async function loadLocal<T>(key: string): Promise<T | undefined> {
         let localVal: T | undefined;
-        let cloudVal: T | undefined;
-        let cloudReached = false;
-        let cloudFound = false;
-
-        // 1. Always try IndexedDB first (fast)
         try {
           localVal = await dbGet<T>(key);
         } catch (e) {
           console.warn(`[DataContext] IndexedDB read failed for "${key}"`, e);
         }
-
-        // 2. Try localStorage migration
         if (localVal === undefined) {
           const ls = localStorage.getItem(key);
           if (ls) {
@@ -198,158 +185,153 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             localStorage.removeItem(key);
           }
         }
-
-        // 3. Try Supabase
-        if (useCloud) {
-          try {
-            const result = await supabaseGetDetailed<T>(key);
-            cloudReached = true;
-            if (result.found && result.value !== undefined) {
-              cloudFound = true;
-              cloudVal = result.value;
-            }
-          } catch (e) {
-            console.warn(`[DataContext] Cloud read failed for "${key}", using local`, e);
-          }
-        }
-
-        // Decision:
-        if (cloudReached && cloudFound) {
-          // Cloud has data — use it as authority, update local cache
-          dbSet(key, cloudVal!).catch(() => {});
-          return cloudVal;
-        } else if (cloudReached && !cloudFound && localVal !== undefined) {
-          // Cloud reachable but no data there — push local to cloud
-          cloudConfirmedEmpty.add(key);
-          syncToCloud(key, localVal);
-          return localVal;
-        } else if (cloudReached && !cloudFound) {
-          // Cloud reachable, confirmed empty, no local data either
-          cloudConfirmedEmpty.add(key);
-          return undefined;
-        } else if (!cloudReached && localVal !== undefined) {
-          // Cloud unreachable — use local, mark for sync
-          if (useCloud) {
-            pendingSyncRef.current.set(key, localVal);
-          }
-          return localVal;
-        } else if (localVal !== undefined) {
-          return localVal;
-        }
-
-        return undefined;
+        return localVal;
       }
 
-      // Load all keys in PARALLEL
+      // Load all local data in PARALLEL (very fast, no network)
       const [savedCollections, savedAbout, savedCities, savedHero, savedAnim] = await Promise.all([
-        loadKey<PhotoCollection[]>('photo_collections'),
-        loadKey<AboutInfo>('about_info'),
-        loadKey<GeoInfo[]>('lit_cities'),
-        loadKey<HeroImage[]>('hero_images'),
-        loadKey<AnimationConfig>('animation_config'),
+        loadLocal<PhotoCollection[]>('photo_collections'),
+        loadLocal<AboutInfo>('about_info'),
+        loadLocal<GeoInfo[]>('lit_cities'),
+        loadLocal<HeroImage[]>('hero_images'),
+        loadLocal<AnimationConfig>('animation_config'),
       ]);
 
       if (cancelled) return;
 
-      // Update pending sync keys state
-      if (pendingSyncRef.current.size > 0) {
-        setPendingSyncKeys(Array.from(pendingSyncRef.current.keys()));
-        setCloudSyncStatus('error');
+      // Apply local data immediately
+      let hasLocalData = false;
+      if (savedCollections && savedCollections.length > 0) {
+        const fixed = fixDuplicatePhotoIds(savedCollections);
+        setCollections(fixed);
+        if (fixed !== savedCollections) dbSet('photo_collections', fixed).catch(() => {});
+        hasLocalData = true;
       }
-
-      // Apply loaded data
-      if (savedCollections) {
-        if (savedCollections.length > 0) {
-          const fixed = fixDuplicatePhotoIds(savedCollections);
-          setCollections(fixed);
-          if (fixed !== savedCollections) {
-            dbSet('photo_collections', fixed).catch(() => {});
-          }
-        } else {
-          setCollections([]);
-        }
-      }
-      if (savedAbout) setAboutInfo(savedAbout);
+      if (savedAbout) { setAboutInfo(savedAbout); hasLocalData = true; }
       if (savedCities) setLitCities(savedCities);
       if (savedHero && savedHero.length > 0) setHeroImages(savedHero);
       if (savedAnim) setAnimationConfig(savedAnim);
 
-      // Fall back to seed file only if nothing was found anywhere
-      const hasAnyData = savedCollections !== undefined || !!savedAbout;
-      if (!hasAnyData) {
+      // If no local data at all, try seed file before marking loaded
+      if (!hasLocalData) {
         try {
           const res = await fetch('/portfolio-data.json');
-          if (cancelled) return;
-          if (res.ok) {
+          if (!cancelled && res.ok) {
             const seed = await res.json();
             if (seed.collections && seed.collections.length > 0) {
               const fixed = fixDuplicatePhotoIds(seed.collections);
               setCollections(fixed);
-              // ONLY seed to cloud if cloud confirmed empty (not just unreachable)
-              seedToCloud('photo_collections', fixed, cloudConfirmedEmpty.has('photo_collections'));
+              seedToLocal('photo_collections', fixed);
             }
-            if (seed.aboutInfo) { setAboutInfo(seed.aboutInfo); seedToCloud('about_info', seed.aboutInfo, cloudConfirmedEmpty.has('about_info')); }
-            if (seed.litCities) { setLitCities(seed.litCities); seedToCloud('lit_cities', seed.litCities, cloudConfirmedEmpty.has('lit_cities')); }
-            if (seed.heroImages && seed.heroImages.length > 0) { setHeroImages(seed.heroImages); seedToCloud('hero_images', seed.heroImages, cloudConfirmedEmpty.has('hero_images')); }
-            if (seed.animationConfig) { setAnimationConfig(seed.animationConfig); seedToCloud('animation_config', seed.animationConfig, cloudConfirmedEmpty.has('animation_config')); }
-            console.log('[DataContext] Loaded seed data from portfolio-data.json (cloud seed:', cloudConfirmedEmpty.size > 0, ')');
+            if (seed.aboutInfo) { setAboutInfo(seed.aboutInfo); seedToLocal('about_info', seed.aboutInfo); }
+            if (seed.litCities) { setLitCities(seed.litCities); seedToLocal('lit_cities', seed.litCities); }
+            if (seed.heroImages && seed.heroImages.length > 0) { setHeroImages(seed.heroImages); seedToLocal('hero_images', seed.heroImages); }
+            if (seed.animationConfig) { setAnimationConfig(seed.animationConfig); seedToLocal('animation_config', seed.animationConfig); }
+            console.log('[DataContext] Loaded seed data from portfolio-data.json');
           }
         } catch (e) {
-          if (cancelled) return;
-          console.log('[DataContext] No seed data file found, using defaults');
-          setCollections(mockCollections);
-          seedToCloud('photo_collections', mockCollections, cloudConfirmedEmpty.has('photo_collections'));
-          seedToCloud('about_info', defaultAboutInfo, cloudConfirmedEmpty.has('about_info'));
+          if (!cancelled) {
+            console.log('[DataContext] No seed data file found, using defaults');
+            setCollections(mockCollections);
+            seedToLocal('photo_collections', mockCollections);
+          }
         }
       }
 
-      // Sync API keys
-      await Promise.all([
+      // ★ Mark loaded immediately — page can render with local data now
+      if (!cancelled) setDataLoaded(true);
+
+      // ── Phase 2: Background cloud sync (non-blocking) ──
+      if (useCloud && !cancelled) {
+        backgroundCloudSync(
+          savedCollections, savedAbout, savedCities, savedHero, savedAnim,
+          cloudConfirmedEmpty, cancelled
+        );
+      }
+
+      // Sync API keys (non-blocking)
+      Promise.all([
         syncImgbbKeyFromCloud().catch(() => {}),
         syncNewsletterKeyFromCloud().catch(() => {}),
       ]);
     };
 
-    // Helper for seeding (fire-and-forget)
-    // allowCloud: only write to cloud if we CONFIRMED cloud is empty (not just unreachable)
-    function seedToCloud<T>(key: string, value: T, allowCloud: boolean = false) {
+    // Helper: save to local only (for seed data)
+    function seedToLocal<T>(key: string, value: T) {
       dbSet(key, value).catch(() => {});
-      if (allowCloud && isSupabaseConfigured()) {
-        console.log(`[DataContext] Seeding "${key}" to cloud (confirmed empty)`);
-        supabaseSetWithRetry(key, value).catch(() => {});
-      } else if (isSupabaseConfigured() && !allowCloud) {
-        console.log(`[DataContext] NOT seeding "${key}" to cloud (cloud was unreachable, data may exist)`);
+    }
+
+    // Background cloud sync — runs after page is already rendered
+    async function backgroundCloudSync(
+      localCollections: PhotoCollection[] | undefined,
+      localAbout: AboutInfo | undefined,
+      localCities: GeoInfo[] | undefined,
+      localHero: HeroImage[] | undefined,
+      localAnim: AnimationConfig | undefined,
+      cloudConfirmedEmpty: Set<string>,
+      wasCancelled: boolean,
+    ) {
+      const CLOUD_TIMEOUT = 8000; // shorter timeout for background sync
+
+      async function syncKey<T>(
+        key: string,
+        localVal: T | undefined,
+        setter: React.Dispatch<React.SetStateAction<T>>,
+        postProcess?: (v: T) => T,
+      ) {
+        if (wasCancelled) return;
+        try {
+          const result = await Promise.race([
+            supabaseGetDetailed<T>(key),
+            new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), CLOUD_TIMEOUT)),
+          ]);
+
+          if (wasCancelled) return;
+
+          if (result.found && result.value !== undefined) {
+            // Cloud has data — use as authority
+            const val = postProcess ? postProcess(result.value) : result.value;
+            setter(val);
+            dbSet(key, val).catch(() => {});
+          } else if (result.found === false && localVal !== undefined) {
+            // Cloud reachable but empty — push local to cloud
+            cloudConfirmedEmpty.add(key);
+            syncToCloud(key, localVal);
+          }
+        } catch (e) {
+          // Cloud unreachable — local data is already displayed, just log
+          console.warn(`[DataContext] Background cloud sync failed for "${key}":`, e);
+          if (localVal !== undefined) {
+            pendingSyncRef.current.set(key, localVal);
+          }
+        }
+      }
+
+      await Promise.allSettled([
+        syncKey<PhotoCollection[]>(
+          'photo_collections',
+          localCollections,
+          setCollections as any,
+          (v) => fixDuplicatePhotoIds(v),
+        ),
+        syncKey<AboutInfo>('about_info', localAbout, setAboutInfo as any),
+        syncKey<GeoInfo[]>('lit_cities', localCities, setLitCities as any),
+        syncKey<HeroImage[]>('hero_images', localHero, setHeroImages as any),
+        syncKey<AnimationConfig>('animation_config', localAnim, setAnimationConfig as any),
+      ]);
+
+      if (!wasCancelled && pendingSyncRef.current.size > 0) {
+        setPendingSyncKeys(Array.from(pendingSyncRef.current.keys()));
+        setCloudSyncStatus('error');
       }
     }
 
-    const LOAD_TIMEOUT = 20000;
-    let resolved = false;
+    loadData().catch(e => {
+      console.error('[DataContext] loadData failed:', e);
+      if (!cancelled) setDataLoaded(true);
+    });
 
-    const finish = () => {
-      if (!resolved && !cancelled) {
-        resolved = true;
-        setDataLoaded(true);
-      }
-    };
-
-    loadData()
-      .then(finish)
-      .catch(e => {
-        console.error('[DataContext] loadData failed:', e);
-        finish();
-      });
-
-    const fallbackTimer = setTimeout(() => {
-      if (!resolved && !cancelled) {
-        console.warn('[DataContext] loadData timed out after', LOAD_TIMEOUT, 'ms, forcing dataLoaded=true');
-        finish();
-      }
-    }, LOAD_TIMEOUT);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(fallbackTimer);
-    };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
