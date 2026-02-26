@@ -130,6 +130,7 @@ interface LabelItem {
   bboxW?: number;     // bounding box width of the region on screen (for overflow check)
   markerX?: number;   // city marker actual position (for avoidance with region labels)
   markerY?: number;
+  isLit?: boolean;    // whether this marker is a lit (has photos) city
 }
 
 interface LabelResult {
@@ -150,10 +151,10 @@ function filterOverlappingLabels(
   const placed: { x: number; y: number; w: number; h: number; key: string; isCity: boolean }[] = [];
 
   // Collect ALL city marker positions (both with and without photos) for label avoidance
-  const allMarkers: { x: number; y: number }[] = [];
+  const allMarkers: { x: number; y: number; isLit: boolean }[] = [];
   for (const item of sorted) {
     if (item.markerX !== undefined && item.markerY !== undefined) {
-      allMarkers.push({ x: item.markerX, y: item.markerY });
+      allMarkers.push({ x: item.markerX, y: item.markerY, isLit: !!item.isLit });
     }
   }
 
@@ -162,18 +163,21 @@ function filterOverlappingLabels(
 
   // Helper: check if label at (lx, ly) with width estW overlaps any marker
   // excluding the marker belonging to the same city (ownMx, ownMy)
+  // Lit markers have a larger avoidance radius due to their pulse glow effect
   const overlapsAnyMarker = (lx: number, ly: number, estW: number, ownMx?: number, ownMy?: number): boolean => {
-    const markerR = 6; // visual marker radius + small buffer
+    const litMarkerR = 14;   // lit marker has pulse glow up to r=14~20, use 14 for clearance
+    const unlitMarkerR = 6;  // unlit marker is small (r=3), plus small buffer
     for (const m of allMarkers) {
       // Skip the city's own marker
       if (ownMx !== undefined && ownMy !== undefined && m.x === ownMx && m.y === ownMy) continue;
+      const r = m.isLit ? litMarkerR : unlitMarkerR;
       // Check if the label's bounding box overlaps the marker circle
       const halfW = estW * 0.5;
       const halfH = minDistY * 0.5;
       const closestX = Math.max(lx - halfW, Math.min(m.x, lx + halfW));
       const closestY = Math.max(ly - halfH, Math.min(m.y, ly + halfH));
       const dist = Math.sqrt((closestX - m.x) ** 2 + (closestY - m.y) ** 2);
-      if (dist < markerR) return true;
+      if (dist < r) return true;
     }
     return false;
   };
@@ -244,18 +248,12 @@ function filterOverlappingLabels(
       let placedSuccessfully = false;
       
       // First try original position
-      if (!overlapsPlaced(item.x, item.y, estWidth, false)) {
-        const markerHit = allMarkers.some(m =>
-          Math.abs(m.x - item.x) < estWidth * 0.4 + 4 &&
-          Math.abs(m.y - item.y) < minDistY * 0.7
-        );
-        
-        if (!markerHit) {
-          placed.push({ x: item.x, y: item.y, w: estWidth, h: minDistY, key: item.key, isCity: false });
-          visible.add(item.key);
-          attempted.add(itemKey);
-          placedSuccessfully = true;
-        }
+      if (!overlapsPlaced(item.x, item.y, estWidth, false) &&
+          !overlapsAnyMarker(item.x, item.y, estWidth)) {
+        placed.push({ x: item.x, y: item.y, w: estWidth, h: minDistY, key: item.key, isCity: false });
+        visible.add(item.key);
+        attempted.add(itemKey);
+        placedSuccessfully = true;
       }
       
       if (!placedSuccessfully) {
@@ -267,26 +265,22 @@ function filterOverlappingLabels(
           { dx: -(estWidth * 0.5), dy: 0 },
           { dx: estWidth * 0.4, dy: -minDistY * 0.6 },
           { dx: -(estWidth * 0.4), dy: -minDistY * 0.6 },
+          { dx: estWidth * 0.4, dy: minDistY * 0.6 },
+          { dx: -(estWidth * 0.4), dy: minDistY * 0.6 },
         ];
         
         for (const nudge of nudges) {
           const nx = item.x + nudge.dx;
           const ny = item.y + nudge.dy;
           if (overlapsPlaced(nx, ny, estWidth, false)) continue;
+          if (overlapsAnyMarker(nx, ny, estWidth)) continue;
           
-          const markerHit = allMarkers.some(m =>
-            Math.abs(m.x - nx) < estWidth * 0.4 + 4 &&
-            Math.abs(m.y - ny) < minDistY * 0.7
-          );
-          
-          if (!markerHit) {
-            placed.push({ x: nx, y: ny, w: estWidth, h: minDistY, key: item.key, isCity: false });
-            visible.add(item.key);
-            offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
-            attempted.add(itemKey);
-            placedSuccessfully = true;
-            break;
-          }
+          placed.push({ x: nx, y: ny, w: estWidth, h: minDistY, key: item.key, isCity: false });
+          visible.add(item.key);
+          offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
+          attempted.add(itemKey);
+          placedSuccessfully = true;
+          break;
         }
       }
       
@@ -706,6 +700,7 @@ const Footprints: React.FC = () => {
           label: geo.city,
           markerX: pos[0],
           markerY: pos[1],
+          isLit: true,
         });
       } else {
         // City without photos — only register marker position for avoidance (no label)
@@ -718,6 +713,7 @@ const Footprints: React.FC = () => {
           label: '',
           markerX: pos[0],
           markerY: pos[1],
+          isLit: false,
         });
       }
     });
@@ -944,11 +940,14 @@ const Footprints: React.FC = () => {
       const pos = projection([prov.lng, prov.lat]);
       if (!pos) return null;
       const isLit = litProvinces.has(prov.name);
+      const offset = labelOffsets.get(`prov-${prov.name}`);
+      const lx = pos[0] + (offset?.dx || 0);
+      const ly = pos[1] + (offset?.dy || 0);
       return (
         <text
           key={prov.name}
-          x={pos[0]}
-          y={pos[1]}
+          x={lx}
+          y={ly}
           className={`province-label ${isLit ? 'province-label-lit' : 'province-label-dim'}`}
         >
           {prov.name}
@@ -1155,11 +1154,14 @@ const Footprints: React.FC = () => {
                 const [[x0, y0], [x1, y1]] = bounds;
                 const cx = (x0 + x1) / 2;
                 const cy = (y0 + y1) / 2;
+                const offset = labelOffsets.get(`country-${numId}`);
+                const lx = cx + (offset?.dx || 0);
+                const ly = cy + (offset?.dy || 0);
                 return (
                   <text
                     key={`country-label-${numId}`}
-                    x={cx}
-                    y={cy}
+                    x={lx}
+                    y={ly}
                     className="country-label"
                   >
                     {name}
