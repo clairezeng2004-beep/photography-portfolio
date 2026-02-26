@@ -787,10 +787,12 @@ const Footprints: React.FC = () => {
       });
     }
 
-    const charWidth = activeContinent === 'china' ? 8 / zoom : 9 / Math.sqrt(zoom);
-    const minY = activeContinent === 'china' ? 12 / zoom : 13 / Math.sqrt(zoom);
+    // Scale charWidth/minDistY up on mobile to match larger font sizes in CSS
+    const mobileFactor = isMobile ? 1.2 : 1;
+    const charWidth = (activeContinent === 'china' ? 8 / zoom : 9 / Math.sqrt(zoom)) * mobileFactor;
+    const minY = (activeContinent === 'china' ? 12 / zoom : 13 / Math.sqrt(zoom)) * mobileFactor;
     return filterOverlappingLabels(items, charWidth, minY);
-  }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures, chinaGeoJson]);
+  }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures, chinaGeoJson, isMobile]);
 
   const visibleLabelKeys = labelResult.visible;
   const labelOffsets = labelResult.offsets;

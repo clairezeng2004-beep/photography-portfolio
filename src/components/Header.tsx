@@ -49,7 +49,8 @@ const Header: React.FC = () => {
 
         <button
           className="menu-toggle"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}
+          onTouchEnd={(e) => { e.preventDefault(); setIsMenuOpen(!isMenuOpen); }}
           aria-label="菜单"
         >
           <div className={`hamburger ${isMenuOpen ? 'open' : ''}`}>

@@ -92,7 +92,11 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 12px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  z-index: 1001;
+  position: relative;
 }
 
 .hamburger {
@@ -147,7 +151,11 @@
   }
 
   .menu-toggle {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .logo {
