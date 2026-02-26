@@ -1,4 +1,5 @@
 import { GeoInfo } from '../types';
+import { pinyin } from 'pinyin-pro';
 
 /* ============================================================
    City → Country → Continent mapping
@@ -614,6 +615,18 @@ export function searchCities(query: string): CityEntry[] {
   if (!query) return [];
   const q = query.toLowerCase();
 
+  // Helper: check if a string matches the query (original text, full pinyin, or initials)
+  const matchesPinyin = (text: string): boolean => {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+    if (lower.includes(q)) return true;
+    const full = pinyin(text, { toneType: 'none', type: 'string' }).toLowerCase().replace(/\s/g, '');
+    if (full.includes(q)) return true;
+    const initials = pinyin(text, { pattern: 'first', toneType: 'none', type: 'string' }).toLowerCase().replace(/\s/g, '');
+    if (initials.includes(q)) return true;
+    return false;
+  };
+
   // Collect results with deduplication
   const seen = new Set<string>();
   const results: CityEntry[] = [];
@@ -626,20 +639,20 @@ export function searchCities(query: string): CityEntry[] {
     }
   };
 
-  // 1. Direct city/country/province match
+  // 1. Direct city/country/province match (text + pinyin)
   for (const entry of CITY_DATABASE) {
     if (
-      entry.city.toLowerCase().includes(q) ||
-      entry.country.toLowerCase().includes(q) ||
-      (entry.province && entry.province.toLowerCase().includes(q))
+      matchesPinyin(entry.city) ||
+      matchesPinyin(entry.country) ||
+      (entry.province && matchesPinyin(entry.province))
     ) {
       addEntry(entry);
     }
   }
 
-  // 2. Landmark match
+  // 2. Landmark match (text + pinyin)
   for (const [landmark, city] of Object.entries(LANDMARK_TO_CITY)) {
-    if (landmark.toLowerCase().includes(q) || q.includes(landmark.toLowerCase())) {
+    if (matchesPinyin(landmark) || q.includes(landmark.toLowerCase())) {
       const entry = lookupCity(city);
       if (entry) addEntry(entry);
     }
