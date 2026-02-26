@@ -211,7 +211,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.35);
   transition: background 0.4s ease;
   text-align: center;
   padding: 20px;
@@ -219,7 +219,7 @@
 }
 
 .rec-card:hover .rec-card-overlay {
-  background: rgba(0, 0, 0, 0.38);
+  background: rgba(0, 0, 0, 0.48);
 }
 
 .rec-card-location {

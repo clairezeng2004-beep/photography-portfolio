@@ -500,16 +500,14 @@ const Admin: React.FC = () => {
       const q = collSearchText.trim().toLowerCase();
       result = result.filter(c => {
         const fields = [
-          c.title, c.description, c.location,
-          c.geo?.city, c.geo?.country, c.geo?.countryCode,
+          c.title, c.location,
+          c.geo?.city, c.geo?.country,
           c.coverTitle, c.hoverLocation,
-          String(c.year), c.month ? `${c.month}月` : '',
         ];
         return fields.some(f => {
           if (!f) return false;
           const lower = f.toLowerCase();
           if (lower.includes(q)) return true;
-          // Pinyin match: full pinyin and initials
           const full = pinyin(f, { toneType: 'none', type: 'string' }).toLowerCase().replace(/\s/g, '');
           if (full.includes(q)) return true;
           const initials = pinyin(f, { pattern: 'first', toneType: 'none', type: 'string' }).toLowerCase().replace(/\s/g, '');
