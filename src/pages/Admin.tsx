@@ -482,7 +482,7 @@ const Admin: React.FC = () => {
 
   // Derived: available years for filter
   const availableYears = useMemo(() => {
-    const years = [...new Set(collections.map(c => c.year))].sort((a, b) => b - a);
+    const years = Array.from(new Set(collections.map(c => c.year))).sort((a, b) => b - a);
     return years;
   }, [collections]);
 
