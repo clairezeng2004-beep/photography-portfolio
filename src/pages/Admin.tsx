@@ -2460,6 +2460,10 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [matchedCountry, setMatchedCountry] = useState('');
 
+  // Country search state
+  const [countrySearchText, setCountrySearchText] = useState('');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+
   // Sync local state when collection changes externally
   useEffect(() => {
     setTitle(collection.title);
@@ -2486,6 +2490,23 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     if (!citySearchText) return [];
     return searchCities(citySearchText).slice(0, 10);
   }, [citySearchText]);
+
+  const filteredCountryResults = useMemo(() => {
+    if (!countrySearchText) return COUNTRY_LIST;
+    const q = countrySearchText.toLowerCase();
+    return COUNTRY_LIST.filter(c =>
+      c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }, [countrySearchText]);
+
+  const handleCountrySelect = (entry: { code: string; name: string; continent: 'asia' | 'europe' }) => {
+    setGeo(prev => prev
+      ? { ...prev, country: entry.name, countryCode: entry.code, continent: entry.continent }
+      : { continent: entry.continent, country: entry.name, countryCode: entry.code, city: '', lat: 0, lng: 0 }
+    );
+    setCountrySearchText('');
+    setShowCountryDropdown(false);
+  };
 
   const handleCityInputChange = (val: string) => {
     setCitySearchText(val);
@@ -2531,6 +2552,8 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     setGeo(collection.geo);
     setCitySearchText('');
     setShowCityDropdown(false);
+    setCountrySearchText('');
+    setShowCountryDropdown(false);
     const entry = lookupCity(collection.location);
     setMatchedCountry(entry ? entry.country : '');
     setSelectedPhotoIds(new Set());
@@ -2748,13 +2771,37 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                   </div>
                   <div className="geo-field-inline">
                     <label>国家</label>
-                    <input
-                      type="text"
-                      className="inline-edit-location"
-                      value={geo?.country || ''}
-                      onChange={(e) => setGeo(prev => prev ? { ...prev, country: e.target.value } : { continent: 'asia', country: e.target.value, countryCode: '', city: '', lat: 0, lng: 0 })}
-                      placeholder="国家名"
-                    />
+                    <div className="inline-country-search">
+                      <input
+                        type="text"
+                        className="inline-edit-location"
+                        value={countrySearchText || geo?.country || ''}
+                        onChange={(e) => {
+                          setCountrySearchText(e.target.value);
+                          setShowCountryDropdown(true);
+                        }}
+                        onFocus={() => setShowCountryDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowCountryDropdown(false), 200)}
+                        placeholder="搜索国家..."
+                      />
+                      {showCountryDropdown && (
+                        <div className="inline-country-dropdown">
+                          {filteredCountryResults.length > 0 ? filteredCountryResults.map((c) => (
+                            <button
+                              key={c.code}
+                              type="button"
+                              className={`inline-country-dropdown-item ${geo?.countryCode === c.code ? 'selected' : ''}`}
+                              onMouseDown={(e) => { e.preventDefault(); handleCountrySelect(c); }}
+                            >
+                              <span className="inline-country-name">{c.name}</span>
+                              <span className="inline-country-code">{c.code}</span>
+                            </button>
+                          )) : (
+                            <div className="inline-country-empty">无匹配国家</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
