@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { pinyin } from 'pinyin-pro';
 import { 
   Plus, Edit, Trash2, Save, X,
   User, Image as ImageIcon, Settings, LogOut,
@@ -504,7 +505,17 @@ const Admin: React.FC = () => {
           c.coverTitle, c.hoverLocation,
           String(c.year), c.month ? `${c.month}月` : '',
         ];
-        return fields.some(f => f && f.toLowerCase().includes(q));
+        return fields.some(f => {
+          if (!f) return false;
+          const lower = f.toLowerCase();
+          if (lower.includes(q)) return true;
+          // Pinyin match: full pinyin and initials
+          const full = pinyin(f, { toneType: 'none', type: 'string' }).toLowerCase().replace(/\s/g, '');
+          if (full.includes(q)) return true;
+          const initials = pinyin(f, { pattern: 'first', toneType: 'none', type: 'string' }).toLowerCase().replace(/\s/g, '');
+          if (initials.includes(q)) return true;
+          return false;
+        });
       });
     }
     return result;
