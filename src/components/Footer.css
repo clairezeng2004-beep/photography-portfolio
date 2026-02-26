@@ -60,7 +60,7 @@
 .footer-grid {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  gap: 150px;
+  gap: 250px;
   align-items: start;
   margin-bottom: 36px;
 }
