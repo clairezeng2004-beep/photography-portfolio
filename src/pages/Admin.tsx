@@ -2458,6 +2458,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   // City search state
   const [citySearchText, setCitySearchText] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [matchedCountry, setMatchedCountry] = useState('');
 
   // Country search state
