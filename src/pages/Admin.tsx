@@ -2464,6 +2464,10 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [countrySearchText, setCountrySearchText] = useState('');
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
 
+  // Month dropdown state
+  const [monthSearchText, setMonthSearchText] = useState('');
+  const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+
   // Sync local state when collection changes externally
   useEffect(() => {
     setTitle(collection.title);
@@ -2506,6 +2510,24 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     );
     setCountrySearchText('');
     setShowCountryDropdown(false);
+  };
+
+  const MONTH_OPTIONS = [
+    { value: 0, label: '不设置' },
+    ...Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: `${i + 1}月` })),
+  ];
+
+  const filteredMonthOptions = useMemo(() => {
+    if (!monthSearchText) return MONTH_OPTIONS;
+    const q = monthSearchText.replace(/月$/, '');
+    return MONTH_OPTIONS.filter(m => String(m.value).includes(q) || m.label.includes(q));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthSearchText]);
+
+  const handleMonthSelect = (value: number) => {
+    setMonth(value);
+    setMonthSearchText('');
+    setShowMonthDropdown(false);
   };
 
   const handleCityInputChange = (val: string) => {
@@ -2554,6 +2576,8 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
     setShowCityDropdown(false);
     setCountrySearchText('');
     setShowCountryDropdown(false);
+    setMonthSearchText('');
+    setShowMonthDropdown(false);
     const entry = lookupCity(collection.location);
     setMatchedCountry(entry ? entry.country : '');
     setSelectedPhotoIds(new Set());
@@ -2727,78 +2751,90 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
             </button>
             {openSections.has('location') && (
               <div className="card-edit-section-body">
-                <div className="inline-edit-meta">
-                  <MapPin size={14} />
-                  <div className="inline-city-search">
-                    <input type="text" className="inline-edit-location" value={citySearchText || location} onChange={(e) => handleCityInputChange(e.target.value)} onFocus={() => { if (citySearchText) setShowCityDropdown(true); }} onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)} placeholder="搜索城市..." />
-                    {showCityDropdown && filteredCityResults.length > 0 && (
-                      <div className="inline-city-dropdown">
-                        {filteredCityResults.map((entry, i) => (
-                          <button key={`${entry.city}-${i}`} type="button" className={`inline-city-dropdown-item ${entry.city === location ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); handleCitySelect(entry); }}>
-                            <span className="inline-city-name">{entry.city}</span>
-                            <span className="inline-city-country">{entry.country}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {matchedCountry && (<><Globe size={14} /><span className="inline-matched-country">{matchedCountry}</span></>)}
-                </div>
-                <div className="inline-edit-meta" style={{ marginTop: 4 }}>
-                  <Calendar size={14} />
-                  <div className="year-stepper">
-                    <input type="number" className="inline-edit-year" value={year} onChange={(e) => setYear(parseInt(e.target.value) || collection.year)} />
-                    <div className="year-stepper-arrows">
-                      <button type="button" className="year-arrow" onClick={() => setYear(y => y + 1)} title="年份+1"><ChevronUp size={12} /></button>
-                      <button type="button" className="year-arrow" onClick={() => setYear(y => y - 1)} title="年份-1"><ChevronDown size={12} /></button>
+                {/* Row 1: City + Country */}
+                <div className="loc-edit-row">
+                  <div className="loc-edit-field">
+                    <label className="loc-edit-label">城市</label>
+                    <div className="inline-city-search">
+                      <input
+                        type="text"
+                        className="loc-edit-input"
+                        value={citySearchText || location}
+                        onChange={(e) => handleCityInputChange(e.target.value)}
+                        onFocus={() => { if (citySearchText) setShowCityDropdown(true); }}
+                        onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
+                        placeholder="搜索城市..."
+                      />
+                      {showCityDropdown && filteredCityResults.length > 0 && (
+                        <div className="loc-edit-dropdown">
+                          {filteredCityResults.map((entry, i) => (
+                            <button key={`${entry.city}-${i}`} type="button" className={`loc-edit-dropdown-item ${entry.city === location ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); handleCitySelect(entry); }}>
+                              <span className="loc-edit-dropdown-main">{entry.city}</span>
+                              <span className="loc-edit-dropdown-sub">{entry.country}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <select className="inline-edit-month" value={month} onChange={(e) => setMonth(parseInt(e.target.value))} title="月份">
-                    <option value={0}>月</option>
-                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (<option key={m} value={m}>{m}月</option>))}
-                  </select>
-                </div>
-                <div className="inline-edit-geo-fields" style={{ marginTop: 8 }}>
-                  <div className="geo-field-inline">
-                    <label>城市</label>
-                    <input
-                      type="text"
-                      className="inline-edit-location"
-                      value={geo?.city || ''}
-                      onChange={(e) => setGeo(prev => prev ? { ...prev, city: e.target.value } : { continent: 'asia', country: '', countryCode: '', city: e.target.value, lat: 0, lng: 0 })}
-                      placeholder="城市名"
-                    />
-                  </div>
-                  <div className="geo-field-inline">
-                    <label>国家</label>
+                  <div className="loc-edit-field">
+                    <label className="loc-edit-label">国家</label>
                     <div className="inline-country-search">
                       <input
                         type="text"
-                        className="inline-edit-location"
+                        className="loc-edit-input"
                         value={countrySearchText || geo?.country || ''}
-                        onChange={(e) => {
-                          setCountrySearchText(e.target.value);
-                          setShowCountryDropdown(true);
-                        }}
+                        onChange={(e) => { setCountrySearchText(e.target.value); setShowCountryDropdown(true); }}
                         onFocus={() => setShowCountryDropdown(true)}
                         onBlur={() => setTimeout(() => setShowCountryDropdown(false), 200)}
                         placeholder="搜索国家..."
                       />
                       {showCountryDropdown && (
-                        <div className="inline-country-dropdown">
+                        <div className="loc-edit-dropdown">
                           {filteredCountryResults.length > 0 ? filteredCountryResults.map((c) => (
-                            <button
-                              key={c.code}
-                              type="button"
-                              className={`inline-country-dropdown-item ${geo?.countryCode === c.code ? 'selected' : ''}`}
-                              onMouseDown={(e) => { e.preventDefault(); handleCountrySelect(c); }}
-                            >
-                              <span className="inline-country-name">{c.name}</span>
-                              <span className="inline-country-code">{c.code}</span>
+                            <button key={c.code} type="button" className={`loc-edit-dropdown-item ${geo?.countryCode === c.code ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); handleCountrySelect(c); }}>
+                              <span className="loc-edit-dropdown-main">{c.name}</span>
+                              <span className="loc-edit-dropdown-sub">{c.code}</span>
                             </button>
                           )) : (
-                            <div className="inline-country-empty">无匹配国家</div>
+                            <div className="loc-edit-dropdown-empty">无匹配国家</div>
                           )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {/* Row 2: Year + Month */}
+                <div className="loc-edit-row">
+                  <div className="loc-edit-field">
+                    <label className="loc-edit-label">年份</label>
+                    <div className="year-stepper">
+                      <input type="number" className="loc-edit-input loc-edit-input-year" value={year} onChange={(e) => setYear(parseInt(e.target.value) || collection.year)} />
+                      <div className="year-stepper-arrows">
+                        <button type="button" className="year-arrow" onClick={() => setYear(y => y + 1)} title="年份+1"><ChevronUp size={12} /></button>
+                        <button type="button" className="year-arrow" onClick={() => setYear(y => y - 1)} title="年份-1"><ChevronDown size={12} /></button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="loc-edit-field">
+                    <label className="loc-edit-label">月份</label>
+                    <div className="inline-month-search">
+                      <input
+                        type="text"
+                        className="loc-edit-input loc-edit-input-month"
+                        value={monthSearchText || (month ? `${month}月` : '')}
+                        onChange={(e) => { setMonthSearchText(e.target.value); setShowMonthDropdown(true); }}
+                        onFocus={() => setShowMonthDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowMonthDropdown(false), 200)}
+                        placeholder="选择月份"
+                      />
+                      {showMonthDropdown && (
+                        <div className="loc-edit-dropdown">
+                          {filteredMonthOptions.map((m) => (
+                            <button key={m.value} type="button" className={`loc-edit-dropdown-item ${month === m.value ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); handleMonthSelect(m.value); }}>
+                              <span className="loc-edit-dropdown-main">{m.label}</span>
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>

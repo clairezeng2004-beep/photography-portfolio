@@ -894,7 +894,7 @@
 .collection-card {
   background: #faf9f7;
   border: 1px solid #e8e6e2;
-  overflow: hidden;
+  overflow: visible;
   transition: border-color 0.3s ease;
 }
 
@@ -1597,129 +1597,153 @@
 .inline-edit-title {
   width: 100%;
   font-family: 'Noto Serif SC', serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.04em;
+  line-height: 1.6;
   color: #2a2a2a;
   border: none;
   border-bottom: 1px solid #e8e6e2;
   background: transparent;
-  padding: 6px 0;
-  margin-bottom: 10px;
+  padding: 4px 0;
   outline: none;
+  transition: border-color 0.2s ease;
 }
 
 .inline-edit-title:focus {
   border-bottom-color: #999;
 }
 
-.inline-edit-meta {
+/* ======== Unified Location & Time Editor ======== */
+.loc-edit-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-size: 12px;
-  color: #999;
-  letter-spacing: 0.06em;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 10px;
 }
 
-.inline-edit-geo-fields {
-  display: flex;
-  gap: 12px;
+.loc-edit-row:last-child {
+  margin-bottom: 0;
 }
 
-.inline-edit-geo-fields .geo-field-inline {
+.loc-edit-field {
   flex: 1;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
 }
 
-.inline-edit-geo-fields .geo-field-inline label {
-  flex-shrink: 0;
+.loc-edit-label {
   font-family: 'Noto Serif SC', serif;
-  font-size: 12px;
-  font-style: italic;
+  font-size: 11px;
+  font-weight: 400;
   color: #999;
-  min-width: 28px;
+  letter-spacing: 0.04em;
 }
 
-.inline-edit-geo-fields .geo-field-inline .inline-edit-location {
-  flex: 1;
-}
-
-.inline-edit-meta svg {
-  color: #bbb;
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
-}
-
-.inline-edit-location {
+.loc-edit-input {
   font-family: 'Noto Serif SC', serif;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 300;
   color: #2a2a2a;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
   border: none;
   border-bottom: 1px solid #e8e6e2;
   background: transparent;
-  padding: 2px 0;
+  padding: 4px 0;
   outline: none;
-  width: 100px;
+  width: 100%;
+  transition: border-color 0.2s ease;
 }
 
-.inline-edit-location:focus {
+.loc-edit-input:focus {
   border-bottom-color: #999;
-  color: #2a2a2a;
 }
 
-.inline-edit-year {
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-size: 12px;
-  color: #2a2a2a;
-  letter-spacing: 0.06em;
-  border: none;
-  border-bottom: 1px solid #e8e6e2;
-  background: transparent;
-  padding: 2px 0;
-  outline: none;
+.loc-edit-input-year {
   width: 56px;
   -moz-appearance: textfield;
   appearance: textfield;
 }
 
-.inline-edit-year::-webkit-inner-spin-button,
-.inline-edit-year::-webkit-outer-spin-button {
+.loc-edit-input-year::-webkit-inner-spin-button,
+.loc-edit-input-year::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.inline-edit-year:focus {
-  border-bottom-color: #999;
+.loc-edit-input-month {
+  cursor: pointer;
+}
+
+/* Shared dropdown for city / country / month */
+.loc-edit-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  min-width: 160px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #faf9f7;
+  border: 1px solid #e8e6e2;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.loc-edit-dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 7px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 13px;
+  font-weight: 300;
+  text-align: left;
+  line-height: 1.5;
+  transition: background 0.15s ease;
+}
+
+.loc-edit-dropdown-item:hover {
+  background: #f0eeea;
+}
+
+.loc-edit-dropdown-item.selected {
+  background: #f0eeea;
+  font-weight: 400;
+}
+
+.loc-edit-dropdown-main {
+  font-weight: 400;
   color: #2a2a2a;
 }
 
-/* Month select */
-.inline-edit-month {
+.loc-edit-dropdown-sub {
+  font-size: 11px;
+  color: #bbb;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.loc-edit-dropdown-empty {
+  padding: 12px;
+  text-align: center;
   font-family: 'Noto Serif SC', serif;
   font-size: 12px;
-  font-weight: 300;
-  color: #666;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid #e8e6e2;
-  padding: 2px 4px;
-  cursor: pointer;
-  outline: none;
-  appearance: auto;
+  color: #bbb;
 }
 
-.inline-edit-month:focus {
-  border-bottom-color: #999;
-  color: #2a2a2a;
+/* Relative containers for dropdowns */
+.inline-city-search,
+.inline-country-search,
+.inline-month-search {
+  position: relative;
+  flex: 1;
 }
 
 /* Year stepper with arrows */
@@ -1756,58 +1780,24 @@
   border-color: #bbb;
 }
 
-/* City search dropdown in inline edit */
-.inline-city-search {
-  position: relative;
-}
-
-.inline-city-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 200px;
-  max-height: 180px;
-  overflow-y: auto;
-  background: #faf9f7;
-  border: 1px solid #e8e6e2;
-  z-index: 200;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.inline-city-dropdown-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
+/* Keep legacy class names that may still be referenced elsewhere */
+.inline-edit-location {
   font-family: 'Noto Serif SC', serif;
   font-size: 13px;
   font-weight: 300;
-  text-align: left;
-  transition: background 0.15s ease;
-}
-
-.inline-city-dropdown-item:hover {
-  background: #f0eeea;
-}
-
-.inline-city-dropdown-item.selected {
-  background: #f0eeea;
-}
-
-.inline-city-name {
-  font-weight: 400;
   color: #2a2a2a;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  border: none;
+  border-bottom: 1px solid #e8e6e2;
+  background: transparent;
+  padding: 4px 0;
+  outline: none;
+  width: 100%;
 }
 
-.inline-city-country {
-  font-size: 11px;
-  color: #bbb;
-  margin-left: 12px;
-  flex-shrink: 0;
+.inline-edit-location:focus {
+  border-bottom-color: #999;
 }
 
 .inline-matched-country {
@@ -1815,71 +1805,6 @@
   font-size: 12px;
   color: #999;
   letter-spacing: 0.04em;
-}
-
-/* Country search dropdown — mirrors city dropdown style */
-.inline-country-search {
-  position: relative;
-  flex: 1;
-}
-
-.inline-country-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  min-width: 160px;
-  max-height: 200px;
-  overflow-y: auto;
-  background: #faf9f7;
-  border: 1px solid #e8e6e2;
-  z-index: 200;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.inline-country-dropdown-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 13px;
-  font-weight: 300;
-  text-align: left;
-  transition: background 0.15s ease;
-}
-
-.inline-country-dropdown-item:hover {
-  background: #f0eeea;
-}
-
-.inline-country-dropdown-item.selected {
-  background: #f0eeea;
-  font-weight: 400;
-}
-
-.inline-country-name {
-  font-weight: 400;
-  color: #2a2a2a;
-}
-
-.inline-country-code {
-  font-size: 11px;
-  color: #bbb;
-  margin-left: 12px;
-  flex-shrink: 0;
-}
-
-.inline-country-empty {
-  padding: 12px;
-  text-align: center;
-  font-family: 'Noto Serif SC', serif;
-  font-size: 12px;
-  color: #bbb;
 }
 
 .inline-edit-advanced-toggle {
@@ -1890,17 +1815,17 @@
   width: 100%;
   font-family: 'Noto Serif SC', serif;
   font-weight: 300;
-  color: #666;
-  font-size: 14px;
-  line-height: 1.7;
+  color: #2a2a2a;
+  font-size: 13px;
+  line-height: 1.6;
   border: none;
   border-bottom: 1px solid #e8e6e2;
   background: transparent;
   padding: 4px 0;
-  margin-bottom: 12px;
   outline: none;
   resize: vertical;
   min-height: 60px;
+  transition: border-color 0.2s ease;
 }
 
 .inline-edit-description:focus {
