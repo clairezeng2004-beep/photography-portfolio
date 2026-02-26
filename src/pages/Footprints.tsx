@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { PhotoCollection, GeoInfo } from '../types';
@@ -399,6 +399,7 @@ const COUNTRY_NUMERIC_TO_NAME: Record<string, string> = {
 const Footprints: React.FC = () => {
   const { collections, litCities } = useData();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [activeContinent, setActiveContinent] = useState<Continent>('all');
 
   useEffect(() => { document.title = '小冰块 - 摄影集 - 足迹'; }, []);
@@ -1290,9 +1291,22 @@ const Footprints: React.FC = () => {
                 />
                 <div
                   className="map-hover-card"
-                  style={cardStyle}
+                  style={{ ...cardStyle, cursor: 'pointer' }}
                   onMouseEnter={handleCardEnter}
                   onMouseLeave={handleCardLeave}
+                  onClick={() => {
+                    if (cityCollections.length === 1) {
+                      setHoverCard(null);
+                      setHoveredCity(null);
+                      navigate(`/gallery/${cityCollections[0].id}`);
+                    } else {
+                      setSelectedCityGroup(cityGroup);
+                      setPreviewCollection(null);
+                      setPreviewPage(0);
+                      setHoverCard(null);
+                      setHoveredCity(null);
+                    }
+                  }}
                 >
                 {coverImg && (
                   <div className="hover-card-cover">
@@ -1307,28 +1321,17 @@ const Footprints: React.FC = () => {
                     {cityCollections.length > 1 ? ` · ${cityCollections.length} collections` : ''}
                   </p>
                   {cityCollections.length <= 2 && cityCollections.map(c => (
-                    <Link
+                    <span
                       key={c.id}
-                      to={`/gallery/${c.id}`}
                       className="hover-card-link"
-                      onClick={() => { setHoverCard(null); setHoveredCity(null); }}
                     >
                       {c.title} →
-                    </Link>
+                    </span>
                   ))}
                   {cityCollections.length > 2 && (
-                    <button
-                      className="hover-card-more"
-                      onClick={() => {
-                        setSelectedCityGroup(cityGroup);
-                        setPreviewCollection(null);
-                        setPreviewPage(0);
-                        setHoverCard(null);
-                        setHoveredCity(null);
-                      }}
-                    >
+                    <span className="hover-card-more">
                       查看全部 {cityCollections.length} 个图集 →
-                    </button>
+                    </span>
                   )}
                 </div>
               </div>
