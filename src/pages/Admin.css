@@ -3453,14 +3453,88 @@
   position: relative;
   max-width: 90vw;
   max-height: 90vh;
+  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.hero-preview-modal-landscape {
+  width: auto;
+}
+
+.hero-preview-modal-portrait {
+  max-height: 85vh;
+  width: auto;
 }
 
 .hero-preview-modal-content img {
+  display: block;
   max-width: 90vw;
   max-height: 90vh;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  border-radius: 6px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Text overlay in preview modal — mimics final Home page effect */
+.hero-preview-modal-text {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 48px 40px 40px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.hero-preview-modal-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-preview-modal-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 26px;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+.hero-preview-modal-sep {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1;
+}
+
+.hero-preview-modal-location {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 400;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Portrait text overlay — centered at bottom */
+.hero-preview-modal-text-portrait {
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.hero-preview-modal-text-portrait .hero-preview-modal-title {
+  font-size: 22px;
+}
+
+.hero-preview-modal-text-portrait .hero-preview-modal-location {
+  font-size: 13px;
 }
 
 .hero-preview-modal-close {

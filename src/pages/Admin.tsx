@@ -2954,7 +2954,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
   const [pickerSelectedCollection, setPickerSelectedCollection] = useState<PhotoCollection | null>(null);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [heroCropSource, setHeroCropSource] = useState<{ index: number; url: string; title: string; location: string; mobileUrl?: string } | null>(null);
-  const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null);
+  const [heroPreviewUrl, setHeroPreviewUrl] = useState<{ url: string; title: string; location: string; portrait?: boolean } | null>(null);
 
   // Initialize local images: if heroImages is set, use it; otherwise derive from collections
   useEffect(() => {
@@ -3216,7 +3216,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                     {/* 横版封面 */}
                     <div className="hero-cover-slot">
                       <label className="hero-cover-slot-label">横版封面</label>
-                      <div className="hero-cover-preview-final hero-cover-preview-landscape" onClick={() => img.url && setHeroPreviewUrl(img.url)} style={{ cursor: img.url ? 'pointer' : undefined }}>
+                      <div className="hero-cover-preview-final hero-cover-preview-landscape" onClick={() => img.url && setHeroPreviewUrl({ url: img.url, title: img.title, location: img.location })} style={{ cursor: img.url ? 'pointer' : undefined }}>
                         {img.url ? (
                           <img src={img.url} alt={img.title || '封面图'} />
                         ) : (
@@ -3267,7 +3267,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         <Smartphone size={11} style={{ marginRight: 3, verticalAlign: -1 }} />
                         竖版封面
                       </label>
-                      <div className="hero-cover-preview-final hero-cover-preview-portrait" onClick={() => (img.mobileUrl || img.url) && setHeroPreviewUrl(img.mobileUrl || img.url)} style={{ cursor: (img.mobileUrl || img.url) ? 'pointer' : undefined }}>
+                      <div className="hero-cover-preview-final hero-cover-preview-portrait" onClick={() => (img.mobileUrl || img.url) && setHeroPreviewUrl({ url: img.mobileUrl || img.url, title: img.title, location: img.location, portrait: true })} style={{ cursor: (img.mobileUrl || img.url) ? 'pointer' : undefined }}>
                         {(img.mobileUrl || img.url) ? (
                           <img src={img.mobileUrl || img.url} alt={img.title || '封面图'} />
                         ) : (
@@ -3455,11 +3455,25 @@ const HeroManager: React.FC<HeroManagerProps> = ({
         onChange={handleHeroLocalUpload}
       />
 
-      {/* Hero cover preview modal */}
+      {/* Hero cover preview modal — full final effect with text overlay */}
       {heroPreviewUrl && createPortal(
         <div className="hero-preview-modal-overlay" onClick={() => setHeroPreviewUrl(null)}>
-          <div className="hero-preview-modal-content" onClick={(e) => e.stopPropagation()}>
-            <img src={heroPreviewUrl} alt="封面预览" />
+          <div className={`hero-preview-modal-content ${heroPreviewUrl.portrait ? 'hero-preview-modal-portrait' : 'hero-preview-modal-landscape'}`} onClick={(e) => e.stopPropagation()}>
+            <img src={heroPreviewUrl.url} alt="封面预览" />
+            {heroPreviewUrl.portrait ? (
+              <div className="hero-preview-modal-text hero-preview-modal-text-portrait">
+                <span className="hero-preview-modal-title">{heroPreviewUrl.title || '标题'}</span>
+                <span className="hero-preview-modal-location">{heroPreviewUrl.location || '地点'}</span>
+              </div>
+            ) : (
+              <div className="hero-preview-modal-text">
+                <div className="hero-preview-modal-strip">
+                  <span className="hero-preview-modal-title">{heroPreviewUrl.title || '标题'}</span>
+                  <span className="hero-preview-modal-sep">——</span>
+                  <span className="hero-preview-modal-location">{heroPreviewUrl.location || '地点'}</span>
+                </div>
+              </div>
+            )}
             <button className="hero-preview-modal-close" onClick={() => setHeroPreviewUrl(null)}>
               <X size={20} />
             </button>
