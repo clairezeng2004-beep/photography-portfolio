@@ -3713,12 +3713,22 @@
   gap: 12px;
 }
 
+.hero-add-section .btn {
+  min-width: 180px;
+  justify-content: center;
+}
+
 .hero-custom-upload-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  font-size: 12px;
+  justify-content: center;
+  gap: 6px;
+  min-width: 180px;
+  padding: 10px 20px;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 13px;
+  font-weight: 400;
   color: #999;
   cursor: pointer;
   border: 1px dashed #d4d2ce;
