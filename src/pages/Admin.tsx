@@ -188,14 +188,19 @@ const ClearableInput: React.FC<
   );
 };
 
-/* ClearableTextarea: textarea with inline clear button */
+/* ClearableTextarea: textarea with inline clear button + auto-resize */
 const ClearableTextarea: React.FC<
   React.TextareaHTMLAttributes<HTMLTextAreaElement> & { onClear?: () => void }
 > = ({ onClear, value, onChange, ...rest }) => {
   const hasValue = value !== undefined && value !== null && String(value).length > 0;
+  const ref = React.useRef<HTMLTextAreaElement>(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+  }, [value]);
   return (
     <span className="clearable-input-wrap clearable-textarea-wrap">
-      <textarea value={value} onChange={onChange} {...rest} />
+      <textarea ref={ref} value={value} onChange={onChange} {...rest} />
       {hasValue && (
         <button
           type="button"
