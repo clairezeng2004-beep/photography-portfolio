@@ -186,8 +186,8 @@ function filterOverlappingLabels(
   const overlapsPlaced = (lx: number, ly: number, estW: number, cityOnly: boolean): boolean => {
     return placed.some(p => {
       if (cityOnly && !p.isCity) return false;
-      return Math.abs(p.x - lx) < (estW + p.w) * 0.45 &&
-             Math.abs(p.y - ly) < minDistY * 0.85;
+      return Math.abs(p.x - lx) < (estW + p.w) * 0.55 &&
+             Math.abs(p.y - ly) < minDistY;
     });
   };
 
@@ -257,16 +257,20 @@ function filterOverlappingLabels(
       }
       
       if (!placedSuccessfully) {
-        // Try nudging in several directions
+        // Try nudging in several directions with larger offsets
         const nudges = [
-          { dx: 0, dy: -minDistY * 0.8 },
-          { dx: 0, dy: minDistY * 0.9 },
-          { dx: estWidth * 0.5, dy: 0 },
-          { dx: -(estWidth * 0.5), dy: 0 },
-          { dx: estWidth * 0.4, dy: -minDistY * 0.6 },
-          { dx: -(estWidth * 0.4), dy: -minDistY * 0.6 },
-          { dx: estWidth * 0.4, dy: minDistY * 0.6 },
-          { dx: -(estWidth * 0.4), dy: minDistY * 0.6 },
+          { dx: 0, dy: -minDistY },
+          { dx: 0, dy: minDistY * 1.1 },
+          { dx: estWidth * 0.6, dy: 0 },
+          { dx: -(estWidth * 0.6), dy: 0 },
+          { dx: estWidth * 0.5, dy: -minDistY * 0.7 },
+          { dx: -(estWidth * 0.5), dy: -minDistY * 0.7 },
+          { dx: estWidth * 0.5, dy: minDistY * 0.7 },
+          { dx: -(estWidth * 0.5), dy: minDistY * 0.7 },
+          { dx: 0, dy: -minDistY * 1.8 },
+          { dx: 0, dy: minDistY * 1.8 },
+          { dx: estWidth * 0.8, dy: -minDistY * 0.5 },
+          { dx: -(estWidth * 0.8), dy: -minDistY * 0.5 },
         ];
         
         for (const nudge of nudges) {
@@ -783,8 +787,8 @@ const Footprints: React.FC = () => {
       });
     }
 
-    const charWidth = activeContinent === 'china' ? 7 / zoom : 7.5 / Math.sqrt(zoom);
-    const minY = activeContinent === 'china' ? 10 / zoom : 11 / Math.sqrt(zoom);
+    const charWidth = activeContinent === 'china' ? 8 / zoom : 9 / Math.sqrt(zoom);
+    const minY = activeContinent === 'china' ? 12 / zoom : 13 / Math.sqrt(zoom);
     return filterOverlappingLabels(items, charWidth, minY);
   }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures, chinaGeoJson]);
 
