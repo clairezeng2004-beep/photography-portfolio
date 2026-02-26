@@ -5,7 +5,7 @@ import {
   Plus, Edit, Trash2, Save, X,
   User, Image as ImageIcon, Settings, LogOut,
   Folder, Camera, MapPin, Calendar, Globe,
-  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload, Eye, History, RotateCcw
+  ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload, Eye, History, RotateCcw, Search
 } from 'lucide-react';
 import { PhotoCollection, Photo, AboutInfo, AboutCustomSection, AboutCustomSectionSubItem, GeoInfo, HeroImage } from '../types';
 import { useData } from '../context/DataContext';
@@ -252,6 +252,11 @@ const Admin: React.FC = () => {
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [isSavingCollection, setIsSavingCollection] = useState(false);
 
+  // Collection filter & search state
+  const [collFilterYear, setCollFilterYear] = useState<number | null>(null);
+  const [collFilterContinent, setCollFilterContinent] = useState<string | null>(null);
+  const [collSearchText, setCollSearchText] = useState('');
+
   // Click outside editing collection card to close it
   useEffect(() => {
     if (!editingCollection) return;
@@ -474,6 +479,36 @@ const Admin: React.FC = () => {
       return a.title.localeCompare(b.title);
     });
   }, [collections]);
+
+  // Derived: available years for filter
+  const availableYears = useMemo(() => {
+    const years = [...new Set(collections.map(c => c.year))].sort((a, b) => b - a);
+    return years;
+  }, [collections]);
+
+  // Filtered collections (year + continent + search)
+  const filteredCollections = useMemo(() => {
+    let result = sortedCollections;
+    if (collFilterYear !== null) {
+      result = result.filter(c => c.year === collFilterYear);
+    }
+    if (collFilterContinent) {
+      result = result.filter(c => c.geo?.continent === collFilterContinent);
+    }
+    if (collSearchText.trim()) {
+      const q = collSearchText.trim().toLowerCase();
+      result = result.filter(c => {
+        const fields = [
+          c.title, c.description, c.location,
+          c.geo?.city, c.geo?.country, c.geo?.countryCode,
+          c.coverTitle, c.hoverLocation,
+          String(c.year), c.month ? `${c.month}月` : '',
+        ];
+        return fields.some(f => f && f.toLowerCase().includes(q));
+      });
+    }
+    return result;
+  }, [sortedCollections, collFilterYear, collFilterContinent, collSearchText]);
 
   const reorderCollections = async (fromIndex: number, toIndex: number) => {
     if (toIndex < 0 || toIndex >= sortedCollections.length) return;
@@ -1074,6 +1109,55 @@ const Admin: React.FC = () => {
                 </button>
               </div>
 
+              {/* Filter & Search Bar */}
+              <div className="coll-filter-bar">
+                <div className="coll-filter-group">
+                  <button
+                    type="button"
+                    className={`coll-filter-chip ${collFilterYear === null ? 'active' : ''}`}
+                    onClick={() => setCollFilterYear(null)}
+                  >全部年份</button>
+                  {availableYears.map(y => (
+                    <button
+                      key={y}
+                      type="button"
+                      className={`coll-filter-chip ${collFilterYear === y ? 'active' : ''}`}
+                      onClick={() => setCollFilterYear(collFilterYear === y ? null : y)}
+                    >{y}</button>
+                  ))}
+                </div>
+                <div className="coll-filter-group">
+                  <button
+                    type="button"
+                    className={`coll-filter-chip ${collFilterContinent === null ? 'active' : ''}`}
+                    onClick={() => setCollFilterContinent(null)}
+                  >全部地区</button>
+                  <button
+                    type="button"
+                    className={`coll-filter-chip ${collFilterContinent === 'europe' ? 'active' : ''}`}
+                    onClick={() => setCollFilterContinent(collFilterContinent === 'europe' ? null : 'europe')}
+                  >欧洲</button>
+                  <button
+                    type="button"
+                    className={`coll-filter-chip ${collFilterContinent === 'asia' ? 'active' : ''}`}
+                    onClick={() => setCollFilterContinent(collFilterContinent === 'asia' ? null : 'asia')}
+                  >亚洲</button>
+                </div>
+                <div className="coll-search-wrap">
+                  <Search size={14} className="coll-search-icon" />
+                  <input
+                    type="text"
+                    className="coll-search-input"
+                    value={collSearchText}
+                    onChange={(e) => setCollSearchText(e.target.value)}
+                    placeholder="搜索作品集..."
+                  />
+                  {collSearchText && (
+                    <button type="button" className="coll-search-clear" onClick={() => setCollSearchText('')}><X size={12} /></button>
+                  )}
+                </div>
+              </div>
+
               {/* Create Collection Form — rendered via portal to avoid overflow clipping */}
               {isCreatingCollection && createPortal(
                 <div className="modal-overlay">
@@ -1381,15 +1465,24 @@ const Admin: React.FC = () => {
 
               {/* Collections List — grouped by year */}
               {(() => {
-                const yearGroups: { year: number; items: { collection: typeof sortedCollections[0]; globalIndex: number }[] }[] = [];
+                const yearGroups: { year: number; items: { collection: typeof filteredCollections[0]; globalIndex: number }[] }[] = [];
                 let currentYear: number | null = null;
-                sortedCollections.forEach((collection, index) => {
+                filteredCollections.forEach((collection, index) => {
                   if (collection.year !== currentYear) {
                     currentYear = collection.year;
                     yearGroups.push({ year: currentYear, items: [] });
                   }
                   yearGroups[yearGroups.length - 1].items.push({ collection, globalIndex: index });
                 });
+                if (yearGroups.length === 0 && collections.length > 0) {
+                  return (
+                    <div className="empty-state">
+                      <Search size={48} />
+                      <h3>没有匹配的作品集</h3>
+                      <p>试试调整筛选条件或搜索关键词</p>
+                    </div>
+                  );
+                }
                 return yearGroups.map(group => (
                   <div key={group.year} className="year-group">
                     <div className="year-group-header">
@@ -1486,9 +1579,9 @@ const Admin: React.FC = () => {
                             onMoveDown={() => reorderCollections(globalIndex, globalIndex + 1)}
                             onMoveToPosition={(toIndex) => reorderToPosition(globalIndex, toIndex)}
                             isFirst={globalIndex === 0}
-                            isLast={globalIndex === sortedCollections.length - 1}
+                            isLast={globalIndex === filteredCollections.length - 1}
                             currentIndex={globalIndex}
-                            totalCount={sortedCollections.length}
+                            totalCount={filteredCollections.length}
                           />
                         );
                       })}

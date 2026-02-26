@@ -854,6 +854,108 @@
   grid-template-columns: repeat(3, 1fr);
 }
 
+/* ============ COLLECTION FILTER & SEARCH BAR ============ */
+.coll-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e8e6e2;
+}
+
+.coll-filter-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.coll-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border: 1px solid #e8e6e2;
+  border-radius: 20px;
+  background: transparent;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.coll-filter-chip:hover {
+  border-color: #999;
+  color: #666;
+}
+
+.coll-filter-chip.active {
+  background: #2a2a2a;
+  border-color: #2a2a2a;
+  color: #fff;
+  font-weight: 400;
+}
+
+.coll-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  min-width: 200px;
+  max-width: 280px;
+  flex: 1;
+}
+
+.coll-search-icon {
+  position: absolute;
+  left: 10px;
+  color: #bbb;
+  pointer-events: none;
+}
+
+.coll-search-input {
+  width: 100%;
+  padding: 6px 32px 6px 32px;
+  border: 1px solid #e8e6e2;
+  border-radius: 20px;
+  background: transparent;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: #2a2a2a;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.coll-search-input::placeholder {
+  color: #bbb;
+  font-style: italic;
+}
+
+.coll-search-input:focus {
+  border-color: #999;
+}
+
+.coll-search-clear {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #bbb;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.coll-search-clear:hover {
+  color: #666;
+}
+
 /* ============ YEAR GROUP ============ */
 .year-group {
   margin-bottom: 8px;
