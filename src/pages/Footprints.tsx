@@ -172,21 +172,22 @@ function filterOverlappingLabels(
 
     if (isLitCity) {
       // For lit city labels: try to nudge instead of hiding
+      // Labels originate at marker center; nudge to clear positions around the marker
+      const markerR = 8; // clearance radius from marker center
       let bestX = item.x;
       let bestY = item.y;
       let resolved = false;
 
-      // Try original position first, then nudge in various directions
+      // Try directions: above, right, left, below, then diagonals
       const nudges = [
-        { dx: 0, dy: 0 },
-        { dx: 0, dy: -minDistY * 0.9 },        // up
-        { dx: 0, dy: minDistY * 1.2 },          // down (below marker)
-        { dx: estWidth * 0.5 + 4, dy: 0 },      // right
-        { dx: -(estWidth * 0.5 + 4), dy: 0 },   // left
-        { dx: estWidth * 0.4, dy: -minDistY * 0.7 },  // upper-right
-        { dx: -(estWidth * 0.4), dy: -minDistY * 0.7 }, // upper-left
-        { dx: estWidth * 0.4, dy: minDistY * 1.0 },     // lower-right
-        { dx: -(estWidth * 0.4), dy: minDistY * 1.0 },  // lower-left
+        { dx: 0, dy: -(markerR + minDistY * 0.5) },               // above
+        { dx: estWidth * 0.5 + markerR, dy: 0 },                  // right
+        { dx: -(estWidth * 0.5 + markerR), dy: 0 },               // left
+        { dx: 0, dy: markerR + minDistY * 0.6 },                  // below
+        { dx: estWidth * 0.4 + 4, dy: -(markerR + minDistY * 0.3) },  // upper-right
+        { dx: -(estWidth * 0.4 + 4), dy: -(markerR + minDistY * 0.3) }, // upper-left
+        { dx: estWidth * 0.4 + 4, dy: markerR + minDistY * 0.3 },       // lower-right
+        { dx: -(estWidth * 0.4 + 4), dy: markerR + minDistY * 0.3 },    // lower-left
       ];
 
       for (const nudge of nudges) {
@@ -201,17 +202,16 @@ function filterOverlappingLabels(
           bestX = nx;
           bestY = ny;
           resolved = true;
-          if (nudge.dx !== 0 || nudge.dy !== 0) {
-            offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
-          }
+          offsets.set(item.key, { dx: nudge.dx, dy: nudge.dy });
           break;
         }
       }
 
       if (!resolved) {
-        // If all nudges fail, still show but with best effort (push further up)
-        bestY = item.y - minDistY * 1.5;
-        offsets.set(item.key, { dx: 0, dy: -minDistY * 1.5 });
+        // If all nudges fail, still show but push above with extra clearance
+        const fallbackDy = -(8 + minDistY * 1.2);
+        bestY = item.y + fallbackDy;
+        offsets.set(item.key, { dx: 0, dy: fallbackDy });
       }
 
       visible.add(item.key);
@@ -682,10 +682,11 @@ const Footprints: React.FC = () => {
       if (!pos) return;
       if (cityGroup) {
         // City with photos — show label, also register marker for avoidance
+        // Use marker center as baseline; the nudge algorithm will pick best direction
         items.push({
           key: `city-${geo.continent}-${geo.city}`,
           x: pos[0],
-          y: pos[1] - 9,
+          y: pos[1],
           priority: 10,
           totalPhotos: cityGroup.totalPhotos,
           label: geo.city,
@@ -722,7 +723,11 @@ const Footprints: React.FC = () => {
         });
       }
 
+      // Municipalities (直辖市) share names with their cities — skip province labels for them
+      const MUNICIPALITIES = new Set(['北京', '天津', '上海', '重庆']);
+
       CHINA_PROVINCES.forEach(prov => {
+        if (MUNICIPALITIES.has(prov.name)) return; // skip — city label already covers it
         const pos = projection([prov.lng, prov.lat]);
         if (!pos) return;
         items.push({
@@ -1217,14 +1222,27 @@ const Footprints: React.FC = () => {
                 if (x < -20 || x > vc.width + 20 || y < -20 || y > vc.height + 20) return null;
 
                 const offset = labelOffsets.get(`city-${cityKey}`);
-                const labelX = x + (offset?.dx || 0);
-                const labelY = y - (isHovered ? 11 : 9) + (offset?.dy || 0);
+                const dx = offset?.dx || 0;
+                const dy = offset?.dy || 0;
+                const labelX = x + dx;
+                const labelY = y + dy;
+
+                // Determine text-anchor based on offset direction
+                let anchor: 'start' | 'middle' | 'end' = 'middle';
+                if (dx > 2) anchor = 'start';       // label is to the right of marker
+                else if (dx < -2) anchor = 'end';    // label is to the left of marker
+
+                // Adjust dominant-baseline for vertical positioning
+                let baseline: 'auto' | 'hanging' = 'auto'; // default: text sits above the point
+                if (dy > 2) baseline = 'hanging';    // label is below marker
 
                 return (
                   <text
                     key={`label-${cityKey}`}
                     x={labelX}
                     y={labelY}
+                    textAnchor={anchor}
+                    dominantBaseline={baseline}
                     className={`city-label city-label-lit ${isHovered ? 'city-label-hover' : ''}`}
                   >
                     {geo.city}
