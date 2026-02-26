@@ -1167,55 +1167,61 @@ const Footprints: React.FC = () => {
                 );
               })}
 
-              {/* City markers (rendered first, below labels) */}
-              {filteredGeos.map(({ geo, cityGroup }) => {
+              {/* City markers — unlit cities first (bottom layer) */}
+              {filteredGeos.filter(({ cityGroup }) => !cityGroup).map(({ geo }) => {
                 const { lat, lng } = getLatLng(geo);
                 const pos = projectCity(lat, lng);
                 if (!pos) return null;
                 const { x, y } = pos;
-                const hasPhoto = !!cityGroup;
                 const isHovered = hoveredCity === geo.city;
                 const cityKey = `${geo.continent}-${geo.city}`;
-
                 if (x < -20 || x > vc.width + 20 || y < -20 || y > vc.height + 20) return null;
+                return (
+                  <circle
+                    key={cityKey}
+                    cx={x}
+                    cy={y}
+                    r={isHovered ? 4 : 3}
+                    className={`city-marker marker-nophoto ${isHovered ? 'marker-hovered' : ''}`}
+                    onMouseEnter={(e) => handleMarkerEnter(e, geo)}
+                    onMouseLeave={handleMarkerLeave}
+                  />
+                );
+              })}
 
+              {/* City markers — lit cities on top */}
+              {filteredGeos.filter(({ cityGroup }) => !!cityGroup).map(({ geo, cityGroup }) => {
+                const { lat, lng } = getLatLng(geo);
+                const pos = projectCity(lat, lng);
+                if (!pos) return null;
+                const { x, y } = pos;
+                const isHovered = hoveredCity === geo.city;
+                const cityKey = `${geo.continent}-${geo.city}`;
+                if (x < -20 || x > vc.width + 20 || y < -20 || y > vc.height + 20) return null;
                 return (
                   <g key={cityKey}>
-                    {hasPhoto && (
-                      <>
-                        <circle cx={x} cy={y} r={20} className="marker-pulse-outer" />
-                        <circle cx={x} cy={y} r={14} className="marker-pulse-inner" />
-                      </>
-                    )}
+                    <circle cx={x} cy={y} r={20} className="marker-pulse-outer" />
+                    <circle cx={x} cy={y} r={14} className="marker-pulse-inner" />
                     {/* Larger invisible hit area for easier hover & tapping */}
-                    {hasPhoto && (
-                      <circle
-                        cx={x}
-                        cy={y}
-                        r={isMobile ? 18 : 20}
-                        fill="transparent"
-                        style={{ cursor: 'pointer' }}
-                        onMouseEnter={(e) => handleMarkerEnter(e, geo, cityGroup)}
-                        onMouseLeave={handleMarkerLeave}
-                        onClick={(e) => {
-                          const rect = svgContainerRef.current?.getBoundingClientRect();
-                          handleMarkerClick(cityGroup, geo, rect ? e.clientX - rect.left : 0, rect ? e.clientY - rect.top : 0);
-                        }}
-                      />
-                    )}
                     <circle
                       cx={x}
                       cy={y}
-                      r={hasPhoto ? (isHovered ? 6.5 : 5) : (isHovered ? 4 : 3)}
-                      className={`city-marker ${hasPhoto ? 'marker-photo' : 'marker-nophoto'} ${isHovered ? 'marker-hovered' : ''}`}
-                      style={hasPhoto ? { pointerEvents: 'none' } : undefined}
-                      onMouseEnter={!hasPhoto ? (e) => handleMarkerEnter(e, geo) : undefined}
-                      onMouseLeave={!hasPhoto ? handleMarkerLeave : undefined}
+                      r={isMobile ? 18 : 20}
+                      fill="transparent"
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={(e) => handleMarkerEnter(e, geo, cityGroup)}
+                      onMouseLeave={handleMarkerLeave}
                       onClick={(e) => {
-                        if (!hasPhoto) return;
                         const rect = svgContainerRef.current?.getBoundingClientRect();
                         handleMarkerClick(cityGroup, geo, rect ? e.clientX - rect.left : 0, rect ? e.clientY - rect.top : 0);
                       }}
+                    />
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={isHovered ? 6.5 : 5}
+                      className={`city-marker marker-photo ${isHovered ? 'marker-hovered' : ''}`}
+                      style={{ pointerEvents: 'none' }}
                     />
                   </g>
                 );
