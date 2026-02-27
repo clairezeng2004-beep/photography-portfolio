@@ -53,6 +53,7 @@
   font-weight: 400;
   color: #2a2a2a;
   line-height: 1;
+  font-variant-numeric: lining-nums;
 }
 
 .stat-label {
