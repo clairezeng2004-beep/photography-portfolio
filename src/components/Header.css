@@ -191,7 +191,7 @@
     opacity: 1;
     visibility: hidden;
     transition: transform 0.3s ease, visibility 0.3s ease;
-    z-index: 999;
+    z-index: 9999;
   }
 
   .mobile-menu-open {
@@ -206,8 +206,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(250, 249, 247, 1);
-    z-index: 998;
+    background: #faf9f7;
+    z-index: 9998;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
