@@ -32,7 +32,7 @@ const Gallery: React.FC = () => {
 
   useEffect(() => {
     document.title = collection
-      ? `小冰块 - 摄影集 - ${collection.title}`
+      ? `小冰块 - ${collection.title}`
       : '小冰块 - 摄影集 - 作品';
   }, [collection]);
 

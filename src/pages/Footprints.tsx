@@ -419,7 +419,7 @@ const Footprints: React.FC = () => {
   const navigate = useNavigate();
   const [activeContinent, setActiveContinent] = useState<Continent>('all');
 
-  useEffect(() => { document.title = '小冰块 - 摄影集 - 足迹'; }, []);
+  useEffect(() => { document.title = '小冰块 - 足迹'; }, []);
   const [selectedCityGroup, setSelectedCityGroup] = useState<CityGroup | null>(null);
   const [previewCollection, setPreviewCollection] = useState<PhotoCollection | null>(null);
   const [previewPage, setPreviewPage] = useState(0);

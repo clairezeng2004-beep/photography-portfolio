@@ -5,7 +5,7 @@ import './About.css';
 const About: React.FC = () => {
   const { aboutInfo, litCities, collections } = useData();
 
-  useEffect(() => { document.title = '小冰块 - 摄影集 - 关于'; }, []);
+  useEffect(() => { document.title = '小冰块 - 关于'; }, []);
 
   const sectionLabel = (key: string, fallback: string) =>
     aboutInfo.sectionLabels?.[key] || fallback;
