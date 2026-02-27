@@ -81,7 +81,7 @@
 }
 
 .filter-btn {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Playfair Display', 'Noto Serif SC', serif;
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.1em;
