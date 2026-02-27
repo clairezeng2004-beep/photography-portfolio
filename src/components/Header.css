@@ -200,7 +200,7 @@
   }
 
   .mobile-menu-backdrop {
-    display: block;
+    display: none;
     position: fixed;
     top: 60px;
     left: 0;
@@ -208,14 +208,10 @@
     bottom: 0;
     background: #faf9f7;
     z-index: 9998;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
   }
 
   .mobile-menu-backdrop-open {
-    opacity: 1;
-    visibility: visible;
+    display: block;
   }
 
   .mobile-nav {
