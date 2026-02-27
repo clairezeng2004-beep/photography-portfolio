@@ -1278,12 +1278,6 @@ const Admin: React.FC = () => {
                               );
                             })()}
                           </div>
-                          {createMatchedCountry && (
-                            <div className="card-geo-badge" style={{ marginTop: 6 }}>
-                              <Globe size={12} />
-                              <span>{newCollection.location}，{createMatchedCountry}</span>
-                            </div>
-                          )}
                         </div>
                       </div>
 
