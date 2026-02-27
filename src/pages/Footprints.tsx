@@ -62,12 +62,12 @@ const VIEW_CONFIGS: Record<Continent, ViewConfig> = {
   europe: { center: [15, 52],  scale: 700, width: 960, height: 600 },
 };
 
-/* Mobile: tighter crop, higher scale, portrait-friendly aspect ratios */
+/* Mobile: slightly tighter crop, ensure land edges stay within frame */
 const MOBILE_VIEW_CONFIGS: Record<Continent, ViewConfig> = {
-  all:    { center: [55, 35],  scale: 380, width: 600, height: 520 },
-  china:  { center: [104, 35], scale: 1050, width: 600, height: 620 },
-  asia:   { center: [100, 25], scale: 680, width: 600, height: 560 },
-  europe: { center: [15, 50],  scale: 950, width: 600, height: 520 },
+  all:    { center: [55, 32],  scale: 310, width: 600, height: 420 },
+  china:  { center: [104, 35], scale: 820, width: 600, height: 580 },
+  asia:   { center: [102, 26], scale: 560, width: 600, height: 480 },
+  europe: { center: [15, 51],  scale: 780, width: 600, height: 480 },
 };
 
 /* ============================================================
