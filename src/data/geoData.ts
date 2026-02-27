@@ -389,15 +389,15 @@ export interface ProvinceEntry {
 }
 
 export const CHINA_PROVINCES: ProvinceEntry[] = [
-  { name: '北京', lat: 39.90, lng: 116.41 },
-  { name: '天津', lat: 39.13, lng: 117.20 },
+  { name: '北京', lat: 40.20, lng: 116.00 },
+  { name: '天津', lat: 38.80, lng: 117.80 },
   { name: '河北', lat: 38.04, lng: 114.51 },
   { name: '山西', lat: 37.87, lng: 112.55 },
   { name: '内蒙古', lat: 40.82, lng: 111.65 },
   { name: '辽宁', lat: 41.80, lng: 123.43 },
   { name: '吉林', lat: 43.88, lng: 125.32 },
   { name: '黑龙江', lat: 45.75, lng: 126.65 },
-  { name: '上海', lat: 31.23, lng: 121.47 },
+  { name: '上海', lat: 30.90, lng: 122.10 },
   { name: '江苏', lat: 32.06, lng: 118.80 },
   { name: '浙江', lat: 30.27, lng: 120.15 },
   { name: '安徽', lat: 31.86, lng: 117.28 },

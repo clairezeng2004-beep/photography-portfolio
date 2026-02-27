@@ -745,7 +745,15 @@ const Footprints: React.FC = () => {
         });
       }
 
+      // Municipalities that already have a city label — skip their province label to avoid duplicates
+      const MUNICIPALITIES = new Set(['北京', '天津', '上海', '重庆']);
+      const citiesWithLabels = new Set(
+        filteredGeos.filter(g => g.cityGroup).map(g => g.geo.city)
+      );
+
       CHINA_PROVINCES.forEach(prov => {
+        // Skip municipality if it already has a city label (has photos)
+        if (MUNICIPALITIES.has(prov.name) && citiesWithLabels.has(prov.name)) return;
         const pos = projection([prov.lng, prov.lat]);
         if (!pos) return;
         items.push({
