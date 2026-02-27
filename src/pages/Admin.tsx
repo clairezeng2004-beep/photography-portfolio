@@ -1246,7 +1246,7 @@ const Admin: React.FC = () => {
                                   location: val,
                                   geo: entry ? { continent: entry.continent, country: entry.country, countryCode: entry.countryCode, city: entry.city, lat: entry.lat, lng: entry.lng } : newCollection.geo,
                                 });
-                              }}}
+                              }}
                               onFocus={() => { if (createCitySearch) setCreateCityDropdown(true); }}
                               onBlur={() => setTimeout(() => setCreateCityDropdown(false), 200)}
                               placeholder="搜索城市..."
