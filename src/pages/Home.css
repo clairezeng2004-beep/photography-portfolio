@@ -843,7 +843,11 @@
   }
 
   .hero-title-text {
-    font-size: 12px;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 300;
+    letter-spacing: 0.12em;
   }
 
   .hero-dots { bottom: 44px; }
@@ -870,7 +874,7 @@
 
 @media (max-width: 480px) {
   .hero-location { font-size: 20px; }
-  .hero-title-text { font-size: 11px; }
+  .hero-title-text { font-size: 13px; }
   .intro-greeting { font-size: 22px; }
 
   .flip-card-front-info .card-title,
