@@ -694,15 +694,20 @@ const Footprints: React.FC = () => {
   const labelResult = useMemo(() => {
     const items: LabelItem[] = [];
 
+    // In China tab, municipalities are shown as province labels, not city labels
+    const MUNICIPALITIES = new Set(['北京', '天津', '上海', '重庆']);
+
     // City labels (highest priority — always try to show)
     // Also register ALL city markers (even without photos) for region label avoidance
     filteredGeos.forEach(({ geo, cityGroup }) => {
       const { lat, lng } = geo.lat && geo.lng ? geo : (CITY_DATABASE.find(c => c.city === geo.city && c.continent === geo.continent) || { lat: 0, lng: 0 });
       const pos = projection([lng, lat]);
       if (!pos) return;
-      if (cityGroup) {
-        // City with photos — show label, also register marker for avoidance
-        // Use marker center as baseline; the nudge algorithm will pick best direction
+
+      // In China tab, skip city labels for municipalities — province labels handle them
+      const isMunicipality = activeContinent === 'china' && MUNICIPALITIES.has(geo.city);
+
+      if (cityGroup && !isMunicipality) {
         items.push({
           key: `city-${geo.continent}-${geo.city}`,
           x: pos[0],
@@ -715,12 +720,12 @@ const Footprints: React.FC = () => {
           isLit: true,
         });
       } else {
-        // City without photos — only register marker position for avoidance (no label)
+        // City without photos or municipality in China tab — only register marker position
         items.push({
           key: `marker-only-${geo.continent}-${geo.city}`,
           x: pos[0],
           y: pos[1],
-          priority: 100, // will be placed first but invisible (just a marker position)
+          priority: 100,
           totalPhotos: 0,
           label: '',
           markerX: pos[0],
@@ -745,23 +750,21 @@ const Footprints: React.FC = () => {
         });
       }
 
-      // Municipalities that already have a city label — skip their province label to avoid duplicates
-      const MUNICIPALITIES = new Set(['北京', '天津', '上海', '重庆']);
       const citiesWithLabels = new Set(
         filteredGeos.filter(g => g.cityGroup).map(g => g.geo.city)
       );
 
       CHINA_PROVINCES.forEach(prov => {
-        // Skip municipality if it already has a city label (has photos)
-        if (MUNICIPALITIES.has(prov.name) && citiesWithLabels.has(prov.name)) return;
         const pos = projection([prov.lng, prov.lat]);
         if (!pos) return;
+        // For municipalities with photos, mark as lit
+        const isLitMunicipality = MUNICIPALITIES.has(prov.name) && citiesWithLabels.has(prov.name);
         items.push({
           key: `prov-${prov.name}`,
           x: pos[0],
           y: pos[1],
           priority: 1,
-          totalPhotos: 0,
+          totalPhotos: isLitMunicipality ? 1 : 0,
           label: prov.name,
           bboxW: provBBoxMap.get(prov.name),
         });
