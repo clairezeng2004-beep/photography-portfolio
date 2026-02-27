@@ -38,7 +38,7 @@
 
 /* ============ SUBTITLE TEXT ============ */
 .about-subtitle-text {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Playfair Display', 'Noto Serif SC', serif;
   font-size: 17px;
   font-weight: 400;
   font-style: italic;
