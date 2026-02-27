@@ -144,24 +144,22 @@ const About: React.FC = () => {
           <h2 className="about-subtitle">{sectionLabel('contact', 'Say Hello')}</h2>
           <div className="contact-links">
             {aboutInfo.contact.email && (
-              <a href={`mailto:${aboutInfo.contact.email}`} className="contact-link-item">
-                {aboutInfo.contact.email}
-              </a>
+              aboutInfo.contact.email.includes('@')
+                ? <a href={`mailto:${aboutInfo.contact.email}`} className="contact-link-item">{aboutInfo.contact.email}</a>
+                : <span className="contact-link-item">{aboutInfo.contact.email}</span>
             )}
             {aboutInfo.contact.instagram && (
-              <a href={aboutInfo.contact.instagram} className="contact-link-item" target="_blank" rel="noopener noreferrer">
-                Instagram
-              </a>
+              /^https?:\/\//.test(aboutInfo.contact.instagram)
+                ? <a href={aboutInfo.contact.instagram} className="contact-link-item" target="_blank" rel="noopener noreferrer">{aboutInfo.contact.instagram}</a>
+                : <span className="contact-link-item">{aboutInfo.contact.instagram}</span>
             )}
             {aboutInfo.contact.phone && (
-              <a href={`tel:${aboutInfo.contact.phone}`} className="contact-link-item">
-                {aboutInfo.contact.phone}
-              </a>
+              <span className="contact-link-item">{aboutInfo.contact.phone}</span>
             )}
             {aboutInfo.contact.weibo && (
-              <a href={aboutInfo.contact.weibo} className="contact-link-item" target="_blank" rel="noopener noreferrer">
-                微博
-              </a>
+              /^https?:\/\//.test(aboutInfo.contact.weibo)
+                ? <a href={aboutInfo.contact.weibo} className="contact-link-item" target="_blank" rel="noopener noreferrer">{aboutInfo.contact.weibo}</a>
+                : <span className="contact-link-item">{aboutInfo.contact.weibo}</span>
             )}
           </div>
           {builtinExtraItems('_builtin_contact')}
