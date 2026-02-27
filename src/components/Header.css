@@ -24,8 +24,8 @@
 }
 
 .header-menu-open {
-  background: rgba(237, 234, 229, 0.97);
-  backdrop-filter: blur(8px);
+  background: #ede9e4 !important;
+  backdrop-filter: none !important;
 }
 
 .header-menu-open .logo {
@@ -185,10 +185,8 @@
     min-width: 180px;
     max-width: 260px;
     left: auto;
-    background: rgba(237, 234, 229, 0.97);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.10);
+    background: #ede9e4;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
     transform: translateX(100%);
     opacity: 1;
     visibility: hidden;
