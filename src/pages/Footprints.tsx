@@ -56,18 +56,18 @@ interface ViewConfig {
 }
 
 const VIEW_CONFIGS: Record<Continent, ViewConfig> = {
-  all:    { center: [60, 30],  scale: 280, width: 960, height: 500 },
-  china:  { center: [104, 35], scale: 680, width: 960, height: 700 },
-  asia:   { center: [105, 28], scale: 500, width: 960, height: 580 },
-  europe: { center: [15, 52],  scale: 700, width: 960, height: 600 },
+  all:    { center: [60, 30],  scale: 280, width: 960, height: 540 },
+  china:  { center: [104, 35], scale: 580, width: 960, height: 540 },
+  asia:   { center: [105, 28], scale: 460, width: 960, height: 540 },
+  europe: { center: [15, 52],  scale: 650, width: 960, height: 540 },
 };
 
 /* Mobile: slightly tighter crop, ensure land edges stay within frame */
 const MOBILE_VIEW_CONFIGS: Record<Continent, ViewConfig> = {
-  all:    { center: [55, 32],  scale: 310, width: 600, height: 420 },
-  china:  { center: [104, 35], scale: 820, width: 600, height: 580 },
-  asia:   { center: [102, 26], scale: 560, width: 600, height: 480 },
-  europe: { center: [15, 51],  scale: 780, width: 600, height: 480 },
+  all:    { center: [55, 32],  scale: 310, width: 600, height: 450 },
+  china:  { center: [104, 35], scale: 700, width: 600, height: 450 },
+  asia:   { center: [102, 26], scale: 520, width: 600, height: 450 },
+  europe: { center: [15, 51],  scale: 720, width: 600, height: 450 },
 };
 
 /* ============================================================
