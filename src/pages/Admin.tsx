@@ -1763,7 +1763,7 @@ const Admin: React.FC = () => {
                       <label>邮箱</label>
                       <div className="deletable-field-row">
                         <ClearableInput
-                          type="email"
+                          type="text"
                           value={editedAboutInfo.contact.email}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -1782,7 +1782,7 @@ const Admin: React.FC = () => {
                       <label>Instagram</label>
                       <div className="deletable-field-row">
                         <ClearableInput
-                          type="url"
+                          type="text"
                           value={editedAboutInfo.contact.instagram}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -1820,7 +1820,7 @@ const Admin: React.FC = () => {
                       <label>微博</label>
                       <div className="deletable-field-row">
                         <ClearableInput
-                          type="url"
+                          type="text"
                           value={editedAboutInfo.contact.weibo}
                           onChange={(e) => {
                             const val = e.target.value;
