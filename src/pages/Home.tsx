@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { HomeLayoutItem, HomeTextBlock } from '../types';
 import './Home.css';
 
 const Home: React.FC = () => {
-  const { collections: rawCollections, heroImages: savedHeroImages, animationConfig, aboutInfo } = useData();
+  const { collections: rawCollections, heroImages: savedHeroImages, animationConfig, aboutInfo, homeTextBlocks, homeLayout } = useData();
 
   const collections = useMemo(() => {
     return [...rawCollections].sort((a, b) => {
@@ -16,6 +17,31 @@ const Home: React.FC = () => {
       }
       return a.title.localeCompare(b.title);
     });
+  }, [rawCollections]);
+
+  // Build effective layout for rendering
+  const effectiveLayout = useMemo<HomeLayoutItem[]>(() => {
+    if (homeLayout.length > 0) {
+      const layoutIds = new Set(homeLayout.map(item => item.id));
+      const missing = collections
+        .filter(c => !layoutIds.has(c.id))
+        .map(c => ({ type: 'collection' as const, id: c.id }));
+      const textBlockIds = new Set(homeTextBlocks.map(b => b.id));
+      const collectionIds = new Set(rawCollections.map(c => c.id));
+      const cleaned = homeLayout.filter(item =>
+        item.type === 'collection' ? collectionIds.has(item.id) : textBlockIds.has(item.id)
+      );
+      return [...cleaned, ...missing];
+    }
+    return collections.map(c => ({ type: 'collection' as const, id: c.id }));
+  }, [homeLayout, collections, homeTextBlocks, rawCollections]);
+
+  const getTextBlock = useCallback((id: string): HomeTextBlock | undefined => {
+    return homeTextBlocks.find(b => b.id === id);
+  }, [homeTextBlocks]);
+
+  const getCollection = useCallback((id: string) => {
+    return rawCollections.find(c => c.id === id);
   }, [rawCollections]);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -97,7 +123,7 @@ const Home: React.FC = () => {
   };
 
   // Typewriter effect for intro
-  const fullGreeting = aboutInfo.title || 'Hi, 我是小冰块。';
+  const fullGreeting = aboutInfo.bio.length > 0 ? aboutInfo.bio[0] : '';
   useEffect(() => {
     if (introAnimation !== 'typewriter' || !introVisible) return;
     setTypedText('');
@@ -324,7 +350,7 @@ const Home: React.FC = () => {
   /* ============================================================
      INTRO RENDER
      ============================================================ */
-  const introGreeting = aboutInfo.title || 'Hi, 我是小冰块。';
+  const introGreeting = ''; // removed
   const introBioLines = aboutInfo.bio.length > 0 ? aboutInfo.bio : [
     '我用镜头记录旅途中遇见的风景与故事。',
     '每一座城市都有它独特的光线和温度，',
@@ -350,7 +376,7 @@ const Home: React.FC = () => {
         {introBioLines.map((line, i) => (
           <React.Fragment key={i}>
             {i > 0 && <br />}
-            <span className={`split-line split-line-${i + 2}`}>{line}</span>
+            <span className={`split-line split-line-${i + 1}`}>{line}</span>
           </React.Fragment>
         ))}
       </>
@@ -359,13 +385,20 @@ const Home: React.FC = () => {
     if (introAnimation === 'typewriter') {
       return (
         <div className={baseCls}>
-          <h2 className="intro-greeting">
+          <p className="intro-text">
             {typedText}
             <span className="typewriter-cursor">|</span>
-          </h2>
-          <p className="intro-text">
-            {renderBioText()}
           </p>
+          {introBioLines.length > 1 && (
+            <p className="intro-text">
+              {introBioLines.slice(1).map((line, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <br />}
+                  {line}
+                </React.Fragment>
+              ))}
+            </p>
+          )}
         </div>
       );
     }
@@ -373,9 +406,6 @@ const Home: React.FC = () => {
     if (introAnimation === 'split-rise') {
       return (
         <div className={baseCls}>
-          <h2 className="intro-greeting">
-            <span className="split-line split-line-1">{introGreeting}</span>
-          </h2>
           <p className="intro-text">
             {renderBioSplitRise()}
           </p>
@@ -385,7 +415,6 @@ const Home: React.FC = () => {
 
     return (
       <div className={baseCls}>
-        <h2 className="intro-greeting">{introGreeting}</h2>
         <p className="intro-text">
           {renderBioText()}
         </p>
@@ -555,7 +584,40 @@ const Home: React.FC = () => {
       {/* ===== CARDS ===== */}
       <section className="cards-section">
         <div className="cards-grid">
-          {collections.map((collection) => renderCard(collection))}
+          {effectiveLayout.map((item) => {
+            if (item.type === 'collection') {
+              const collection = getCollection(item.id);
+              if (!collection) return null;
+              return renderCard(collection);
+            }
+            // textBlock — render as intro-style block spanning full width
+            const block = getTextBlock(item.id);
+            if (!block) return null;
+            return (
+              <div key={`tb-${item.id}`} className="home-text-block">
+                <div className="home-text-block-inner">
+                  {block.title && <h2 className="home-tb-title">{block.title}</h2>}
+                  <p className="home-tb-text">
+                    {block.lines.map((line, i) => (
+                      <React.Fragment key={i}>
+                        {i > 0 && <br />}
+                        {line}
+                      </React.Fragment>
+                    ))}
+                  </p>
+                  {block.links && block.links.length > 0 && (
+                    <div className="home-tb-links">
+                      {block.links.map((lnk, i) => (
+                        lnk.url.startsWith('/') || lnk.url.startsWith('#')
+                          ? <Link key={i} to={lnk.url} className="text-link">{lnk.label}</Link>
+                          : <a key={i} href={lnk.url} className="text-link" target="_blank" rel="noopener noreferrer">{lnk.label}</a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

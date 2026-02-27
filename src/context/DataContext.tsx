@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
-import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage, AnimationConfig } from '../types';
+import { PhotoCollection, Photo, AboutInfo, GeoInfo, HeroImage, AnimationConfig, HomeTextBlock, HomeLayoutItem } from '../types';
 import { mockCollections } from '../data/mockData';
 import { dbGet, dbSet } from '../utils/storage';
 import { isSupabaseConfigured, supabaseGetDetailed, supabaseSetWithRetry, createBackup } from '../utils/supabase';
@@ -14,6 +14,8 @@ interface DataContextType {
   litCities: GeoInfo[];
   heroImages: HeroImage[];
   animationConfig: AnimationConfig;
+  homeTextBlocks: HomeTextBlock[];
+  homeLayout: HomeLayoutItem[];
   dataLoaded: boolean;
   cloudSyncStatus: SyncStatus;
   pendingSyncKeys: string[];
@@ -25,6 +27,8 @@ interface DataContextType {
   updateLitCities: (cities: GeoInfo[]) => Promise<boolean>;
   updateHeroImages: (images: HeroImage[]) => Promise<boolean>;
   updateAnimationConfig: (config: AnimationConfig) => Promise<boolean>;
+  updateHomeTextBlocks: (blocks: HomeTextBlock[]) => Promise<boolean>;
+  updateHomeLayout: (layout: HomeLayoutItem[]) => Promise<boolean>;
 }
 
 const defaultAboutInfo: AboutInfo = {
@@ -113,6 +117,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [litCities, setLitCities] = useState<GeoInfo[]>([]);
   const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
   const [animationConfig, setAnimationConfig] = useState<AnimationConfig>(defaultAnimationConfig);
+  const [homeTextBlocks, setHomeTextBlocks] = useState<HomeTextBlock[]>([]);
+  const [homeLayout, setHomeLayout] = useState<HomeLayoutItem[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [cloudSyncStatus, setCloudSyncStatus] = useState<SyncStatus>('idle');
   const [pendingSyncKeys, setPendingSyncKeys] = useState<string[]>([]);
@@ -189,12 +195,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       // Load all local data in PARALLEL (very fast, no network)
-      const [savedCollections, savedAbout, savedCities, savedHero, savedAnim] = await Promise.all([
+      const [savedCollections, savedAbout, savedCities, savedHero, savedAnim, savedTextBlocks, savedLayout] = await Promise.all([
         loadLocal<PhotoCollection[]>('photo_collections'),
         loadLocal<AboutInfo>('about_info'),
         loadLocal<GeoInfo[]>('lit_cities'),
         loadLocal<HeroImage[]>('hero_images'),
         loadLocal<AnimationConfig>('animation_config'),
+        loadLocal<HomeTextBlock[]>('home_text_blocks'),
+        loadLocal<HomeLayoutItem[]>('home_layout'),
       ]);
 
       if (cancelled) return;
@@ -211,6 +219,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (savedCities) setLitCities(savedCities);
       if (savedHero && savedHero.length > 0) setHeroImages(savedHero);
       if (savedAnim) setAnimationConfig(savedAnim);
+      if (savedTextBlocks) setHomeTextBlocks(savedTextBlocks);
+      if (savedLayout) setHomeLayout(savedLayout);
 
       // If no local data at all, try seed file before marking loaded
       if (!hasLocalData) {
@@ -227,6 +237,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (seed.litCities) { setLitCities(seed.litCities); seedToLocal('lit_cities', seed.litCities); }
             if (seed.heroImages && seed.heroImages.length > 0) { setHeroImages(seed.heroImages); seedToLocal('hero_images', seed.heroImages); }
             if (seed.animationConfig) { setAnimationConfig(seed.animationConfig); seedToLocal('animation_config', seed.animationConfig); }
+            if (seed.homeTextBlocks) { setHomeTextBlocks(seed.homeTextBlocks); seedToLocal('home_text_blocks', seed.homeTextBlocks); }
+            if (seed.homeLayout) { setHomeLayout(seed.homeLayout); seedToLocal('home_layout', seed.homeLayout); }
             console.log('[DataContext] Loaded seed data from portfolio-data.json');
           }
         } catch (e) {
@@ -245,6 +257,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (useCloud && !cancelled) {
         backgroundCloudSync(
           savedCollections, savedAbout, savedCities, savedHero, savedAnim,
+          savedTextBlocks, savedLayout,
           cloudConfirmedEmpty, cancelled
         );
       }
@@ -268,6 +281,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localCities: GeoInfo[] | undefined,
       localHero: HeroImage[] | undefined,
       localAnim: AnimationConfig | undefined,
+      localTextBlocks: HomeTextBlock[] | undefined,
+      localLayout: HomeLayoutItem[] | undefined,
       cloudConfirmedEmpty: Set<string>,
       wasCancelled: boolean,
     ) {
@@ -318,6 +333,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         syncKey<GeoInfo[]>('lit_cities', localCities, setLitCities as any),
         syncKey<HeroImage[]>('hero_images', localHero, setHeroImages as any),
         syncKey<AnimationConfig>('animation_config', localAnim, setAnimationConfig as any),
+        syncKey<HomeTextBlock[]>('home_text_blocks', localTextBlocks, setHomeTextBlocks as any),
+        syncKey<HomeLayoutItem[]>('home_layout', localLayout, setHomeLayout as any),
       ]);
 
       if (!wasCancelled && pendingSyncRef.current.size > 0) {
@@ -351,6 +368,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const animationConfigRef = useRef(animationConfig);
   useEffect(() => { animationConfigRef.current = animationConfig; }, [animationConfig]);
 
+  const homeTextBlocksRef = useRef(homeTextBlocks);
+  useEffect(() => { homeTextBlocksRef.current = homeTextBlocks; }, [homeTextBlocks]);
+
+  const homeLayoutRef = useRef(homeLayout);
+  useEffect(() => { homeLayoutRef.current = homeLayout; }, [homeLayout]);
+
   // Auto-backup: throttle to at most once per 5 minutes
   const lastBackupTimeRef = useRef(0);
   const BACKUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -367,6 +390,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       lit_cities: litCitiesRef.current,
       hero_images: heroImagesRef.current,
       animation_config: animationConfigRef.current,
+      home_text_blocks: homeTextBlocksRef.current,
+      home_layout: homeLayoutRef.current,
     };
     createBackup(snapshot).then(ok => {
       if (ok) console.log('[AutoBackup] snapshot created');
@@ -456,6 +481,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return save('animation_config', config);
   }, [save, dataLoaded]);
 
+  const updateHomeTextBlocks = useCallback(async (blocks: HomeTextBlock[]): Promise<boolean> => {
+    if (!dataLoaded) return false;
+    setHomeTextBlocks(blocks);
+    return save('home_text_blocks', blocks);
+  }, [save, dataLoaded]);
+
+  const updateHomeLayout = useCallback(async (layout: HomeLayoutItem[]): Promise<boolean> => {
+    if (!dataLoaded) return false;
+    setHomeLayout(layout);
+    return save('home_layout', layout);
+  }, [save, dataLoaded]);
+
   return (
     <DataContext.Provider value={{
       collections,
@@ -463,6 +500,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       litCities,
       heroImages,
       animationConfig,
+      homeTextBlocks,
+      homeLayout,
       dataLoaded,
       cloudSyncStatus,
       pendingSyncKeys,
@@ -473,7 +512,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       removePhoto,
       updateLitCities,
       updateHeroImages,
-      updateAnimationConfig
+      updateAnimationConfig,
+      updateHomeTextBlocks,
+      updateHomeLayout,
     }}>
       {children}
     </DataContext.Provider>

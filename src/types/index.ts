@@ -120,3 +120,17 @@ export interface AdminUser {
   username: string;
   isAuthenticated: boolean;
 }
+
+export interface HomeTextBlock {
+  id: string;
+  title?: string;
+  lines: string[];
+  links?: { label: string; url: string }[];
+}
+
+export type HomeLayoutItemType = 'collection' | 'textBlock';
+
+export interface HomeLayoutItem {
+  type: HomeLayoutItemType;
+  id: string; // collection id or textBlock id
+}

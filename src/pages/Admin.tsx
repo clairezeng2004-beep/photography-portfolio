@@ -8,7 +8,7 @@ import {
   Folder, Camera, MapPin, Calendar, Globe,
   ChevronUp, ChevronDown, Home, Check, Sparkles, Smartphone, Download, Mail, Upload, Eye, History, RotateCcw, Search
 } from 'lucide-react';
-import { PhotoCollection, Photo, AboutInfo, AboutCustomSection, AboutCustomSectionSubItem, GeoInfo, HeroImage } from '../types';
+import { PhotoCollection, Photo, AboutInfo, AboutCustomSection, AboutCustomSectionSubItem, GeoInfo, HeroImage, HomeTextBlock, HomeLayoutItem } from '../types';
 import { useData } from '../context/DataContext';
 import {
   CITY_DATABASE,
@@ -230,7 +230,7 @@ const ClearableTextarea: React.FC<
    Admin Component
    ============================================================ */
 const Admin: React.FC = () => {
-  const { collections, aboutInfo, litCities, heroImages, animationConfig, dataLoaded, cloudSyncStatus, pendingSyncKeys, retrySyncAll, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages, updateAnimationConfig } = useData();
+  const { collections, aboutInfo, litCities, heroImages, animationConfig, homeTextBlocks, homeLayout, dataLoaded, cloudSyncStatus, pendingSyncKeys, retrySyncAll, updateCollections, updateAboutInfo, addPhoto, removePhoto, updateLitCities, updateHeroImages, updateAnimationConfig, updateHomeTextBlocks, updateHomeLayout } = useData();
   const location = useLocation();
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1096,12 +1096,23 @@ const Admin: React.FC = () => {
 
           {/* Home Tab */}
           {activeTab === 'home' && (
-            <HeroManager
-              heroImages={heroImages}
-              updateHeroImages={updateHeroImages}
-              collections={collections}
-              showToast={showToast}
-            />
+            <>
+              <HeroManager
+                heroImages={heroImages}
+                updateHeroImages={updateHeroImages}
+                collections={collections}
+                showToast={showToast}
+              />
+              <HomePreviewManager
+                collections={collections}
+                homeTextBlocks={homeTextBlocks}
+                homeLayout={homeLayout}
+                updateCollections={updateCollections}
+                updateHomeTextBlocks={updateHomeTextBlocks}
+                updateHomeLayout={updateHomeLayout}
+                showToast={showToast}
+              />
+            </>
           )}
 
           {/* Collections Tab */}
@@ -3139,6 +3150,284 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
         </div>,
         document.body
       )}
+    </div>
+  );
+};
+
+/* ============================================================
+   HomePreviewManager — 首页预览：拖拽排序作品集 + 文字栏管理
+   ============================================================ */
+interface HomePreviewManagerProps {
+  collections: PhotoCollection[];
+  homeTextBlocks: HomeTextBlock[];
+  homeLayout: HomeLayoutItem[];
+  updateCollections: (c: PhotoCollection[]) => Promise<boolean>;
+  updateHomeTextBlocks: (b: HomeTextBlock[]) => Promise<boolean>;
+  updateHomeLayout: (l: HomeLayoutItem[]) => Promise<boolean>;
+  showToast: (msg: string) => void;
+}
+
+const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
+  collections, homeTextBlocks, homeLayout,
+  updateCollections, updateHomeTextBlocks, updateHomeLayout, showToast,
+}) => {
+  // Build sorted collections list (same logic as Home.tsx)
+  const sortedCollections = useMemo(() => {
+    return [...collections].sort((a, b) => {
+      if (b.year !== a.year) return b.year - a.year;
+      if ((b.month || 0) !== (a.month || 0)) return (b.month || 0) - (a.month || 0);
+      if (typeof a.order === 'number' && typeof b.order === 'number') return a.order - b.order;
+      return a.title.localeCompare(b.title);
+    });
+  }, [collections]);
+
+  // Build effective layout: if homeLayout is empty, auto-generate from sorted collections
+  const effectiveLayout = useMemo<HomeLayoutItem[]>(() => {
+    if (homeLayout.length > 0) {
+      // Include any new collections not yet in layout
+      const layoutIds = new Set(homeLayout.map(item => item.id));
+      const missing = sortedCollections
+        .filter(c => !layoutIds.has(c.id))
+        .map(c => ({ type: 'collection' as const, id: c.id }));
+      // Remove items whose collection/textBlock no longer exists
+      const textBlockIds = new Set(homeTextBlocks.map(b => b.id));
+      const collectionIds = new Set(collections.map(c => c.id));
+      const cleaned = homeLayout.filter(item =>
+        item.type === 'collection' ? collectionIds.has(item.id) : textBlockIds.has(item.id)
+      );
+      return [...cleaned, ...missing];
+    }
+    return sortedCollections.map(c => ({ type: 'collection' as const, id: c.id }));
+  }, [homeLayout, sortedCollections, homeTextBlocks, collections]);
+
+  const [layout, setLayout] = useState<HomeLayoutItem[]>(effectiveLayout);
+  const [textBlocks, setTextBlocks] = useState<HomeTextBlock[]>(homeTextBlocks);
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+
+  // Sync from props
+  useEffect(() => { setLayout(effectiveLayout); }, [effectiveLayout]);
+  useEffect(() => { setTextBlocks(homeTextBlocks); }, [homeTextBlocks]);
+
+  // Drag state
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  const handleDragStart = (idx: number) => {
+    dragItem.current = idx;
+    setDragIdx(idx);
+  };
+
+  const handleDragEnter = (idx: number) => {
+    dragOverItem.current = idx;
+  };
+
+  const handleDragEnd = () => {
+    if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
+      setDragIdx(null);
+      return;
+    }
+    const newLayout = [...layout];
+    const [removed] = newLayout.splice(dragItem.current, 1);
+    newLayout.splice(dragOverItem.current, 0, removed);
+    setLayout(newLayout);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    setDragIdx(null);
+    // Save layout + update collection order fields
+    saveLayout(newLayout);
+  };
+
+  const saveLayout = async (newLayout: HomeLayoutItem[]) => {
+    // Update collection order based on their position in layout
+    let collIdx = 0;
+    const orderMap = new Map<string, number>();
+    newLayout.forEach(item => {
+      if (item.type === 'collection') {
+        orderMap.set(item.id, collIdx++);
+      }
+    });
+    const updatedCollections = collections.map(c => {
+      const ord = orderMap.get(c.id);
+      return ord !== undefined ? { ...c, order: ord } : c;
+    });
+    await Promise.all([
+      updateHomeLayout(newLayout),
+      updateCollections(updatedCollections),
+    ]);
+    showToast('首页布局已保存');
+  };
+
+  // Add text block
+  const handleAddTextBlock = () => {
+    const id = `tb-${Date.now()}`;
+    const newBlock: HomeTextBlock = { id, lines: ['在这里输入文字…'] };
+    const newTextBlocks = [...textBlocks, newBlock];
+    const newLayout = [...layout, { type: 'textBlock' as const, id }];
+    setTextBlocks(newTextBlocks);
+    setLayout(newLayout);
+    setEditingBlockId(id);
+    updateHomeTextBlocks(newTextBlocks);
+    updateHomeLayout(newLayout);
+  };
+
+  // Delete text block
+  const handleDeleteTextBlock = (blockId: string) => {
+    const newTextBlocks = textBlocks.filter(b => b.id !== blockId);
+    const newLayout = layout.filter(item => !(item.type === 'textBlock' && item.id === blockId));
+    setTextBlocks(newTextBlocks);
+    setLayout(newLayout);
+    setEditingBlockId(null);
+    updateHomeTextBlocks(newTextBlocks);
+    updateHomeLayout(newLayout);
+    showToast('文字栏已删除');
+  };
+
+  // Save text block edits
+  const handleSaveTextBlock = (block: HomeTextBlock) => {
+    const newTextBlocks = textBlocks.map(b => b.id === block.id ? block : b);
+    setTextBlocks(newTextBlocks);
+    setEditingBlockId(null);
+    updateHomeTextBlocks(newTextBlocks);
+    showToast('文字栏已保存');
+  };
+
+  const getCollection = (id: string) => collections.find(c => c.id === id);
+  const getTextBlock = (id: string) => textBlocks.find(b => b.id === id);
+
+  return (
+    <div className="tab-content home-preview-manager">
+      <div className="tab-header">
+        <h1>首页预览</h1>
+        <button className="btn btn-primary" onClick={handleAddTextBlock}>
+          <Plus size={18} /> 添加文字栏
+        </button>
+      </div>
+      <p className="home-preview-hint">拖拽卡片调整首页展示顺序，文字栏可编辑内容。</p>
+
+      <div className="home-preview-grid">
+        {layout.map((item, idx) => {
+          if (item.type === 'collection') {
+            const c = getCollection(item.id);
+            if (!c) return null;
+            const cardImage = c.cardCoverImage || c.coverImage || c.photos?.[0]?.url || c.photos?.[0]?.thumbnail;
+            return (
+              <div
+                key={`c-${item.id}`}
+                className={`home-preview-item home-preview-card ${dragIdx === idx ? 'dragging' : ''}`}
+                draggable
+                onDragStart={() => handleDragStart(idx)}
+                onDragEnter={() => handleDragEnter(idx)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <div className="hp-card-image-wrap">
+                  {cardImage && <img src={cardImage} alt={c.title} className="hp-card-image" draggable={false} />}
+                  <div className="hp-card-overlay">
+                    <span className="hp-card-title">{c.title}</span>
+                    <span className="hp-card-loc">{c.location} · {c.year}</span>
+                  </div>
+                </div>
+                <div className="hp-card-drag-handle">
+                  <ChevronUp size={12} /><ChevronDown size={12} />
+                </div>
+              </div>
+            );
+          }
+
+          // textBlock
+          const block = getTextBlock(item.id);
+          if (!block) return null;
+          const isEditing = editingBlockId === item.id;
+
+          return (
+            <div
+              key={`tb-${item.id}`}
+              className={`home-preview-item home-preview-textblock ${dragIdx === idx ? 'dragging' : ''} ${isEditing ? 'editing' : ''}`}
+              draggable={!isEditing}
+              onDragStart={() => handleDragStart(idx)}
+              onDragEnter={() => handleDragEnter(idx)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => e.preventDefault()}
+            >
+              {isEditing ? (
+                <TextBlockEditor block={block} onSave={handleSaveTextBlock} onCancel={() => setEditingBlockId(null)} onDelete={() => handleDeleteTextBlock(item.id)} />
+              ) : (
+                <div className="hp-textblock-preview" onClick={() => setEditingBlockId(item.id)}>
+                  <div className="hp-textblock-content">
+                    {block.title && <h3 className="hp-tb-title">{block.title}</h3>}
+                    <p className="hp-tb-lines">{block.lines.join('\n')}</p>
+                    {block.links && block.links.length > 0 && (
+                      <div className="hp-tb-links">
+                        {block.links.map((lnk, i) => <span key={i} className="hp-tb-link">{lnk.label}</span>)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="hp-textblock-actions">
+                    <button className="hp-tb-edit-btn" title="编辑"><Edit size={14} /></button>
+                    <button className="hp-tb-del-btn" title="删除" onClick={(e) => { e.stopPropagation(); handleDeleteTextBlock(item.id); }}><Trash2 size={14} /></button>
+                  </div>
+                  <div className="hp-card-drag-handle">
+                    <ChevronUp size={12} /><ChevronDown size={12} />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   TextBlockEditor — inline editor for a single text block
+   ============================================================ */
+interface TextBlockEditorProps {
+  block: HomeTextBlock;
+  onSave: (block: HomeTextBlock) => void;
+  onCancel: () => void;
+  onDelete: () => void;
+}
+
+const TextBlockEditor: React.FC<TextBlockEditorProps> = ({ block, onSave, onCancel, onDelete }) => {
+  const [title, setTitle] = useState(block.title || '');
+  const [linesText, setLinesText] = useState(block.lines.join('\n'));
+  const [links, setLinks] = useState(block.links || []);
+
+  const handleSave = () => {
+    const lines = linesText.split('\n').filter(l => l.trim());
+    onSave({ ...block, title: title.trim() || undefined, lines, links: links.length > 0 ? links : undefined });
+  };
+
+  return (
+    <div className="hp-tb-editor">
+      <div className="hp-tb-editor-field">
+        <label>标题（可选）</label>
+        <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="留空则不显示标题" />
+      </div>
+      <div className="hp-tb-editor-field">
+        <label>内容（每行一段）</label>
+        <textarea value={linesText} onChange={e => setLinesText(e.target.value)} rows={4} />
+      </div>
+      <div className="hp-tb-editor-field">
+        <label>链接（可选）</label>
+        {links.map((lnk, i) => (
+          <div key={i} className="hp-tb-link-row">
+            <input type="text" value={lnk.label} onChange={e => { const nl = [...links]; nl[i] = { ...nl[i], label: e.target.value }; setLinks(nl); }} placeholder="链接文字" />
+            <input type="text" value={lnk.url} onChange={e => { const nl = [...links]; nl[i] = { ...nl[i], url: e.target.value }; setLinks(nl); }} placeholder="链接地址（如 /about）" />
+            <button type="button" className="hp-tb-link-del" onClick={() => setLinks(links.filter((_, j) => j !== i))}><X size={14} /></button>
+          </div>
+        ))}
+        <button type="button" className="btn btn-sm" onClick={() => setLinks([...links, { label: '', url: '' }])}>
+          <Plus size={14} /> 添加链接
+        </button>
+      </div>
+      <div className="hp-tb-editor-actions">
+        <button className="btn btn-primary btn-sm" onClick={handleSave}><Save size={14} /> 保存</button>
+        <button className="btn btn-sm" onClick={onCancel}>取消</button>
+        <button className="btn btn-danger btn-sm" onClick={onDelete}><Trash2 size={14} /> 删除</button>
+      </div>
     </div>
   );
 };
