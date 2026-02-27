@@ -565,6 +565,7 @@
   color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
   font-style: italic;
+  font-variant-numeric: lining-nums;
 }
 
 /* ============ PREVIEW MODAL ============ */
