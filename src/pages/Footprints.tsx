@@ -788,7 +788,7 @@ const Footprints: React.FC = () => {
     }
 
     // Scale charWidth/minDistY up on mobile to match larger font sizes in CSS
-    const mobileFactor = isMobile ? 1.2 : 1;
+    const mobileFactor = isMobile ? 1.5 : 1;
     const charWidth = (activeContinent === 'china' ? 8 / zoom : 9 / Math.sqrt(zoom)) * mobileFactor;
     const minY = (activeContinent === 'china' ? 12 / zoom : 13 / Math.sqrt(zoom)) * mobileFactor;
     return filterOverlappingLabels(items, charWidth, minY);

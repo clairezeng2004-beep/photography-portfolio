@@ -907,7 +907,8 @@
   .stat-number { font-size: 28px; }
   .continent-filter { padding: 0 24px 36px; flex-wrap: wrap; }
   .filter-btn { padding: 8px 20px; font-size: 12px; }
-  .map-section { padding: 0 24px 40px; }
+  .map-section { padding: 0 6px 40px; }
+  .svg-map-container { border-radius: 4px; }
   .city-list-section { padding: 24px 24px 80px; }
   .city-list { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .fp-card-title { font-size: 16px; }
@@ -916,10 +917,10 @@
   .preview-modal { width: 95vw; }
   .preview-info { padding: 20px 24px 28px; }
   .preview-title { font-size: 18px; }
-  .city-label { font-size: 11px; stroke-width: 3.5px; }
-  .country-label { font-size: 11px; stroke-width: 3.5px; }
-  .province-label-lit { font-size: 13px; }
-  .province-label-dim { font-size: 11px; }
+  .city-label { font-size: 13px; stroke-width: 4px; }
+  .country-label { font-size: 13px; stroke-width: 4px; }
+  .province-label-lit { font-size: 15px; }
+  .province-label-dim { font-size: 13px; }
   .map-zoom-controls { top: 10px; right: 10px; }
   .zoom-btn { width: 32px; height: 32px; font-size: 16px; }
   .city-preview-modal { width: 95vw; }
@@ -935,8 +936,8 @@
   .city-list { grid-template-columns: repeat(2, 1fr); }
   .filter-btn { padding: 8px 16px; font-size: 11px; }
   .fp-card-title { font-size: 14px; }
-  .city-label { font-size: 10px; stroke-width: 3.5px; }
-  .country-label { font-size: 10px; stroke-width: 3.5px; }
-  .province-label-lit { font-size: 12px; }
-  .province-label-dim { font-size: 10px; }
+  .city-label { font-size: 12px; stroke-width: 4px; }
+  .country-label { font-size: 12px; stroke-width: 4px; }
+  .province-label-lit { font-size: 14px; }
+  .province-label-dim { font-size: 12px; }
 }
