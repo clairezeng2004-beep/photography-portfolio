@@ -64,10 +64,10 @@ const VIEW_CONFIGS: Record<Continent, ViewConfig> = {
 
 /* Mobile: slightly tighter crop, ensure land edges stay within frame */
 const MOBILE_VIEW_CONFIGS: Record<Continent, ViewConfig> = {
-  all:    { center: [55, 32],  scale: 310, width: 600, height: 450 },
-  china:  { center: [104, 36], scale: 750, width: 600, height: 450 },
-  asia:   { center: [102, 26], scale: 520, width: 600, height: 450 },
-  europe: { center: [15, 51],  scale: 720, width: 600, height: 450 },
+  all:    { center: [55, 32],  scale: 280, width: 600, height: 450 },
+  china:  { center: [104, 36], scale: 620, width: 600, height: 450 },
+  asia:   { center: [102, 26], scale: 450, width: 600, height: 450 },
+  europe: { center: [15, 51],  scale: 620, width: 600, height: 450 },
 };
 
 /* ============================================================
