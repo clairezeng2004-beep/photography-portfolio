@@ -62,6 +62,14 @@ const VIEW_CONFIGS: Record<Continent, ViewConfig> = {
   europe: { center: [15, 52],  scale: 700, width: 960, height: 600 },
 };
 
+/* Mobile: tighter crop, higher scale, portrait-friendly aspect ratios */
+const MOBILE_VIEW_CONFIGS: Record<Continent, ViewConfig> = {
+  all:    { center: [55, 35],  scale: 380, width: 600, height: 520 },
+  china:  { center: [104, 35], scale: 1050, width: 600, height: 620 },
+  asia:   { center: [100, 25], scale: 680, width: 600, height: 560 },
+  europe: { center: [15, 50],  scale: 950, width: 600, height: 520 },
+};
+
 /* ============================================================
    ISO 3166-1 numeric to alpha-2 mapping
    ============================================================ */
@@ -550,7 +558,7 @@ const Footprints: React.FC = () => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [previewCollection]);
 
-  const vc = VIEW_CONFIGS[activeContinent];
+  const vc = (isMobile ? MOBILE_VIEW_CONFIGS : VIEW_CONFIGS)[activeContinent];
 
   // D3 projection and path generator
   const projection = useMemo(() =>
