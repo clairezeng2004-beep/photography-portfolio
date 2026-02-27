@@ -64,41 +64,45 @@
 /* ============ CLOUD SYNC BANNER ============ */
 .cloud-sync-banner {
   position: fixed;
-  top: 72px;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  padding: 8px 20px;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 14px 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  font-size: 13px;
+  font-size: 14px;
   font-family: 'Noto Serif SC', serif;
-  animation: slideDown 0.3s ease;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+  animation: syncSlideDown 0.3s ease;
+  pointer-events: auto;
 }
 
-@keyframes slideDown {
-  from { transform: translateY(-100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+@keyframes syncSlideDown {
+  from { opacity: 0; transform: translateX(-50%) translateY(-16px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 .cloud-sync-banner.syncing {
   background: #e8f4fd;
   color: #1a73e8;
-  border-bottom: 1px solid #c4dff6;
+  border: 1px solid #c4dff6;
 }
 
 .cloud-sync-banner.error {
   background: #fef3f2;
   color: #c5221f;
-  border-bottom: 1px solid #f5c6c4;
+  border: 1px solid #f5c6c4;
 }
 
 .cloud-sync-banner.success {
   background: #e6f4ea;
   color: #137333;
-  border-bottom: 1px solid #c4e7ce;
+  border: 1px solid #c4e7ce;
 }
 
 .sync-retry-btn {
@@ -119,9 +123,9 @@
 
 @media (max-width: 768px) {
   .cloud-sync-banner {
-    top: 60px;
-    font-size: 12px;
-    padding: 6px 12px;
+    top: 68px;
+    font-size: 13px;
+    padding: 12px 24px;
   }
 }
 
