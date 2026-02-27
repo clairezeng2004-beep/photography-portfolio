@@ -148,14 +148,12 @@
 }
 
 .hero-title-text {
-  font-family: 'Playfair Display', 'Noto Serif SC', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 300;
   letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.8);
-  font-style: italic;
   line-height: 1;
-  font-variant-numeric: lining-nums;
 }
 
 /* Hero Edge Hover Zones */
@@ -533,14 +531,12 @@
 }
 
 .overlay-card-location {
-  font-family: 'Playfair Display', 'Noto Serif SC', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 300;
   color: #888;
   letter-spacing: 0.1em;
-  font-style: italic;
   margin: 0 0 12px;
-  font-variant-numeric: lining-nums;
 }
 
 .flip-card-link {
@@ -602,14 +598,12 @@
 }
 
 .flip-card-front-info .card-location {
-  font-family: 'Playfair Display', 'Noto Serif SC', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 300;
   color: rgba(255, 255, 255, 0.8);
   letter-spacing: 0.08em;
-  font-style: italic;
   margin: 0;
-  font-variant-numeric: lining-nums;
 }
 
 .flip-card-back { transform: rotateY(180deg); }
@@ -650,14 +644,12 @@
 }
 
 .flip-card-hover-loc {
-  font-family: 'Playfair Display', 'Noto Serif SC', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 300;
   color: rgba(255, 255, 255, 0.7);
   letter-spacing: 0.1em;
-  font-style: italic;
   margin: 0 0 16px;
-  font-variant-numeric: lining-nums;
 }
 
 /* --- Simple card (for non-flip animations) --- */
@@ -735,14 +727,12 @@
 }
 
 .simple-card-info .card-location {
-  font-family: 'Playfair Display', 'Noto Serif SC', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 300;
   color: rgba(255, 255, 255, 0.8);
   letter-spacing: 0.08em;
-  font-style: italic;
   margin: 0;
-  font-variant-numeric: lining-nums;
 }
 
 /* --- fade-up --- */

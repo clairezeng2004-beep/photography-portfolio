@@ -558,14 +558,12 @@
 }
 
 .fp-card-location {
-  font-family: 'Playfair Display', 'Noto Serif SC', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.18em;
+  font-weight: 300;
+  letter-spacing: 0.14em;
   color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
-  font-style: italic;
-  font-variant-numeric: lining-nums;
 }
 
 /* ============ PREVIEW MODAL ============ */
@@ -697,14 +695,12 @@
 }
 
 .preview-location {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 300;
   color: #999;
   letter-spacing: 0.08em;
-  font-style: italic;
   margin-bottom: 12px;
-  font-variant-numeric: lining-nums;
 }
 
 .preview-desc {
@@ -779,13 +775,11 @@
 }
 
 .city-preview-meta {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 300;
   color: #999;
   letter-spacing: 0.08em;
-  font-style: italic;
-  font-variant-numeric: lining-nums;
 }
 
 .city-preview-list {
@@ -851,14 +845,12 @@
 }
 
 .city-preview-item-meta {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Noto Serif SC', serif;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 300;
   color: #aaa;
   letter-spacing: 0.08em;
-  font-style: italic;
   margin-bottom: 6px;
-  font-variant-numeric: lining-nums;
 }
 
 .city-preview-item-desc {
