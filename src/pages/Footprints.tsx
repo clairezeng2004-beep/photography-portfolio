@@ -57,7 +57,7 @@ interface ViewConfig {
 
 const VIEW_CONFIGS: Record<Continent, ViewConfig> = {
   all:    { center: [60, 30],  scale: 280, width: 960, height: 540 },
-  china:  { center: [104, 36], scale: 640, width: 960, height: 540 },
+  china:  { center: [104, 33], scale: 640, width: 960, height: 540 },
   asia:   { center: [105, 28], scale: 460, width: 960, height: 540 },
   europe: { center: [15, 52],  scale: 650, width: 960, height: 540 },
 };
@@ -65,7 +65,7 @@ const VIEW_CONFIGS: Record<Continent, ViewConfig> = {
 /* Mobile: slightly tighter crop, ensure land edges stay within frame */
 const MOBILE_VIEW_CONFIGS: Record<Continent, ViewConfig> = {
   all:    { center: [55, 32],  scale: 280, width: 600, height: 450 },
-  china:  { center: [104, 36], scale: 620, width: 600, height: 450 },
+  china:  { center: [104, 33], scale: 620, width: 600, height: 450 },
   asia:   { center: [102, 26], scale: 450, width: 600, height: 450 },
   europe: { center: [15, 51],  scale: 620, width: 600, height: 450 },
 };
