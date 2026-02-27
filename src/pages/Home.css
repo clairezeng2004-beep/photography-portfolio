@@ -148,7 +148,7 @@
 }
 
 .hero-title-text {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Playfair Display', 'Noto Serif SC', serif;
   font-size: 16px;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -831,7 +831,7 @@
 @media (max-width: 768px) {
   .hero-info-strip {
     flex-direction: column;
-    gap: 6px;
+    gap: 14px;
   }
 
   .hero-sep {

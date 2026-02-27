@@ -24,7 +24,7 @@
 }
 
 .header-menu-open {
-  background: rgba(250, 249, 247, 0.97);
+  background: rgba(237, 234, 229, 0.97);
   backdrop-filter: blur(8px);
 }
 
@@ -185,10 +185,10 @@
     min-width: 180px;
     max-width: 260px;
     left: auto;
-    background: rgba(250, 249, 247, 0.98);
+    background: rgba(237, 234, 229, 0.97);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.08);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.10);
     transform: translateX(100%);
     opacity: 1;
     visibility: hidden;
