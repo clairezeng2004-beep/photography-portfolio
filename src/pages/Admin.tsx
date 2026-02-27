@@ -1241,7 +1241,6 @@ const Admin: React.FC = () => {
                                 setCreateCitySearch(val);
                                 setNewCollection({ ...newCollection, location: val });
                                 setCreateCityDropdown(true);
-                                const entry = lookupCity(val) || resolveLandmarkToCity(val);
                               }}
                               onFocus={() => { if (createCitySearch) setCreateCityDropdown(true); }}
                               onBlur={() => setTimeout(() => setCreateCityDropdown(false), 200)}
