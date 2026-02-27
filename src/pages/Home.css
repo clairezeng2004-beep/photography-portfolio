@@ -532,7 +532,7 @@
 }
 
 .overlay-card-location {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Playfair Display', 'Noto Serif SC', serif;
   font-size: 12px;
   font-weight: 400;
   color: #888;
@@ -600,7 +600,7 @@
 }
 
 .flip-card-front-info .card-location {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Playfair Display', 'Noto Serif SC', serif;
   font-size: 13px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.8);
@@ -647,7 +647,7 @@
 }
 
 .flip-card-hover-loc {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Playfair Display', 'Noto Serif SC', serif;
   font-size: 12px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.7);
@@ -697,7 +697,7 @@
 }
 
 .simple-card-hover-loc span {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Playfair Display', 'Noto Serif SC', serif;
   font-size: 11px;
   font-weight: 400;
   color: #2a2a2a;
@@ -731,7 +731,7 @@
 }
 
 .simple-card-info .card-location {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Playfair Display', 'Noto Serif SC', serif;
   font-size: 13px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.8);

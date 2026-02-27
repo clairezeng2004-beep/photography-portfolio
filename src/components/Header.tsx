@@ -33,7 +33,8 @@ const Header: React.FC = () => {
     'header',
     !isVisible ? 'header-hidden' : '',
     !isAtTop ? 'header-scrolled' : '',
-    isHome && isAtTop ? 'header-transparent' : '',
+    isHome && isAtTop && !isMenuOpen ? 'header-transparent' : '',
+    isMenuOpen ? 'header-menu-open' : '',
   ].filter(Boolean).join(' ');
 
   return (
