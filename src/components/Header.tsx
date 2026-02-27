@@ -50,28 +50,30 @@ const Header: React.FC = () => {
   ].filter(Boolean).join(' ');
 
   return (
-    <header className={headerClass}>
-      <div className="header-inner">
-        <Link to="/" className="logo">roaming ice</Link>
+    <>
+      <header className={headerClass}>
+        <div className="header-inner">
+          <Link to="/" className="logo">roaming ice</Link>
 
-        <nav className="nav-links">
-          <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
-          <Link to="/footprints" className={`nav-link ${location.pathname === '/footprints' ? 'active' : ''}`}>Footprints</Link>
-          <Link to="/about" className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`}>About</Link>
-        </nav>
+          <nav className="nav-links">
+            <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
+            <Link to="/footprints" className={`nav-link ${location.pathname === '/footprints' ? 'active' : ''}`}>Footprints</Link>
+            <Link to="/about" className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`}>About</Link>
+          </nav>
 
-        <button
-          className="menu-toggle"
-          onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}
-          onTouchEnd={(e) => { e.preventDefault(); setIsMenuOpen(!isMenuOpen); }}
-          aria-label="菜单"
-        >
-          <div className={`hamburger ${isMenuOpen ? 'open' : ''}`}>
-            <span></span>
-            <span></span>
-          </div>
-        </button>
-      </div>
+          <button
+            className="menu-toggle"
+            onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}
+            onTouchEnd={(e) => { e.preventDefault(); setIsMenuOpen(!isMenuOpen); }}
+            aria-label="菜单"
+          >
+            <div className={`hamburger ${isMenuOpen ? 'open' : ''}`}>
+              <span></span>
+              <span></span>
+            </div>
+          </button>
+        </div>
+      </header>
 
       <div
         className={`mobile-menu-backdrop ${isMenuOpen ? 'mobile-menu-backdrop-open' : ''}`}
@@ -84,7 +86,7 @@ const Header: React.FC = () => {
           <Link to="/about" className="mobile-nav-link">About</Link>
         </nav>
       </div>
-    </header>
+    </>
   );
 };
 
