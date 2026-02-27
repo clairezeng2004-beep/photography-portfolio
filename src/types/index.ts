@@ -73,10 +73,10 @@ export interface AboutInfo {
     equipment: string[];
   };
   contact: {
-    email: string;
-    phone: string;
-    instagram: string;
-    weibo: string;
+    email?: string;
+    phone?: string;
+    instagram?: string;
+    weibo?: string;
     [key: string]: string | undefined;
   };
   stats: {
