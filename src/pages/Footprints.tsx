@@ -57,7 +57,7 @@ interface ViewConfig {
 
 const VIEW_CONFIGS: Record<Continent, ViewConfig> = {
   all:    { center: [60, 30],  scale: 280, width: 960, height: 540 },
-  china:  { center: [104, 35], scale: 600, width: 960, height: 540 },
+  china:  { center: [104, 37], scale: 600, width: 960, height: 540 },
   asia:   { center: [105, 28], scale: 460, width: 960, height: 540 },
   europe: { center: [15, 52],  scale: 650, width: 960, height: 540 },
 };
