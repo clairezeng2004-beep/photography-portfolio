@@ -568,7 +568,7 @@ const Admin: React.FC = () => {
   // City search state for create collection modal
   const [createCitySearch, setCreateCitySearch] = useState('');
   const [createCityDropdown, setCreateCityDropdown] = useState(false);
-  const [createMatchedCountry, setCreateMatchedCountry] = useState('');
+
 
   useEffect(() => {
     const authStatus = localStorage.getItem('admin_authenticated');
@@ -1242,7 +1242,6 @@ const Admin: React.FC = () => {
                                 setNewCollection({ ...newCollection, location: val });
                                 setCreateCityDropdown(true);
                                 const entry = lookupCity(val) || resolveLandmarkToCity(val);
-                                setCreateMatchedCountry(entry ? entry.country : '');
                               }}
                               onFocus={() => { if (createCitySearch) setCreateCityDropdown(true); }}
                               onBlur={() => setTimeout(() => setCreateCityDropdown(false), 200)}
@@ -1267,7 +1266,6 @@ const Admin: React.FC = () => {
                                         });
                                         setCreateCitySearch('');
                                         setCreateCityDropdown(false);
-                                        setCreateMatchedCountry(entry.country);
                                       }}
                                     >
                                       <span className="inline-city-name">{entry.city}</span>
