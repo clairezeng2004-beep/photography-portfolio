@@ -144,22 +144,37 @@ const About: React.FC = () => {
           <h2 className="about-subtitle">{sectionLabel('contact', 'Say Hello')}</h2>
           <div className="contact-links">
             {aboutInfo.contact.email && (
-              aboutInfo.contact.email.includes('@')
-                ? <a href={`mailto:${aboutInfo.contact.email}`} className="contact-link-item">{aboutInfo.contact.email}</a>
-                : <span className="contact-link-item">{aboutInfo.contact.email}</span>
+              <div className="about-custom-item">
+                <span className="about-custom-item-label">邮箱</span>
+                {aboutInfo.contact.email.includes('@')
+                  ? <a href={`mailto:${aboutInfo.contact.email}`} className="about-custom-item-value">{aboutInfo.contact.email}</a>
+                  : <span className="about-custom-item-value">{aboutInfo.contact.email}</span>
+                }
+              </div>
             )}
             {aboutInfo.contact.instagram && (
-              /^https?:\/\//.test(aboutInfo.contact.instagram)
-                ? <a href={aboutInfo.contact.instagram} className="contact-link-item" target="_blank" rel="noopener noreferrer">{aboutInfo.contact.instagram}</a>
-                : <span className="contact-link-item">{aboutInfo.contact.instagram}</span>
+              <div className="about-custom-item">
+                <span className="about-custom-item-label">Instagram</span>
+                {/^https?:\/\//.test(aboutInfo.contact.instagram)
+                  ? <a href={aboutInfo.contact.instagram} className="about-custom-item-value" target="_blank" rel="noopener noreferrer">{aboutInfo.contact.instagram}</a>
+                  : <span className="about-custom-item-value">{aboutInfo.contact.instagram}</span>
+                }
+              </div>
             )}
             {aboutInfo.contact.phone && (
-              <span className="contact-link-item">{aboutInfo.contact.phone}</span>
+              <div className="about-custom-item">
+                <span className="about-custom-item-label">电话</span>
+                <span className="about-custom-item-value">{aboutInfo.contact.phone}</span>
+              </div>
             )}
             {aboutInfo.contact.weibo && (
-              /^https?:\/\//.test(aboutInfo.contact.weibo)
-                ? <a href={aboutInfo.contact.weibo} className="contact-link-item" target="_blank" rel="noopener noreferrer">{aboutInfo.contact.weibo}</a>
-                : <span className="contact-link-item">{aboutInfo.contact.weibo}</span>
+              <div className="about-custom-item">
+                <span className="about-custom-item-label">微博</span>
+                {/^https?:\/\//.test(aboutInfo.contact.weibo)
+                  ? <a href={aboutInfo.contact.weibo} className="about-custom-item-value" target="_blank" rel="noopener noreferrer">{aboutInfo.contact.weibo}</a>
+                  : <span className="about-custom-item-value">{aboutInfo.contact.weibo}</span>
+                }
+              </div>
             )}
           </div>
           {builtinExtraItems('_builtin_contact')}
