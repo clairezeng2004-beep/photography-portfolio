@@ -2671,23 +2671,31 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
   const handleCityInputChange = (val: string) => {
     setCitySearchText(val);
-    setLocation(val);
     setShowCityDropdown(true);
-    // Check if exact city match or landmark match
+    // Update geo.city directly
+    setGeo(prev => prev ? { ...prev, city: val } : { continent: '' as any, country: '', countryCode: '', city: val, lat: 0, lng: 0 });
+    // Check if exact city match to auto-fill country/geo
     const entry = lookupCity(val) || resolveLandmarkToCity(val);
     if (entry) {
       setMatchedCountry(entry.country);
+      setGeo({
+        continent: entry.continent,
+        country: entry.country,
+        countryCode: entry.countryCode,
+        city: entry.city,
+        lat: entry.lat,
+        lng: entry.lng,
+      });
     } else {
       setMatchedCountry('');
     }
   };
 
   const handleCitySelect = (entry: CityEntry) => {
-    setLocation(entry.city);
     setCitySearchText('');
     setShowCityDropdown(false);
     setMatchedCountry(entry.country);
-    // Auto-set geo
+    // Auto-set geo (does NOT overwrite location/landmark)
     setGeo({
       continent: entry.continent,
       country: entry.country,
@@ -2925,7 +2933,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                       <input
                         type="text"
                         className="loc-edit-input"
-                        value={citySearchText || location}
+                        value={citySearchText || geo?.city || ''}
                         onChange={(e) => handleCityInputChange(e.target.value)}
                         onFocus={() => { if (citySearchText) setShowCityDropdown(true); }}
                         onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
@@ -2934,7 +2942,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                       {showCityDropdown && filteredCityResults.length > 0 && (
                         <div className="loc-edit-dropdown">
                           {filteredCityResults.map((entry, i) => (
-                            <button key={`${entry.city}-${i}`} type="button" className={`loc-edit-dropdown-item ${entry.city === location ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); handleCitySelect(entry); }}>
+                            <button key={`${entry.city}-${i}`} type="button" className={`loc-edit-dropdown-item ${entry.city === geo?.city ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); handleCitySelect(entry); }}>
                               <span className="loc-edit-dropdown-main">{entry.city}</span>
                               <span className="loc-edit-dropdown-sub">{entry.country}</span>
                             </button>
