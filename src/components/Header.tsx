@@ -14,7 +14,9 @@ const Header: React.FC = () => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       setIsAtTop(currentScrollY < 50);
-      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+      if (isMenuOpen) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
         setIsVisible(false);
       } else {
         setIsVisible(true);
@@ -23,15 +25,25 @@ const Header: React.FC = () => {
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, [lastScrollY, isMenuOpen]);
 
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location]);
 
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMenuOpen]);
+
   const headerClass = [
     'header',
-    !isVisible ? 'header-hidden' : '',
+    !isVisible && !isMenuOpen ? 'header-hidden' : '',
     !isAtTop ? 'header-scrolled' : '',
     isHome && isAtTop && !isMenuOpen ? 'header-transparent' : '',
     isMenuOpen ? 'header-menu-open' : '',
