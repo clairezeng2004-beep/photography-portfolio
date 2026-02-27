@@ -704,6 +704,7 @@
   letter-spacing: 0.08em;
   font-style: italic;
   margin-bottom: 12px;
+  font-variant-numeric: lining-nums;
 }
 
 .preview-desc {
@@ -784,6 +785,7 @@
   color: #999;
   letter-spacing: 0.08em;
   font-style: italic;
+  font-variant-numeric: lining-nums;
 }
 
 .city-preview-list {
@@ -856,6 +858,7 @@
   letter-spacing: 0.08em;
   font-style: italic;
   margin-bottom: 6px;
+  font-variant-numeric: lining-nums;
 }
 
 .city-preview-item-desc {
