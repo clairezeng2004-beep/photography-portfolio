@@ -1232,19 +1232,39 @@ const Admin: React.FC = () => {
                         
                         <div className="form-group">
                           <label>地点 *</label>
+                          <ClearableInput
+                            type="text"
+                            value={newCollection.location}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const entry = lookupCity(val) || resolveLandmarkToCity(val);
+                              setNewCollection({
+                                ...newCollection,
+                                location: val,
+                                geo: entry ? { continent: entry.continent, country: entry.country, countryCode: entry.countryCode, city: entry.city, lat: entry.lat, lng: entry.lng } : newCollection.geo,
+                              });
+                            }}
+                            placeholder="如：埃菲尔铁塔、东京塔"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>城市</label>
                           <div className="inline-city-search" style={{ position: 'relative' }}>
                             <ClearableInput
                               type="text"
-                              value={createCitySearch || newCollection.location}
+                              value={createCitySearch || newCollection.geo?.city || ''}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setCreateCitySearch(val);
                                 setCreateCityDropdown(true);
-                                const entry = lookupCity(val) || resolveLandmarkToCity(val);
                                 setNewCollection({
                                   ...newCollection,
-                                  location: val,
-                                  geo: entry ? { continent: entry.continent, country: entry.country, countryCode: entry.countryCode, city: entry.city, lat: entry.lat, lng: entry.lng } : newCollection.geo,
+                                  geo: newCollection.geo
+                                    ? { ...newCollection.geo, city: val }
+                                    : { continent: '' as any, country: '', countryCode: '', city: val, lat: 0, lng: 0 },
                                 });
                               }}
                               onFocus={() => { if (createCitySearch) setCreateCityDropdown(true); }}
@@ -1260,12 +1280,11 @@ const Admin: React.FC = () => {
                                     <button
                                       key={`${entry.city}-${i}`}
                                       type="button"
-                                      className={`inline-city-dropdown-item ${entry.city === newCollection.location ? 'selected' : ''}`}
+                                      className={`inline-city-dropdown-item ${entry.city === (newCollection.geo?.city) ? 'selected' : ''}`}
                                       onMouseDown={(e) => {
                                         e.preventDefault();
                                         setNewCollection({
                                           ...newCollection,
-                                          location: entry.city,
                                           geo: { continent: entry.continent, country: entry.country, countryCode: entry.countryCode, city: entry.city, lat: entry.lat, lng: entry.lng },
                                         });
                                         setCreateCitySearch('');
@@ -1280,26 +1299,6 @@ const Admin: React.FC = () => {
                               );
                             })()}
                           </div>
-                        </div>
-                      </div>
-
-                      <div className="form-row">
-                        <div className="form-group">
-                          <label>城市</label>
-                          <ClearableInput
-                            type="text"
-                            value={newCollection.geo?.city || ''}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setNewCollection({
-                                ...newCollection,
-                                geo: newCollection.geo
-                                  ? { ...newCollection.geo, city: val }
-                                  : { continent: '' as any, country: '', countryCode: '', city: val, lat: 0, lng: 0 },
-                              });
-                            }}
-                            placeholder="自动填充或手动输入"
-                          />
                         </div>
                         <div className="form-group">
                           <label>国家</label>
@@ -1543,7 +1542,6 @@ const Admin: React.FC = () => {
                             onToggleEdit={() => setEditingCollection(isEditing ? null : collection.id)}
                             onSave={async (updatedData) => {
                               await handleUpdateCollection(collection.id, updatedData);
-                              setEditingCollection(null);
                               showToast('作品集已保存');
                             }}
                             onDelete={() => handleDeleteCollection(collection.id)}
