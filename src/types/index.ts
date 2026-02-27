@@ -77,6 +77,7 @@ export interface AboutInfo {
     phone: string;
     instagram: string;
     weibo: string;
+    [key: string]: string | undefined;
   };
   stats: {
     cities: number;

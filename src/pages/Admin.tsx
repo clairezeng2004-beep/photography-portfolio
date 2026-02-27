@@ -1758,7 +1758,7 @@ const Admin: React.FC = () => {
                     </button>
                   </div>
                   <div className="form-grid">
-                    {editedAboutInfo.contact.email && (
+                    {editedAboutInfo.contact.email != null && (
                     <div className="form-group form-group-deletable">
                       <label>邮箱</label>
                       <div className="deletable-field-row">
@@ -1773,11 +1773,11 @@ const Admin: React.FC = () => {
                             }));
                           }}
                         />
-                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => ({ ...prev, contact: { ...prev.contact, email: '' } }))} title="删除此项"><X size={14} /></button>
+                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => { const c = { ...prev.contact }; delete c.email; return { ...prev, contact: c }; })} title="删除此项"><X size={14} /></button>
                       </div>
                     </div>
                     )}
-                    {editedAboutInfo.contact.instagram && (
+                    {editedAboutInfo.contact.instagram != null && (
                     <div className="form-group form-group-deletable">
                       <label>Instagram</label>
                       <div className="deletable-field-row">
@@ -1792,11 +1792,11 @@ const Admin: React.FC = () => {
                             }));
                           }}
                         />
-                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => ({ ...prev, contact: { ...prev.contact, instagram: '' } }))} title="删除此项"><X size={14} /></button>
+                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => { const c = { ...prev.contact }; delete c.instagram; return { ...prev, contact: c }; })} title="删除此项"><X size={14} /></button>
                       </div>
                     </div>
                     )}
-                    {editedAboutInfo.contact.phone && (
+                    {editedAboutInfo.contact.phone != null && (
                     <div className="form-group form-group-deletable">
                       <label>电话</label>
                       <div className="deletable-field-row">
@@ -1811,11 +1811,11 @@ const Admin: React.FC = () => {
                             }));
                           }}
                         />
-                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => ({ ...prev, contact: { ...prev.contact, phone: '' } }))} title="删除此项"><X size={14} /></button>
+                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => { const c = { ...prev.contact }; delete c.phone; return { ...prev, contact: c }; })} title="删除此项"><X size={14} /></button>
                       </div>
                     </div>
                     )}
-                    {editedAboutInfo.contact.weibo && (
+                    {editedAboutInfo.contact.weibo != null && (
                     <div className="form-group form-group-deletable">
                       <label>微博</label>
                       <div className="deletable-field-row">
@@ -1830,7 +1830,7 @@ const Admin: React.FC = () => {
                             }));
                           }}
                         />
-                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => ({ ...prev, contact: { ...prev.contact, weibo: '' } }))} title="删除此项"><X size={14} /></button>
+                        <button className="btn-icon danger small" onClick={() => setEditedAboutInfo(prev => { const c = { ...prev.contact }; delete c.weibo; return { ...prev, contact: c }; })} title="删除此项"><X size={14} /></button>
                       </div>
                     </div>
                     )}
@@ -1838,10 +1838,10 @@ const Admin: React.FC = () => {
                   {/* Add back deleted built-in contact fields */}
                   {(() => {
                     const missing: { key: string; label: string; placeholder: string }[] = [];
-                    if (!editedAboutInfo.contact.email) missing.push({ key: 'email', label: '邮箱', placeholder: 'hello@example.com' });
-                    if (!editedAboutInfo.contact.instagram) missing.push({ key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/...' });
-                    if (!editedAboutInfo.contact.phone) missing.push({ key: 'phone', label: '电话', placeholder: '+86 ...' });
-                    if (!editedAboutInfo.contact.weibo) missing.push({ key: 'weibo', label: '微博', placeholder: 'https://weibo.com/...' });
+                    if (editedAboutInfo.contact.email == null) missing.push({ key: 'email', label: '邮箱', placeholder: '' });
+                    if (editedAboutInfo.contact.instagram == null) missing.push({ key: 'instagram', label: 'Instagram', placeholder: '' });
+                    if (editedAboutInfo.contact.phone == null) missing.push({ key: 'phone', label: '电话', placeholder: '' });
+                    if (editedAboutInfo.contact.weibo == null) missing.push({ key: 'weibo', label: '微博', placeholder: '' });
                     if (missing.length === 0) return null;
                     return (
                       <div className="add-contact-fields">
@@ -1861,26 +1861,27 @@ const Admin: React.FC = () => {
                     return (
                       <div className="builtin-section-extra-items">
                         {section && section.items.map((item, iIdx) => (
-                          <div key={item.id} className="custom-section-item">
-                            <div className="custom-section-item-fields">
-                              <ClearableInput
-                                type="text"
-                                value={item.label}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setEditedAboutInfo(prev => {
-                                    const sections = [...(prev.customSections || [])];
-                                    const idx = sections.findIndex(s => s.id === builtinSectionId);
-                                    if (idx < 0) return prev;
-                                    const items = [...sections[idx].items];
-                                    items[iIdx] = { ...items[iIdx], label: val };
-                                    sections[idx] = { ...sections[idx], items };
-                                    return { ...prev, customSections: sections };
-                                  });
-                                }}
-                                placeholder="标签"
-                                className="custom-item-label-input"
-                              />
+                          <div key={item.id} className="form-group form-group-deletable">
+                            <ClearableInput
+                              type="text"
+                              value={item.label}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditedAboutInfo(prev => {
+                                  const sections = [...(prev.customSections || [])];
+                                  const idx = sections.findIndex(s => s.id === builtinSectionId);
+                                  if (idx < 0) return prev;
+                                  const items = [...sections[idx].items];
+                                  items[iIdx] = { ...items[iIdx], label: val };
+                                  sections[idx] = { ...sections[idx], items };
+                                  return { ...prev, customSections: sections };
+                                });
+                              }}
+                              placeholder="标签名"
+                              className="section-label-input"
+                              style={{ fontSize: 13, color: '#666', fontWeight: 400 }}
+                            />
+                            <div className="deletable-field-row">
                               <ClearableInput
                                 type="text"
                                 value={item.value}
@@ -1897,28 +1898,27 @@ const Admin: React.FC = () => {
                                   });
                                 }}
                                 placeholder="内容"
-                                className="custom-item-value-input"
                               />
+                              <button
+                                className="btn-icon danger small"
+                                onClick={() => {
+                                  setEditedAboutInfo(prev => {
+                                    const sections = [...(prev.customSections || [])];
+                                    const idx = sections.findIndex(s => s.id === builtinSectionId);
+                                    if (idx < 0) return prev;
+                                    const items = sections[idx].items.filter((_, i) => i !== iIdx);
+                                    if (items.length === 0) {
+                                      return { ...prev, customSections: sections.filter(s => s.id !== builtinSectionId) };
+                                    }
+                                    sections[idx] = { ...sections[idx], items };
+                                    return { ...prev, customSections: sections };
+                                  });
+                                }}
+                                title="删除此项"
+                              >
+                                <X size={14} />
+                              </button>
                             </div>
-                            <button
-                              className="btn-icon danger small"
-                              onClick={() => {
-                                setEditedAboutInfo(prev => {
-                                  const sections = [...(prev.customSections || [])];
-                                  const idx = sections.findIndex(s => s.id === builtinSectionId);
-                                  if (idx < 0) return prev;
-                                  const items = sections[idx].items.filter((_, i) => i !== iIdx);
-                                  if (items.length === 0) {
-                                    return { ...prev, customSections: sections.filter(s => s.id !== builtinSectionId) };
-                                  }
-                                  sections[idx] = { ...sections[idx], items };
-                                  return { ...prev, customSections: sections };
-                                });
-                              }}
-                              title="删除此项"
-                            >
-                              <X size={14} />
-                            </button>
                           </div>
                         ))}
                       </div>
@@ -2025,26 +2025,27 @@ const Admin: React.FC = () => {
                     return (
                       <div className="builtin-section-extra-items">
                         {section && section.items.map((item, iIdx) => (
-                          <div key={item.id} className="custom-section-item">
-                            <div className="custom-section-item-fields">
-                              <ClearableInput
-                                type="text"
-                                value={item.label}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setEditedAboutInfo(prev => {
-                                    const sections = [...(prev.customSections || [])];
-                                    const idx = sections.findIndex(s => s.id === builtinSectionId);
-                                    if (idx < 0) return prev;
-                                    const items = [...sections[idx].items];
-                                    items[iIdx] = { ...items[iIdx], label: val };
-                                    sections[idx] = { ...sections[idx], items };
-                                    return { ...prev, customSections: sections };
-                                  });
-                                }}
-                                placeholder="标签"
-                                className="custom-item-label-input"
-                              />
+                          <div key={item.id} className="form-group form-group-deletable">
+                            <ClearableInput
+                              type="text"
+                              value={item.label}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditedAboutInfo(prev => {
+                                  const sections = [...(prev.customSections || [])];
+                                  const idx = sections.findIndex(s => s.id === builtinSectionId);
+                                  if (idx < 0) return prev;
+                                  const items = [...sections[idx].items];
+                                  items[iIdx] = { ...items[iIdx], label: val };
+                                  sections[idx] = { ...sections[idx], items };
+                                  return { ...prev, customSections: sections };
+                                });
+                              }}
+                              placeholder="标签名"
+                              className="section-label-input"
+                              style={{ fontSize: 13, color: '#666', fontWeight: 400 }}
+                            />
+                            <div className="deletable-field-row">
                               <ClearableInput
                                 type="text"
                                 value={item.value}
@@ -2061,28 +2062,27 @@ const Admin: React.FC = () => {
                                   });
                                 }}
                                 placeholder="内容"
-                                className="custom-item-value-input"
                               />
+                              <button
+                                className="btn-icon danger small"
+                                onClick={() => {
+                                  setEditedAboutInfo(prev => {
+                                    const sections = [...(prev.customSections || [])];
+                                    const idx = sections.findIndex(s => s.id === builtinSectionId);
+                                    if (idx < 0) return prev;
+                                    const items = sections[idx].items.filter((_, i) => i !== iIdx);
+                                    if (items.length === 0) {
+                                      return { ...prev, customSections: sections.filter(s => s.id !== builtinSectionId) };
+                                    }
+                                    sections[idx] = { ...sections[idx], items };
+                                    return { ...prev, customSections: sections };
+                                  });
+                                }}
+                                title="删除此项"
+                              >
+                                <X size={14} />
+                              </button>
                             </div>
-                            <button
-                              className="btn-icon danger small"
-                              onClick={() => {
-                                setEditedAboutInfo(prev => {
-                                  const sections = [...(prev.customSections || [])];
-                                  const idx = sections.findIndex(s => s.id === builtinSectionId);
-                                  if (idx < 0) return prev;
-                                  const items = sections[idx].items.filter((_, i) => i !== iIdx);
-                                  if (items.length === 0) {
-                                    return { ...prev, customSections: sections.filter(s => s.id !== builtinSectionId) };
-                                  }
-                                  sections[idx] = { ...sections[idx], items };
-                                  return { ...prev, customSections: sections };
-                                });
-                              }}
-                              title="删除此项"
-                            >
-                              <X size={14} />
-                            </button>
                           </div>
                         ))}
                       </div>

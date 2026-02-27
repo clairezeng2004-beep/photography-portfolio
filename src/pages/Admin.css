@@ -2624,8 +2624,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed #e8e6e2;
 }
 
 .bio-editor {
