@@ -23,18 +23,6 @@
   box-shadow: none;
 }
 
-.header-menu-open {
-  background: rgba(250, 249, 247, 0.97) !important;
-  backdrop-filter: blur(8px) !important;
-}
-
-.header-menu-open .logo {
-  color: #2a2a2a;
-}
-
-.header-menu-open .hamburger span {
-  background: #2a2a2a;
-}
 
 .header-transparent .logo {
   color: #fff;
@@ -206,7 +194,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: #faf9f7;
+    background: rgba(0, 0, 0, 0.15);
     z-index: 9998;
   }
 

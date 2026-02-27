@@ -31,21 +31,13 @@ const Header: React.FC = () => {
     setIsMenuOpen(false);
   }, [location]);
 
-  // Lock body scroll when menu is open
-  useEffect(() => {
-    if (isMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [isMenuOpen]);
+  // No body scroll lock - menu only partially covers screen
 
   const headerClass = [
     'header',
     !isVisible && !isMenuOpen ? 'header-hidden' : '',
     !isAtTop ? 'header-scrolled' : '',
-    isHome && isAtTop && !isMenuOpen ? 'header-transparent' : '',
+    isHome && isAtTop ? 'header-transparent' : '',
     isMenuOpen ? 'header-menu-open' : '',
   ].filter(Boolean).join(' ');
 
