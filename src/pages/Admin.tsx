@@ -1239,9 +1239,14 @@ const Admin: React.FC = () => {
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setCreateCitySearch(val);
-                                setNewCollection({ ...newCollection, location: val });
                                 setCreateCityDropdown(true);
-                              }}
+                                const entry = lookupCity(val) || resolveLandmarkToCity(val);
+                                setNewCollection({
+                                  ...newCollection,
+                                  location: val,
+                                  geo: entry ? { continent: entry.continent, country: entry.country, countryCode: entry.countryCode, city: entry.city, lat: entry.lat, lng: entry.lng } : newCollection.geo,
+                                });
+                              }}}
                               onFocus={() => { if (createCitySearch) setCreateCityDropdown(true); }}
                               onBlur={() => setTimeout(() => setCreateCityDropdown(false), 200)}
                               placeholder="搜索城市..."
@@ -1275,6 +1280,43 @@ const Admin: React.FC = () => {
                               );
                             })()}
                           </div>
+                        </div>
+                      </div>
+
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>城市</label>
+                          <ClearableInput
+                            type="text"
+                            value={newCollection.geo?.city || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setNewCollection({
+                                ...newCollection,
+                                geo: newCollection.geo
+                                  ? { ...newCollection.geo, city: val }
+                                  : { continent: '' as any, country: '', countryCode: '', city: val, lat: 0, lng: 0 },
+                              });
+                            }}
+                            placeholder="自动填充或手动输入"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>国家</label>
+                          <ClearableInput
+                            type="text"
+                            value={newCollection.geo?.country || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setNewCollection({
+                                ...newCollection,
+                                geo: newCollection.geo
+                                  ? { ...newCollection.geo, country: val }
+                                  : { continent: '' as any, country: val, countryCode: '', city: '', lat: 0, lng: 0 },
+                              });
+                            }}
+                            placeholder="自动填充或手动输入"
+                          />
                         </div>
                       </div>
 
