@@ -2890,6 +2890,33 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
             </button>
             {openSections.has('location') && (
               <div className="card-edit-section-body">
+                {/* Row 0: Location (landmark) */}
+                <div className="loc-edit-row">
+                  <div className="loc-edit-field" style={{ flex: 1 }}>
+                    <label className="loc-edit-label">地点</label>
+                    <input
+                      type="text"
+                      className="loc-edit-input"
+                      value={location}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setLocation(val);
+                        const entry = lookupCity(val) || resolveLandmarkToCity(val);
+                        if (entry) {
+                          setGeo({
+                            continent: entry.continent,
+                            country: entry.country,
+                            countryCode: entry.countryCode,
+                            city: entry.city,
+                            lat: entry.lat,
+                            lng: entry.lng,
+                          });
+                        }
+                      }}
+                      placeholder="如：埃菲尔铁塔、东京塔"
+                    />
+                  </div>
+                </div>
                 {/* Row 1: City + Country */}
                 <div className="loc-edit-row">
                   <div className="loc-edit-field">
