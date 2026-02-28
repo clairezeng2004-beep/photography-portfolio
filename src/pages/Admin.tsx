@@ -1714,46 +1714,21 @@ const Admin: React.FC = () => {
                     onChange={(e) => updateSectionLabel('bio', e.target.value)}
                   />
                   <div className="bio-editor">
-                    {editedAboutInfo.bio.map((paragraph, index) => (
-                      <div key={index} className="bio-paragraph">
-                        <div className="form-group bio-form-group">
-                          <ClearableTextarea
-                            value={paragraph}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setEditedAboutInfo(prev => {
-                                const newBio = [...prev.bio];
-                                newBio[index] = val;
-                                return { ...prev, bio: newBio };
-                              });
-                            }}
-                            rows={3}
-                            placeholder="输入一段个人简介..."
-                          />
-                        </div>
-                        <button
-                          className="btn-icon danger small"
-                          onClick={() => {
-                            setEditedAboutInfo(prev => ({
-                              ...prev,
-                              bio: prev.bio.filter((_, i) => i !== index)
-                            }));
-                          }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      className="btn btn-secondary small"
-                      onClick={() => setEditedAboutInfo(prev => ({
-                        ...prev,
-                        bio: [...prev.bio, '']
-                      }))}
-                    >
-                      <Plus size={16} />
-                      添加段落
-                    </button>
+                    <div className="form-group bio-form-group">
+                      <ClearableTextarea
+                        value={editedAboutInfo.bio.join('\n')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditedAboutInfo(prev => ({
+                            ...prev,
+                            bio: val.split('\n')
+                          }));
+                        }}
+                        rows={6}
+                        placeholder="每行一段个人简介..."
+                      />
+                    </div>
+                  </div>
                   </div>
                 </div>
 
