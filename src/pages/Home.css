@@ -885,7 +885,7 @@
   grid-column: 1 / -1;
   display: flex;
   justify-content: center;
-  padding: 4px 24px;
+  padding: 0 24px;
   text-align: center;
 }
 
@@ -928,7 +928,7 @@
 
 @media (max-width: 768px) {
   .home-text-block {
-    padding: 2px 16px;
+    padding: 0 16px;
   }
   .home-text-block:has(+ .card),
   .home-text-block:has(+ [class*="card-anim"]) {
