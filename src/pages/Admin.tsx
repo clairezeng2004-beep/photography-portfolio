@@ -3210,8 +3210,8 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
 
   // Drag state
   const dragItem = useRef<number | null>(null);
-  const dragOverItem = useRef<number | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dropTargetIdx, setDropTargetIdx] = useState<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent, idx: number) => {
     dragItem.current = idx;
@@ -3219,27 +3219,48 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent, idx: number) => {
+  const handleDropZoneDragOver = (e: React.DragEvent, targetIdx: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    dragOverItem.current = idx;
+    setDropTargetIdx(targetIdx);
   };
 
-  const handleDragEnd = () => {
-    if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
+  const handleDropZoneDragLeave = () => {
+    setDropTargetIdx(null);
+  };
+
+  const handleDropZoneDrop = (e: React.DragEvent, targetIdx: number) => {
+    e.preventDefault();
+    if (dragItem.current === null || dragItem.current === targetIdx || dragItem.current === targetIdx - 1) {
       setDragIdx(null);
+      setDropTargetIdx(null);
       dragItem.current = null;
-      dragOverItem.current = null;
       return;
     }
     const newLayout = [...layout];
     const [removed] = newLayout.splice(dragItem.current, 1);
-    newLayout.splice(dragOverItem.current, 0, removed);
+    const insertIdx = targetIdx > dragItem.current ? targetIdx - 1 : targetIdx;
+    newLayout.splice(insertIdx, 0, removed);
     setLayout(newLayout);
     dragItem.current = null;
-    dragOverItem.current = null;
     setDragIdx(null);
-    // Save layout + update collection order fields
+    setDropTargetIdx(null);
+    saveLayout(newLayout);
+  };
+
+  const handleDragEnd = () => {
+    setDragIdx(null);
+    setDropTargetIdx(null);
+    dragItem.current = null;
+  };
+
+  // Move item up/down
+  const handleMoveItem = (idx: number, direction: 'up' | 'down') => {
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= layout.length) return;
+    const newLayout = [...layout];
+    [newLayout[idx], newLayout[targetIdx]] = [newLayout[targetIdx], newLayout[idx]];
+    setLayout(newLayout);
     saveLayout(newLayout);
   };
 
@@ -3300,6 +3321,16 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
   const getCollection = (id: string) => collections.find(c => c.id === id);
   const getTextBlock = (id: string) => textBlocks.find(b => b.id === id);
 
+  const renderDropZone = (targetIdx: number) => (
+    <div
+      key={`dz-${targetIdx}`}
+      className={`hp-drop-zone ${dropTargetIdx === targetIdx && dragIdx !== null ? 'active' : ''}`}
+      onDragOver={(e) => handleDropZoneDragOver(e, targetIdx)}
+      onDragLeave={handleDropZoneDragLeave}
+      onDrop={(e) => handleDropZoneDrop(e, targetIdx)}
+    />
+  );
+
   return (
     <div className="tab-content home-preview-manager">
       <div className="tab-header">
@@ -3308,34 +3339,37 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
           <Plus size={18} /> 添加文字栏
         </button>
       </div>
-      <p className="home-preview-hint">拖拽卡片调整首页展示顺序，文字栏可编辑内容。</p>
+      <p className="home-preview-hint">拖拽卡片调整首页展示顺序，或使用上下按钮微调位置。</p>
 
       <div className="home-preview-grid">
+        {renderDropZone(0)}
         {layout.map((item, idx) => {
           if (item.type === 'collection') {
             const c = getCollection(item.id);
             if (!c) return null;
             const cardImage = c.cardCoverImage || c.coverImage || c.photos?.[0]?.url || c.photos?.[0]?.thumbnail;
             return (
-              <div
-                key={`c-${item.id}`}
-                className={`home-preview-item home-preview-card ${dragIdx === idx ? 'dragging' : ''}`}
-                draggable
-                onDragStart={(e) => handleDragStart(e, idx)}
-                onDragOver={(e) => handleDragOver(e, idx)}
-                onDragEnd={handleDragEnd}
-              >
-                <div className="hp-card-image-wrap">
-                  {cardImage && <img src={cardImage} alt={c.title} className="hp-card-image" draggable={false} />}
-                  <div className="hp-card-overlay">
-                    <span className="hp-card-title">{c.title}</span>
-                    <span className="hp-card-loc">{c.location} · {c.year}</span>
+              <React.Fragment key={`c-${item.id}`}>
+                <div
+                  className={`home-preview-item home-preview-card ${dragIdx === idx ? 'dragging' : ''}`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="hp-card-image-wrap">
+                    {cardImage && <img src={cardImage} alt={c.title} className="hp-card-image" draggable={false} />}
+                    <div className="hp-card-overlay">
+                      <span className="hp-card-title">{c.title}</span>
+                      <span className="hp-card-loc">{c.location} · {c.year}</span>
+                    </div>
+                  </div>
+                  <div className="hp-card-actions">
+                    {idx > 0 && <button className="hp-move-btn" title="上移" onClick={() => handleMoveItem(idx, 'up')}><ChevronUp size={14} /></button>}
+                    {idx < layout.length - 1 && <button className="hp-move-btn" title="下移" onClick={() => handleMoveItem(idx, 'down')}><ChevronDown size={14} /></button>}
                   </div>
                 </div>
-                <div className="hp-card-drag-handle">
-                  <ChevronUp size={12} /><ChevronDown size={12} />
-                </div>
-              </div>
+                {renderDropZone(idx + 1)}
+              </React.Fragment>
             );
           }
 
@@ -3345,37 +3379,37 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
           const isEditing = editingBlockId === item.id;
 
           return (
-            <div
-              key={`tb-${item.id}`}
-              className={`home-preview-item home-preview-textblock ${dragIdx === idx ? 'dragging' : ''} ${isEditing ? 'editing' : ''}`}
-              draggable={!isEditing}
-              onDragStart={(e) => handleDragStart(e, idx)}
-              onDragOver={(e) => handleDragOver(e, idx)}
-              onDragEnd={handleDragEnd}
-            >
-              {isEditing ? (
-                <TextBlockEditor block={block} onSave={handleSaveTextBlock} onCancel={() => setEditingBlockId(null)} onDelete={() => handleDeleteTextBlock(item.id)} />
-              ) : (
-                <div className="hp-textblock-preview" onClick={() => setEditingBlockId(item.id)}>
-                  <div className="hp-textblock-content">
-                    {block.title && <h3 className="hp-tb-title">{block.title}</h3>}
-                    <p className="hp-tb-lines">{block.lines.join('\n')}</p>
-                    {block.links && block.links.length > 0 && (
-                      <div className="hp-tb-links">
-                        {block.links.map((lnk, i) => <span key={i} className="hp-tb-link">{lnk.label}</span>)}
-                      </div>
-                    )}
+            <React.Fragment key={`tb-${item.id}`}>
+              <div
+                className={`home-preview-item home-preview-textblock ${dragIdx === idx ? 'dragging' : ''} ${isEditing ? 'editing' : ''}`}
+                draggable={!isEditing}
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragEnd={handleDragEnd}
+              >
+                {isEditing ? (
+                  <TextBlockEditor block={block} onSave={handleSaveTextBlock} onCancel={() => setEditingBlockId(null)} onDelete={() => handleDeleteTextBlock(item.id)} />
+                ) : (
+                  <div className="hp-textblock-preview">
+                    <div className="hp-textblock-content" onClick={() => setEditingBlockId(item.id)}>
+                      {block.title && <h3 className="hp-tb-title">{block.title}</h3>}
+                      <p className="hp-tb-lines">{block.lines.join('\n')}</p>
+                      {block.links && block.links.length > 0 && (
+                        <div className="hp-tb-links">
+                          {block.links.map((lnk, i) => <span key={i} className="hp-tb-link">{lnk.label}</span>)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="hp-textblock-toolbar">
+                      <button className="hp-tb-edit-btn" title="编辑" onClick={() => setEditingBlockId(item.id)}><Edit size={14} /></button>
+                      {idx > 0 && <button className="hp-move-btn" title="上移" onClick={() => handleMoveItem(idx, 'up')}><ChevronUp size={14} /></button>}
+                      {idx < layout.length - 1 && <button className="hp-move-btn" title="下移" onClick={() => handleMoveItem(idx, 'down')}><ChevronDown size={14} /></button>}
+                      <button className="hp-tb-del-btn" title="删除" onClick={() => handleDeleteTextBlock(item.id)}><Trash2 size={14} /></button>
+                    </div>
                   </div>
-                  <div className="hp-textblock-actions">
-                    <button className="hp-tb-edit-btn" title="编辑"><Edit size={14} /></button>
-                    <button className="hp-tb-del-btn" title="删除" onClick={(e) => { e.stopPropagation(); handleDeleteTextBlock(item.id); }}><Trash2 size={14} /></button>
-                  </div>
-                  <div className="hp-card-drag-handle">
-                    <ChevronUp size={12} /><ChevronDown size={12} />
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+              {renderDropZone(idx + 1)}
+            </React.Fragment>
           );
         })}
       </div>

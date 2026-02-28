@@ -4406,26 +4406,60 @@
   color: rgba(255,255,255,0.75);
 }
 
-.hp-card-drag-handle {
+/* Drop zone between items */
+.hp-drop-zone {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 2px;
+  transition: height 0.2s ease, background 0.2s ease;
+}
+
+.hp-drop-zone.active {
+  height: 32px;
+  background: rgba(42, 42, 42, 0.08);
+  border: 2px dashed rgba(42, 42, 42, 0.25);
+  border-radius: 6px;
+}
+
+/* Card move buttons */
+.hp-card-actions {
   position: absolute;
   top: 6px;
   right: 6px;
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.home-preview-item:hover .hp-card-actions {
+  opacity: 1;
+}
+
+.hp-move-btn {
+  background: rgba(255,255,255,0.9);
+  border: 1px solid #e8e6e2;
+  border-radius: 4px;
+  padding: 3px 5px;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.hp-move-btn:hover {
+  color: #2a2a2a;
+  border-color: #2a2a2a;
+}
   align-items: center;
   background: rgba(255,255,255,0.85);
   border-radius: 4px;
   padding: 2px;
   opacity: 0;
   transition: opacity 0.2s ease;
-}
-
-.home-preview-item:hover .hp-card-drag-handle {
-  opacity: 1;
-}
-
-.hp-card-drag-handle svg {
-  color: #666;
 }
 
 /* Text block in preview */
@@ -4491,17 +4525,20 @@
   font-style: italic;
 }
 
-.hp-textblock-actions {
+/* Text block toolbar — spaced out buttons */
+.hp-textblock-toolbar {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  gap: 6px;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
 
-.hp-textblock-preview:hover .hp-textblock-actions {
+.hp-textblock-preview:hover .hp-textblock-toolbar {
   opacity: 1;
 }
 
@@ -4510,10 +4547,18 @@
   background: rgba(255,255,255,0.9);
   border: 1px solid #e8e6e2;
   border-radius: 4px;
-  padding: 4px 6px;
+  padding: 5px 7px;
   cursor: pointer;
   color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.hp-tb-edit-btn:hover {
+  color: #2a2a2a;
+  border-color: #2a2a2a;
 }
 
 .hp-tb-del-btn:hover {
