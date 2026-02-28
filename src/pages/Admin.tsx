@@ -3213,18 +3213,23 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
   const dragOverItem = useRef<number | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
-  const handleDragStart = (idx: number) => {
+  const handleDragStart = (e: React.DragEvent, idx: number) => {
     dragItem.current = idx;
     setDragIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragEnter = (idx: number) => {
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
     dragOverItem.current = idx;
   };
 
   const handleDragEnd = () => {
     if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
       setDragIdx(null);
+      dragItem.current = null;
+      dragOverItem.current = null;
       return;
     }
     const newLayout = [...layout];
@@ -3316,10 +3321,9 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
                 key={`c-${item.id}`}
                 className={`home-preview-item home-preview-card ${dragIdx === idx ? 'dragging' : ''}`}
                 draggable
-                onDragStart={() => handleDragStart(idx)}
-                onDragEnter={() => handleDragEnter(idx)}
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragOver={(e) => handleDragOver(e, idx)}
                 onDragEnd={handleDragEnd}
-                onDragOver={(e) => e.preventDefault()}
               >
                 <div className="hp-card-image-wrap">
                   {cardImage && <img src={cardImage} alt={c.title} className="hp-card-image" draggable={false} />}
@@ -3345,10 +3349,9 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
               key={`tb-${item.id}`}
               className={`home-preview-item home-preview-textblock ${dragIdx === idx ? 'dragging' : ''} ${isEditing ? 'editing' : ''}`}
               draggable={!isEditing}
-              onDragStart={() => handleDragStart(idx)}
-              onDragEnter={() => handleDragEnter(idx)}
+              onDragStart={(e) => handleDragStart(e, idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
               onDragEnd={handleDragEnd}
-              onDragOver={(e) => e.preventDefault()}
             >
               {isEditing ? (
                 <TextBlockEditor block={block} onSave={handleSaveTextBlock} onCancel={() => setEditingBlockId(null)} onDelete={() => handleDeleteTextBlock(item.id)} />

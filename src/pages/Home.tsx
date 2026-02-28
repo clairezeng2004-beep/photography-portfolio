@@ -122,8 +122,8 @@ const Home: React.FC = () => {
     if (el && observerRef.current) observerRef.current.observe(el);
   };
 
-  // Typewriter effect for intro
-  const fullGreeting = aboutInfo.bio.length > 0 ? aboutInfo.bio[0] : '';
+  // Typewriter effect for intro greeting
+  const fullGreeting = aboutInfo.title || '你好，小冰块';
   useEffect(() => {
     if (introAnimation !== 'typewriter' || !introVisible) return;
     setTypedText('');
@@ -348,56 +348,18 @@ const Home: React.FC = () => {
   };
 
   /* ============================================================
-     INTRO RENDER
+     INTRO RENDER — only greeting, no bio
      ============================================================ */
-  const introBioLines = aboutInfo.bio.length > 0 ? aboutInfo.bio : [
-    '我用镜头记录旅途中遇见的风景与故事。',
-    '每一座城市都有它独特的光线和温度，',
-    '我想把这些瞬间留下来。'
-  ];
-
   const renderIntro = () => {
     const baseCls = `intro-anim intro-anim-${introAnimation} ${introVisible ? 'show' : ''}`;
-
-    const renderBioText = () => (
-      <>
-        {introBioLines.map((line, i) => (
-          <React.Fragment key={i}>
-            {i > 0 && <br />}
-            {line}
-          </React.Fragment>
-        ))}
-      </>
-    );
-
-    const renderBioSplitRise = () => (
-      <>
-        {introBioLines.map((line, i) => (
-          <React.Fragment key={i}>
-            {i > 0 && <br />}
-            <span className={`split-line split-line-${i + 1}`}>{line}</span>
-          </React.Fragment>
-        ))}
-      </>
-    );
 
     if (introAnimation === 'typewriter') {
       return (
         <div className={baseCls}>
-          <p className="intro-text">
+          <h2 className="intro-greeting">
             {typedText}
             <span className="typewriter-cursor">|</span>
-          </p>
-          {introBioLines.length > 1 && (
-            <p className="intro-text">
-              {introBioLines.slice(1).map((line, i) => (
-                <React.Fragment key={i}>
-                  {i > 0 && <br />}
-                  {line}
-                </React.Fragment>
-              ))}
-            </p>
-          )}
+          </h2>
         </div>
       );
     }
@@ -405,18 +367,16 @@ const Home: React.FC = () => {
     if (introAnimation === 'split-rise') {
       return (
         <div className={baseCls}>
-          <p className="intro-text">
-            {renderBioSplitRise()}
-          </p>
+          <h2 className="intro-greeting">
+            <span className="split-line split-line-1">{fullGreeting}</span>
+          </h2>
         </div>
       );
     }
 
     return (
       <div className={baseCls}>
-        <p className="intro-text">
-          {renderBioText()}
-        </p>
+        <h2 className="intro-greeting">{fullGreeting}</h2>
       </div>
     );
   };
