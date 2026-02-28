@@ -131,7 +131,13 @@ const Home: React.FC = () => {
   };
 
   // Typewriter effect for intro greeting
-  const fullGreeting = aboutInfo.title || '你好，小冰块';
+  const greetingItem = effectiveLayout.find(i => i.type === 'greeting');
+  const fullGreeting = greetingItem?.greetingText || aboutInfo.title || '你好，小冰块';
+  const navLinksItem = effectiveLayout.find(i => i.type === 'navLinks');
+  const homeNavLinks = navLinksItem?.navLinks || [
+    { label: 'Explore My Footprints', url: '/footprints' },
+    { label: 'About Me', url: '/about' },
+  ];
   useEffect(() => {
     if (introAnimation !== 'typewriter' || !introVisible) return;
     setTypedText('');
@@ -555,8 +561,11 @@ const Home: React.FC = () => {
                   <div className="home-text-block-inner">
                     <div className={`intro-links intro-anim intro-anim-${introAnimation} ${introVisible ? 'show' : ''}`}
                          style={{ transitionDelay: introAnimation === 'split-rise' ? '0.8s' : '0.3s' }}>
-                      <Link to="/footprints" className="text-link">Explore My Footprints</Link>
-                      <Link to="/about" className="text-link">About Me</Link>
+                      {homeNavLinks.map((lnk, i) => (
+                        lnk.url.startsWith('/') || lnk.url.startsWith('#')
+                          ? <Link key={i} to={lnk.url} className="text-link">{lnk.label}</Link>
+                          : <a key={i} href={lnk.url} className="text-link" target="_blank" rel="noopener noreferrer">{lnk.label}</a>
+                      ))}
                     </div>
                   </div>
                 </div>

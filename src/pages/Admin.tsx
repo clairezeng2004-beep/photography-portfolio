@@ -3209,6 +3209,7 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
   const [layout, setLayout] = useState<HomeLayoutItem[]>(effectiveLayout);
   const [textBlocks, setTextBlocks] = useState<HomeTextBlock[]>(homeTextBlocks);
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+  const [editingSingletonId, setEditingSingletonId] = useState<string | null>(null);
   const [showImportMenu, setShowImportMenu] = useState(false);
 
   // Sync from props
@@ -3424,28 +3425,109 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
 
   // Render a singleton component (greeting / navLinks)
   const renderSingleton = (item: HomeLayoutItem, idx: number) => {
-    const label = item.type === 'greeting' ? aboutInfo.title || '你好，小冰块' : 'Explore My Footprints · About Me';
+    const isEditing = editingSingletonId === item.id;
     const typeLabel = item.type === 'greeting' ? 'Greeting' : '导航链接';
+
+    if (item.type === 'greeting') {
+      const currentText = item.greetingText || aboutInfo.title || '你好，小冰块';
+      return (
+        <React.Fragment key={item.type}>
+          <div
+            className={`home-preview-item home-preview-singleton ${dragIdx === idx ? 'dragging' : ''} ${isEditing ? 'editing' : ''}`}
+            draggable={!isEditing}
+            onDragStart={(e) => handleDragStart(e, idx)}
+            onDragEnd={handleDragEnd}
+          >
+            {isEditing ? (
+              <div className="hp-singleton-editor">
+                <div className="hp-tb-editor-field">
+                  <label>Greeting 文字</label>
+                  <input
+                    type="text"
+                    defaultValue={currentText}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        handleSaveSingleton(idx, { ...item, greetingText: val || undefined });
+                      }
+                      if (e.key === 'Escape') setEditingSingletonId(null);
+                    }}
+                    id={`greeting-edit-${idx}`}
+                  />
+                </div>
+                <div className="hp-tb-editor-actions">
+                  <button className="btn btn-primary btn-sm" onClick={() => {
+                    const input = document.getElementById(`greeting-edit-${idx}`) as HTMLInputElement;
+                    const val = input?.value.trim();
+                    handleSaveSingleton(idx, { ...item, greetingText: val || undefined });
+                  }}>保存</button>
+                  <button className="btn btn-outline btn-sm" onClick={() => setEditingSingletonId(null)}>取消</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="hp-singleton-content" onClick={() => setEditingSingletonId(item.id)}>
+                  <span className="hp-singleton-badge">{typeLabel}</span>
+                  <span className="hp-singleton-text">{currentText}</span>
+                </div>
+                <div className="hp-textblock-toolbar">
+                  <button className="hp-tb-edit-btn" title="编辑" onClick={() => setEditingSingletonId(item.id)}><Edit size={14} /></button>
+                  {renderMoveButtons(idx)}
+                  <button className="hp-tb-del-btn" title="从首页移除" onClick={() => handleRemoveItem(idx)}><X size={14} /></button>
+                </div>
+              </>
+            )}
+          </div>
+          {renderDropZone(idx + 1)}
+        </React.Fragment>
+      );
+    }
+
+    // navLinks
+    const currentLinks = item.navLinks || [
+      { label: 'Explore My Footprints', url: '/footprints' },
+      { label: 'About Me', url: '/about' },
+    ];
     return (
       <React.Fragment key={item.type}>
         <div
-          className={`home-preview-item home-preview-singleton ${dragIdx === idx ? 'dragging' : ''}`}
-          draggable
+          className={`home-preview-item home-preview-singleton ${dragIdx === idx ? 'dragging' : ''} ${isEditing ? 'editing' : ''}`}
+          draggable={!isEditing}
           onDragStart={(e) => handleDragStart(e, idx)}
           onDragEnd={handleDragEnd}
         >
-          <div className="hp-singleton-content">
-            <span className="hp-singleton-badge">{typeLabel}</span>
-            <span className="hp-singleton-text">{label}</span>
-          </div>
-          <div className="hp-textblock-toolbar">
-            {renderMoveButtons(idx)}
-            <button className="hp-tb-del-btn" title="从首页移除" onClick={() => handleRemoveItem(idx)}><X size={14} /></button>
-          </div>
+          {isEditing ? (
+            <NavLinksEditor
+              links={currentLinks}
+              onSave={(links) => handleSaveSingleton(idx, { ...item, navLinks: links })}
+              onCancel={() => setEditingSingletonId(null)}
+            />
+          ) : (
+            <>
+              <div className="hp-singleton-content" onClick={() => setEditingSingletonId(item.id)}>
+                <span className="hp-singleton-badge">{typeLabel}</span>
+                <span className="hp-singleton-text">{currentLinks.map(l => l.label).join(' · ')}</span>
+              </div>
+              <div className="hp-textblock-toolbar">
+                <button className="hp-tb-edit-btn" title="编辑" onClick={() => setEditingSingletonId(item.id)}><Edit size={14} /></button>
+                {renderMoveButtons(idx)}
+                <button className="hp-tb-del-btn" title="从首页移除" onClick={() => handleRemoveItem(idx)}><X size={14} /></button>
+              </div>
+            </>
+          )}
         </div>
         {renderDropZone(idx + 1)}
       </React.Fragment>
     );
+  };
+
+  const handleSaveSingleton = (idx: number, updatedItem: HomeLayoutItem) => {
+    const newLayout = [...layout];
+    newLayout[idx] = updatedItem;
+    setLayout(newLayout);
+    setEditingSingletonId(null);
+    saveLayout(newLayout);
   };
 
   return (
@@ -3611,6 +3693,41 @@ const TextBlockEditor: React.FC<TextBlockEditorProps> = ({ block, onSave, onCanc
         <button className="btn btn-primary btn-sm" onClick={handleSave}><Save size={14} /> 保存</button>
         <button className="btn btn-sm" onClick={onCancel}>取消</button>
         <button className="btn btn-danger btn-sm" onClick={onDelete}><Trash2 size={14} /> 删除</button>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   NavLinksEditor — inline editor for nav links singleton
+   ============================================================ */
+interface NavLinksEditorProps {
+  links: { label: string; url: string }[];
+  onSave: (links: { label: string; url: string }[]) => void;
+  onCancel: () => void;
+}
+
+const NavLinksEditor: React.FC<NavLinksEditorProps> = ({ links: initialLinks, onSave, onCancel }) => {
+  const [links, setLinks] = useState(initialLinks);
+
+  return (
+    <div className="hp-tb-editor">
+      <div className="hp-tb-editor-field">
+        <label>导航链接</label>
+        {links.map((lnk, i) => (
+          <div key={i} className="hp-tb-link-row">
+            <input type="text" value={lnk.label} onChange={e => { const nl = [...links]; nl[i] = { ...nl[i], label: e.target.value }; setLinks(nl); }} placeholder="链接文字" />
+            <input type="text" value={lnk.url} onChange={e => { const nl = [...links]; nl[i] = { ...nl[i], url: e.target.value }; setLinks(nl); }} placeholder="链接地址（如 /footprints）" />
+            <button type="button" className="hp-tb-link-del" onClick={() => setLinks(links.filter((_, j) => j !== i))}><X size={14} /></button>
+          </div>
+        ))}
+        <button type="button" className="btn btn-sm" onClick={() => setLinks([...links, { label: '', url: '' }])}>
+          <Plus size={14} /> 添加链接
+        </button>
+      </div>
+      <div className="hp-tb-editor-actions">
+        <button className="btn btn-primary btn-sm" onClick={() => onSave(links.filter(l => l.label.trim() && l.url.trim()))}><Save size={14} /> 保存</button>
+        <button className="btn btn-sm" onClick={onCancel}>取消</button>
       </div>
     </div>
   );

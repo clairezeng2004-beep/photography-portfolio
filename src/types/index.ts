@@ -133,4 +133,6 @@ export type HomeLayoutItemType = 'collection' | 'textBlock' | 'greeting' | 'navL
 export interface HomeLayoutItem {
   type: HomeLayoutItemType;
   id: string; // collection id, textBlock id, or singleton key ('greeting', 'navLinks')
+  greetingText?: string; // custom greeting text (for type 'greeting')
+  navLinks?: { label: string; url: string }[]; // custom nav links (for type 'navLinks')
 }

@@ -4434,13 +4434,6 @@
   min-height: 48px;
 }
 
-.hp-singleton-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
 .hp-singleton-badge {
   font-size: 10px;
   font-weight: 600;
@@ -4460,6 +4453,34 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.hp-singleton-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.home-preview-singleton.editing {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 16px;
+}
+
+.hp-singleton-editor {
+  width: 100%;
+}
+
+.hp-singleton-editor .hp-tb-editor-field {
+  margin-bottom: 10px;
+}
+
+.hp-singleton-editor .hp-tb-editor-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .home-preview-singleton .hp-textblock-toolbar {
