@@ -885,12 +885,18 @@
   grid-column: 1 / -1;
   display: flex;
   justify-content: center;
-  padding: 12px 24px;
+  padding: 4px 24px;
   text-align: center;
 }
 
 .home-text-block-inner {
   max-width: 640px;
+}
+
+/* Extra spacing when text-block is followed by a card row */
+.home-text-block:has(+ .card),
+.home-text-block:has(+ [class*="card-anim"]) {
+  margin-bottom: 28px;
 }
 
 .home-tb-title {
@@ -922,7 +928,11 @@
 
 @media (max-width: 768px) {
   .home-text-block {
-    padding: 8px 16px;
+    padding: 2px 16px;
+  }
+  .home-text-block:has(+ .card),
+  .home-text-block:has(+ [class*="card-anim"]) {
+    margin-bottom: 20px;
   }
   .home-tb-title {
     font-size: 24px;
