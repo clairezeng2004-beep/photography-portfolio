@@ -579,11 +579,19 @@ const Home: React.FC = () => {
             // textBlock — render as intro-style block spanning full width
             const block = getTextBlock(item.id);
             if (!block) return null;
+            const tbId = `tb-${item.id}`;
+            const tbVisible = visibleCards.has(tbId);
+            const tbDelay = introAnimation === 'split-rise' ? '0.4s' : '0.15s';
             return (
-              <div key={`tb-${item.id}`} className="home-text-block">
+              <div key={tbId} className="home-text-block" data-id={tbId} ref={cardRef}>
                 <div className="home-text-block-inner">
-                  {block.title && <h2 className="home-tb-title">{block.title}</h2>}
-                  <p className="home-tb-text">
+                  {block.title && (
+                    <h2 className={`home-tb-title intro-anim intro-anim-${introAnimation} ${tbVisible ? 'show' : ''}`}>
+                      {block.title}
+                    </h2>
+                  )}
+                  <p className={`home-tb-text intro-anim intro-anim-${introAnimation} ${tbVisible ? 'show' : ''}`}
+                     style={{ transitionDelay: block.title ? tbDelay : '0s' }}>
                     {block.lines.map((line, i) => (
                       <React.Fragment key={i}>
                         {i > 0 && <br />}
@@ -592,7 +600,8 @@ const Home: React.FC = () => {
                     ))}
                   </p>
                   {block.links && block.links.length > 0 && (
-                    <div className="home-tb-links">
+                    <div className={`home-tb-links intro-anim intro-anim-${introAnimation} ${tbVisible ? 'show' : ''}`}
+                         style={{ transitionDelay: block.title ? '0.3s' : tbDelay }}>
                       {block.links.map((lnk, i) => (
                         lnk.url.startsWith('/') || lnk.url.startsWith('#')
                           ? <Link key={i} to={lnk.url} className="text-link">{lnk.label}</Link>
