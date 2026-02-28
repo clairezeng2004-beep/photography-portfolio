@@ -4588,13 +4588,6 @@
   color: #2a2a2a;
   border-color: #2a2a2a;
 }
-  align-items: center;
-  background: rgba(255,255,255,0.85);
-  border-radius: 4px;
-  padding: 2px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
 
 /* Text block in preview */
 .home-preview-textblock {
