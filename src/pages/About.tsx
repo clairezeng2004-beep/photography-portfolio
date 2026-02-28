@@ -64,7 +64,7 @@ const About: React.FC = () => {
 
         {/* Bio */}
         <div className="about-text">
-          {aboutInfo.bio.map((paragraph, index) => (
+          {aboutInfo.bio.filter(p => p.trim()).map((paragraph, index) => (
             <p key={index}>{paragraph}</p>
           ))}
         </div>
