@@ -350,7 +350,6 @@ const Home: React.FC = () => {
   /* ============================================================
      INTRO RENDER
      ============================================================ */
-  const introGreeting = ''; // removed
   const introBioLines = aboutInfo.bio.length > 0 ? aboutInfo.bio : [
     '我用镜头记录旅途中遇见的风景与故事。',
     '每一座城市都有它独特的光线和温度，',
