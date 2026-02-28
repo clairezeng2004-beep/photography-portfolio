@@ -128,9 +128,9 @@ export interface HomeTextBlock {
   links?: { label: string; url: string }[];
 }
 
-export type HomeLayoutItemType = 'collection' | 'textBlock';
+export type HomeLayoutItemType = 'collection' | 'textBlock' | 'greeting' | 'navLinks';
 
 export interface HomeLayoutItem {
   type: HomeLayoutItemType;
-  id: string; // collection id or textBlock id
+  id: string; // collection id, textBlock id, or singleton key ('greeting', 'navLinks')
 }

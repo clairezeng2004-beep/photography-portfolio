@@ -1107,6 +1107,7 @@ const Admin: React.FC = () => {
                 collections={collections}
                 homeTextBlocks={homeTextBlocks}
                 homeLayout={homeLayout}
+                aboutInfo={aboutInfo}
                 updateCollections={updateCollections}
                 updateHomeTextBlocks={updateHomeTextBlocks}
                 updateHomeLayout={updateHomeLayout}
@@ -3155,12 +3156,13 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 };
 
 /* ============================================================
-   HomePreviewManager — 首页预览：拖拽排序作品集 + 文字栏管理
+   HomePreviewManager — 首页预览：拖拽排序作品集 + 组件管理
    ============================================================ */
 interface HomePreviewManagerProps {
   collections: PhotoCollection[];
   homeTextBlocks: HomeTextBlock[];
   homeLayout: HomeLayoutItem[];
+  aboutInfo: AboutInfo;
   updateCollections: (c: PhotoCollection[]) => Promise<boolean>;
   updateHomeTextBlocks: (b: HomeTextBlock[]) => Promise<boolean>;
   updateHomeLayout: (l: HomeLayoutItem[]) => Promise<boolean>;
@@ -3168,7 +3170,7 @@ interface HomePreviewManagerProps {
 }
 
 const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
-  collections, homeTextBlocks, homeLayout,
+  collections, homeTextBlocks, homeLayout, aboutInfo,
   updateCollections, updateHomeTextBlocks, updateHomeLayout, showToast,
 }) => {
   // Build sorted collections list (same logic as Home.tsx)
@@ -3181,28 +3183,33 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
     });
   }, [collections]);
 
-  // Build effective layout: if homeLayout is empty, auto-generate from sorted collections
+  // Build effective layout: if homeLayout is empty, auto-generate with greeting + navLinks + collections
   const effectiveLayout = useMemo<HomeLayoutItem[]>(() => {
     if (homeLayout.length > 0) {
-      // Include any new collections not yet in layout
       const layoutIds = new Set(homeLayout.map(item => item.id));
       const missing = sortedCollections
         .filter(c => !layoutIds.has(c.id))
         .map(c => ({ type: 'collection' as const, id: c.id }));
-      // Remove items whose collection/textBlock no longer exists
       const textBlockIds = new Set(homeTextBlocks.map(b => b.id));
       const collectionIds = new Set(collections.map(c => c.id));
-      const cleaned = homeLayout.filter(item =>
-        item.type === 'collection' ? collectionIds.has(item.id) : textBlockIds.has(item.id)
-      );
+      const cleaned = homeLayout.filter(item => {
+        if (item.type === 'collection') return collectionIds.has(item.id);
+        if (item.type === 'textBlock') return textBlockIds.has(item.id);
+        return true; // greeting, navLinks
+      });
       return [...cleaned, ...missing];
     }
-    return sortedCollections.map(c => ({ type: 'collection' as const, id: c.id }));
+    return [
+      { type: 'greeting' as const, id: 'greeting' },
+      { type: 'navLinks' as const, id: 'navLinks' },
+      ...sortedCollections.map(c => ({ type: 'collection' as const, id: c.id })),
+    ];
   }, [homeLayout, sortedCollections, homeTextBlocks, collections]);
 
   const [layout, setLayout] = useState<HomeLayoutItem[]>(effectiveLayout);
   const [textBlocks, setTextBlocks] = useState<HomeTextBlock[]>(homeTextBlocks);
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+  const [showImportMenu, setShowImportMenu] = useState(false);
 
   // Sync from props
   useEffect(() => { setLayout(effectiveLayout); }, [effectiveLayout]);
@@ -3254,7 +3261,6 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
     dragItem.current = null;
   };
 
-  // Move item up/down
   const handleMoveItem = (idx: number, direction: 'up' | 'down') => {
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (targetIdx < 0 || targetIdx >= layout.length) return;
@@ -3264,8 +3270,20 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
     saveLayout(newLayout);
   };
 
+  const handleRemoveItem = (idx: number) => {
+    const item = layout[idx];
+    if (item.type === 'textBlock') {
+      handleDeleteTextBlock(item.id);
+      return;
+    }
+    // For greeting/navLinks, just remove from layout
+    const newLayout = layout.filter((_, i) => i !== idx);
+    setLayout(newLayout);
+    saveLayout(newLayout);
+    showToast('组件已从首页移除');
+  };
+
   const saveLayout = async (newLayout: HomeLayoutItem[]) => {
-    // Update collection order based on their position in layout
     let collIdx = 0;
     const orderMap = new Map<string, number>();
     newLayout.forEach(item => {
@@ -3285,9 +3303,9 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
   };
 
   // Add text block
-  const handleAddTextBlock = () => {
+  const handleAddTextBlock = (initBlock?: Partial<HomeTextBlock>) => {
     const id = `tb-${Date.now()}`;
-    const newBlock: HomeTextBlock = { id, lines: ['在这里输入文字…'] };
+    const newBlock: HomeTextBlock = { id, lines: initBlock?.lines || ['在这里输入文字…'], title: initBlock?.title, links: initBlock?.links };
     const newTextBlocks = [...textBlocks, newBlock];
     const newLayout = [...layout, { type: 'textBlock' as const, id }];
     setTextBlocks(newTextBlocks);
@@ -3297,7 +3315,6 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
     updateHomeLayout(newLayout);
   };
 
-  // Delete text block
   const handleDeleteTextBlock = (blockId: string) => {
     const newTextBlocks = textBlocks.filter(b => b.id !== blockId);
     const newLayout = layout.filter(item => !(item.type === 'textBlock' && item.id === blockId));
@@ -3309,7 +3326,6 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
     showToast('文字栏已删除');
   };
 
-  // Save text block edits
   const handleSaveTextBlock = (block: HomeTextBlock) => {
     const newTextBlocks = textBlocks.map(b => b.id === block.id ? block : b);
     setTextBlocks(newTextBlocks);
@@ -3317,6 +3333,74 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
     updateHomeTextBlocks(newTextBlocks);
     showToast('文字栏已保存');
   };
+
+  // Toggle greeting/navLinks
+  const hasGreeting = layout.some(item => item.type === 'greeting');
+  const hasNavLinks = layout.some(item => item.type === 'navLinks');
+
+  const handleToggleComponent = (type: 'greeting' | 'navLinks') => {
+    const exists = layout.some(item => item.type === type);
+    let newLayout: HomeLayoutItem[];
+    if (exists) {
+      newLayout = layout.filter(item => item.type !== type);
+    } else {
+      newLayout = [{ type, id: type }, ...layout];
+    }
+    setLayout(newLayout);
+    saveLayout(newLayout);
+  };
+
+  // Import from About page
+  const importableItems = useMemo(() => {
+    const items: { key: string; label: string; action: () => void }[] = [];
+    // Bio
+    if (aboutInfo.bio.length > 0) {
+      items.push({
+        key: 'bio',
+        label: `个人简介 (${aboutInfo.bio.length}段)`,
+        action: () => handleAddTextBlock({ title: '关于我', lines: aboutInfo.bio }),
+      });
+    }
+    // Subtitle
+    if (aboutInfo.subtitle) {
+      items.push({
+        key: 'subtitle',
+        label: `副标题: ${aboutInfo.subtitle}`,
+        action: () => handleAddTextBlock({ lines: [aboutInfo.subtitle] }),
+      });
+    }
+    // Custom sections
+    (aboutInfo.customSections || []).filter(s => !s.id.startsWith('_builtin_')).forEach(section => {
+      const validItems = section.items.filter(item => item.label || item.value);
+      if (validItems.length === 0) return;
+      items.push({
+        key: section.id,
+        label: section.title,
+        action: () => {
+          const lines = validItems.map(item =>
+            item.label && item.value ? `${item.label}: ${item.value}` :
+            item.label || item.value
+          );
+          handleAddTextBlock({ title: section.title, lines });
+        },
+      });
+    });
+    // Contact
+    const contactLines: string[] = [];
+    if (aboutInfo.contact.email) contactLines.push(`邮箱: ${aboutInfo.contact.email}`);
+    if (aboutInfo.contact.instagram) contactLines.push(`Instagram: ${aboutInfo.contact.instagram}`);
+    if (aboutInfo.contact.phone) contactLines.push(`电话: ${aboutInfo.contact.phone}`);
+    if (aboutInfo.contact.weibo) contactLines.push(`微博: ${aboutInfo.contact.weibo}`);
+    if (contactLines.length > 0) {
+      items.push({
+        key: 'contact',
+        label: '联系方式',
+        action: () => handleAddTextBlock({ title: 'Say Hello', lines: contactLines }),
+      });
+    }
+    return items;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aboutInfo, textBlocks, layout]);
 
   const getCollection = (id: string) => collections.find(c => c.id === id);
   const getTextBlock = (id: string) => textBlocks.find(b => b.id === id);
@@ -3331,19 +3415,84 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
     />
   );
 
+  const renderMoveButtons = (idx: number) => (
+    <>
+      {idx > 0 && <button className="hp-move-btn" title="上移" onClick={() => handleMoveItem(idx, 'up')}><ChevronUp size={14} /></button>}
+      {idx < layout.length - 1 && <button className="hp-move-btn" title="下移" onClick={() => handleMoveItem(idx, 'down')}><ChevronDown size={14} /></button>}
+    </>
+  );
+
+  // Render a singleton component (greeting / navLinks)
+  const renderSingleton = (item: HomeLayoutItem, idx: number) => {
+    const label = item.type === 'greeting' ? aboutInfo.title || '你好，小冰块' : 'Explore My Footprints · About Me';
+    const typeLabel = item.type === 'greeting' ? 'Greeting' : '导航链接';
+    return (
+      <React.Fragment key={item.type}>
+        <div
+          className={`home-preview-item home-preview-singleton ${dragIdx === idx ? 'dragging' : ''}`}
+          draggable
+          onDragStart={(e) => handleDragStart(e, idx)}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="hp-singleton-content">
+            <span className="hp-singleton-badge">{typeLabel}</span>
+            <span className="hp-singleton-text">{label}</span>
+          </div>
+          <div className="hp-textblock-toolbar">
+            {renderMoveButtons(idx)}
+            <button className="hp-tb-del-btn" title="从首页移除" onClick={() => handleRemoveItem(idx)}><X size={14} /></button>
+          </div>
+        </div>
+        {renderDropZone(idx + 1)}
+      </React.Fragment>
+    );
+  };
+
   return (
     <div className="tab-content home-preview-manager">
       <div className="tab-header">
         <h1>首页预览</h1>
-        <button className="btn btn-primary" onClick={handleAddTextBlock}>
-          <Plus size={18} /> 添加文字栏
-        </button>
+        <div className="hp-header-actions">
+          {(!hasGreeting || !hasNavLinks) && (
+            <div className="hp-toggle-group">
+              {!hasGreeting && <button className="btn btn-outline btn-sm" onClick={() => handleToggleComponent('greeting')}><Plus size={14} /> Greeting</button>}
+              {!hasNavLinks && <button className="btn btn-outline btn-sm" onClick={() => handleToggleComponent('navLinks')}><Plus size={14} /> 导航链接</button>}
+            </div>
+          )}
+          <div className="hp-import-wrap">
+            <button className="btn btn-outline btn-sm" onClick={() => setShowImportMenu(!showImportMenu)}>
+              <Download size={14} /> 从关于页导入
+            </button>
+            {showImportMenu && importableItems.length > 0 && (
+              <div className="hp-import-dropdown">
+                {importableItems.map(item => (
+                  <button key={item.key} className="hp-import-item" onClick={() => { item.action(); setShowImportMenu(false); }}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {showImportMenu && importableItems.length === 0 && (
+              <div className="hp-import-dropdown">
+                <span className="hp-import-empty">关于页暂无可导入的板块</span>
+              </div>
+            )}
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={() => handleAddTextBlock()}>
+            <Plus size={14} /> 添加文字栏
+          </button>
+        </div>
       </div>
-      <p className="home-preview-hint">拖拽卡片调整首页展示顺序，或使用上下按钮微调位置。</p>
+      <p className="home-preview-hint">拖拽或使用箭头调整首页组件顺序。可添加 Greeting、导航链接，或从关于页导入板块。</p>
 
       <div className="home-preview-grid">
         {renderDropZone(0)}
         {layout.map((item, idx) => {
+          // Singleton components: greeting / navLinks
+          if (item.type === 'greeting' || item.type === 'navLinks') {
+            return renderSingleton(item, idx);
+          }
+
           if (item.type === 'collection') {
             const c = getCollection(item.id);
             if (!c) return null;
@@ -3364,8 +3513,7 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
                     </div>
                   </div>
                   <div className="hp-card-actions">
-                    {idx > 0 && <button className="hp-move-btn" title="上移" onClick={() => handleMoveItem(idx, 'up')}><ChevronUp size={14} /></button>}
-                    {idx < layout.length - 1 && <button className="hp-move-btn" title="下移" onClick={() => handleMoveItem(idx, 'down')}><ChevronDown size={14} /></button>}
+                    {renderMoveButtons(idx)}
                   </div>
                 </div>
                 {renderDropZone(idx + 1)}
@@ -3401,8 +3549,7 @@ const HomePreviewManager: React.FC<HomePreviewManagerProps> = ({
                     </div>
                     <div className="hp-textblock-toolbar">
                       <button className="hp-tb-edit-btn" title="编辑" onClick={() => setEditingBlockId(item.id)}><Edit size={14} /></button>
-                      {idx > 0 && <button className="hp-move-btn" title="上移" onClick={() => handleMoveItem(idx, 'up')}><ChevronUp size={14} /></button>}
-                      {idx < layout.length - 1 && <button className="hp-move-btn" title="下移" onClick={() => handleMoveItem(idx, 'down')}><ChevronDown size={14} /></button>}
+                      {renderMoveButtons(idx)}
                       <button className="hp-tb-del-btn" title="删除" onClick={() => handleDeleteTextBlock(item.id)}><Trash2 size={14} /></button>
                     </div>
                   </div>

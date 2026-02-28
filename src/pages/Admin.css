@@ -4337,6 +4337,140 @@
   margin-bottom: 16px;
 }
 
+/* Header actions row */
+.hp-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.hp-toggle-group {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-sm {
+  font-size: 12px;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #d5d3cf;
+  color: #555;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-outline:hover {
+  border-color: #2a2a2a;
+  color: #2a2a2a;
+}
+
+/* Import dropdown */
+.hp-import-wrap {
+  position: relative;
+}
+
+.hp-import-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #e8e6e2;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.hp-import-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 13px;
+  color: #333;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f0eeeb;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.hp-import-item:last-child {
+  border-bottom: none;
+}
+
+.hp-import-item:hover {
+  background: #faf9f7;
+}
+
+.hp-import-empty {
+  display: block;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #999;
+  text-align: center;
+}
+
+/* Singleton component (greeting / navLinks) */
+.home-preview-singleton {
+  grid-column: 1 / -1;
+  background: #f5f3ef;
+  border: 1px solid #e8e6e2;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  min-height: 48px;
+}
+
+.hp-singleton-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.hp-singleton-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: #2a2a2a;
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.hp-singleton-text {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px;
+  color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-preview-singleton .hp-textblock-toolbar {
+  position: static;
+  transform: none;
+  opacity: 1;
+  flex-direction: row;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .home-preview-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

@@ -23,17 +23,25 @@ const Home: React.FC = () => {
   const effectiveLayout = useMemo<HomeLayoutItem[]>(() => {
     if (homeLayout.length > 0) {
       const layoutIds = new Set(homeLayout.map(item => item.id));
+      // Add missing collections
       const missing = collections
         .filter(c => !layoutIds.has(c.id))
         .map(c => ({ type: 'collection' as const, id: c.id }));
       const textBlockIds = new Set(homeTextBlocks.map(b => b.id));
       const collectionIds = new Set(rawCollections.map(c => c.id));
-      const cleaned = homeLayout.filter(item =>
-        item.type === 'collection' ? collectionIds.has(item.id) : textBlockIds.has(item.id)
-      );
+      const cleaned = homeLayout.filter(item => {
+        if (item.type === 'collection') return collectionIds.has(item.id);
+        if (item.type === 'textBlock') return textBlockIds.has(item.id);
+        return true; // greeting, navLinks are always valid
+      });
       return [...cleaned, ...missing];
     }
-    return collections.map(c => ({ type: 'collection' as const, id: c.id }));
+    // Default layout: greeting → navLinks → collections
+    return [
+      { type: 'greeting' as const, id: 'greeting' },
+      { type: 'navLinks' as const, id: 'navLinks' },
+      ...collections.map(c => ({ type: 'collection' as const, id: c.id })),
+    ];
   }, [homeLayout, collections, homeTextBlocks, rawCollections]);
 
   const getTextBlock = useCallback((id: string): HomeTextBlock | undefined => {
@@ -528,22 +536,32 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* ===== INTRO ===== */}
-      <section className="intro-section" ref={introRef} data-id="__intro__">
-        <div className="intro-content">
-          {renderIntro()}
-          <div className={`intro-links intro-anim intro-anim-${introAnimation} ${introVisible ? 'show' : ''}`}
-               style={{ transitionDelay: introAnimation === 'split-rise' ? '0.8s' : '0.3s' }}>
-            <Link to="/footprints" className="text-link">Explore My Footprints</Link>
-            <Link to="/about" className="text-link">About Me</Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== CARDS ===== */}
+      {/* ===== CARDS + COMPONENTS ===== */}
       <section className="cards-section">
         <div className="cards-grid">
           {effectiveLayout.map((item) => {
+            if (item.type === 'greeting') {
+              return (
+                <div key="greeting" className="home-text-block" ref={introRef} data-id="__intro__">
+                  <div className="home-text-block-inner">
+                    {renderIntro()}
+                  </div>
+                </div>
+              );
+            }
+            if (item.type === 'navLinks') {
+              return (
+                <div key="navLinks" className="home-text-block">
+                  <div className="home-text-block-inner">
+                    <div className={`intro-links intro-anim intro-anim-${introAnimation} ${introVisible ? 'show' : ''}`}
+                         style={{ transitionDelay: introAnimation === 'split-rise' ? '0.8s' : '0.3s' }}>
+                      <Link to="/footprints" className="text-link">Explore My Footprints</Link>
+                      <Link to="/about" className="text-link">About Me</Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
             if (item.type === 'collection') {
               const collection = getCollection(item.id);
               if (!collection) return null;
