@@ -404,7 +404,7 @@
 
 /* ============ CARDS SECTION ============ */
 .cards-section {
-  padding: 0 60px 120px;
+  padding: 60px 60px 120px;
   background: #faf9f7;
 }
 
@@ -860,7 +860,7 @@
   .intro-greeting { font-size: 26px; }
   .intro-text { font-size: 15px; line-height: 2; }
 
-  .cards-section { padding: 0 24px 80px; }
+  .cards-section { padding: 40px 24px 80px; }
   .cards-grid { grid-template-columns: 1fr; gap: 24px; }
 
   /* Card city and year: ensure same font size */
@@ -885,7 +885,7 @@
   grid-column: 1 / -1;
   display: flex;
   justify-content: center;
-  padding: 32px 24px;
+  padding: 12px 24px;
   text-align: center;
 }
 
@@ -922,7 +922,7 @@
 
 @media (max-width: 768px) {
   .home-text-block {
-    padding: 24px 16px;
+    padding: 8px 16px;
   }
   .home-tb-title {
     font-size: 24px;
