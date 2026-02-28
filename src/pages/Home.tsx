@@ -401,7 +401,9 @@ const Home: React.FC = () => {
   const renderCard = (collection: typeof collections[0]) => {
     const isVisible = visibleCards.has(collection.id);
     const displayTitle = collection.title;
-    const cardImage = collection.cardCoverImage || collection.coverImage || collection.photos?.[0]?.url || collection.photos?.[0]?.thumbnail;
+    const fullImage = collection.cardCoverImage || collection.coverImage || collection.photos?.[0]?.url || collection.photos?.[0]?.thumbnail;
+    const mobileImage = collection.photos?.[0]?.thumbnail || fullImage;
+    const cardImage = isMobile ? mobileImage : fullImage;
 
     if (cardAnimation === 'float-flip') {
       return (

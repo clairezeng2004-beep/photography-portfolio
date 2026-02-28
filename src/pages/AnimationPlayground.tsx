@@ -321,6 +321,57 @@ const CardPreview: React.FC<{ animation: CardAnimation; playing: boolean }> = ({
 };
 
 /* ============================================================
+   Mobile Card Preview — 手机端两列预览
+   ============================================================ */
+const MOBILE_CARD_DEMO = [
+  { title: '巴黎', location: 'Paris · 2024' },
+  { title: '东京', location: 'Tokyo · 2023' },
+  { title: '巴塞罗那', location: 'Barcelona · 2024' },
+  { title: '伦敦', location: 'London · 2023' },
+];
+
+const MobileCardPreview: React.FC<{ animation: CardAnimation; playing: boolean }> = ({
+  animation,
+  playing,
+}) => {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    setShow(false);
+    if (!playing) return;
+    const timer = setTimeout(() => setShow(true), 300);
+    return () => clearTimeout(timer);
+  }, [playing, animation]);
+
+  return (
+    <div className="mobile-preview-frame">
+      <div className="mobile-preview-notch" />
+      <div className="mobile-preview-screen">
+        <div className="mobile-cards-grid">
+          {MOBILE_CARD_DEMO.map((card, i) => {
+            const delay = `${i * 0.12}s`;
+            const cls = `mobile-preview-card card-anim-${animation} ${show ? 'show' : ''}`;
+            return (
+              <div key={i} className={cls} style={{ transitionDelay: show ? delay : '0s', animationDelay: show ? delay : '0s' }}>
+                <div className="preview-card-inner">
+                  <div className="preview-card-front">
+                    <img src={DEMO_IMAGES[i % DEMO_IMAGES.length]} alt="" />
+                    <div className="preview-card-info">
+                      <span className="preview-card-title">{card.title}</span>
+                      <span className="preview-card-loc">{card.location}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
    Float-Flip Dual Preview (上浮 + 悬浮卡片 分开展示)
    ============================================================ */
 const FloatFlipDualPreview: React.FC<{ playing: boolean }> = ({ playing }) => {
@@ -757,6 +808,11 @@ const AnimationPlayground: React.FC = () => {
             <CardPreview animation={card} playing={cardPlay} />
           </div>
         )}
+
+        <div className="mobile-preview-section">
+          <h3 className="mobile-preview-label">📱 手机端预览 · 两列布局</h3>
+          <MobileCardPreview animation={card} playing={cardPlay} />
+        </div>
       </section>
 
       {/* ===== CARD EDIT LAYOUT SECTION ===== */}
