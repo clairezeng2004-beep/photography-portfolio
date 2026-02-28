@@ -1729,7 +1729,6 @@ const Admin: React.FC = () => {
                       />
                     </div>
                   </div>
-                  </div>
                 </div>
 
                 {!(editedAboutInfo.hiddenSections || []).includes('contact') ? (
