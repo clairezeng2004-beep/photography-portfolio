@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { HomeLayoutItem, HomeTextBlock } from '../types';
+import { useImageBrightnessBatch } from '../hooks/useImageBrightness';
 import './Home.css';
 
 const Home: React.FC = () => {
@@ -425,6 +426,29 @@ const Home: React.FC = () => {
     return () => document.removeEventListener('touchstart', handleOutsideTap);
   }, [isMobile, tappedCardId]);
 
+  // Collect card image URLs for brightness detection
+  const cardImageUrls = useMemo(() => {
+    return collections.map(c => {
+      const full = c.cardCoverImage || c.coverImage || c.photos?.[0]?.url || c.photos?.[0]?.thumbnail || '';
+      return isMobile ? (c.photos?.[0]?.thumbnail || full) : full;
+    }).filter(Boolean);
+  }, [collections, isMobile]);
+  const brightnessMap = useImageBrightnessBatch(cardImageUrls);
+
+  // Compute brightness filter for a card image — bright images get darkened more
+  const getBrightnessFilter = (imageUrl: string | undefined): string | undefined => {
+    if (!imageUrl) return undefined;
+    const b = brightnessMap.get(imageUrl);
+    if (b == null) return undefined; // still loading, use CSS default
+    // Bright images (b > 160): darken aggressively — scale from 0.75 down to 0.6
+    // Medium images (120–160): moderate darkening — scale from 0.88 down to 0.75
+    // Dark images (< 120): keep CSS default or lighten slightly
+    if (b > 180) return 'brightness(0.6)';
+    if (b > 160) return 'brightness(0.7)';
+    if (b > 140) return 'brightness(0.78)';
+    return undefined; // use CSS default
+  };
+
   const renderCard = (collection: typeof collections[0]) => {
     const isVisible = visibleCards.has(collection.id);
     const isTapped = isMobile && tappedCardId === collection.id;
@@ -432,6 +456,8 @@ const Home: React.FC = () => {
     const fullImage = collection.cardCoverImage || collection.coverImage || collection.photos?.[0]?.url || collection.photos?.[0]?.thumbnail;
     const mobileImage = collection.photos?.[0]?.thumbnail || fullImage;
     const cardImage = isMobile ? mobileImage : fullImage;
+    const bFilter = getBrightnessFilter(cardImage);
+    const imgStyle = bFilter ? { filter: bFilter } as React.CSSProperties : undefined;
 
     if (cardAnimation === 'float-flip') {
       return (
@@ -443,7 +469,7 @@ const Home: React.FC = () => {
         >
           <Link to={`/gallery/${collection.id}`} className="overlay-card-link" onClick={(e) => handleMobileCardTap(e, collection.id)}>
             <div className="overlay-card">
-              <img src={cardImage} alt={collection.title} className="overlay-card-image" loading="lazy" draggable={false} />
+              <img src={cardImage} alt={collection.title} className="overlay-card-image" loading="lazy" draggable={false} style={imgStyle} />
               <div className="overlay-card-hover">
                 <div className="overlay-card-border">
                   <h3 className="overlay-card-title">{displayTitle}</h3>
@@ -468,7 +494,7 @@ const Home: React.FC = () => {
           <Link to={`/gallery/${collection.id}`} className="flip-card-link" onClick={(e) => handleMobileCardTap(e, collection.id)}>
             <div className="flip-card">
               <div className="flip-card-front">
-                <img src={cardImage} alt={collection.title} className="flip-card-image" loading="lazy" draggable={false} />
+                <img src={cardImage} alt={collection.title} className="flip-card-image" loading="lazy" draggable={false} style={imgStyle} />
                 <div className="flip-card-front-info">
                   <h3 className="card-title">{displayTitle}</h3>
                   <p className="card-location">{collection.location} · {collection.year}</p>
@@ -499,7 +525,7 @@ const Home: React.FC = () => {
       >
         <Link to={`/gallery/${collection.id}`} className="simple-card-link" onClick={(e) => handleMobileCardTap(e, collection.id)}>
           <div className="simple-card">
-            <img src={cardImage} alt={collection.title} className="simple-card-image" loading="lazy" draggable={false} />
+            <img src={cardImage} alt={collection.title} className="simple-card-image" loading="lazy" draggable={false} style={imgStyle} />
             <div className="simple-card-info">
               <h3 className="card-title">{displayTitle}</h3>
               <p className="card-location">{collection.location} · {collection.year}</p>

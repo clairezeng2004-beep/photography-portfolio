@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Photo } from '../types';
+import { useImageBrightnessBatch } from '../hooks/useImageBrightness';
 import './Gallery.css';
 
 // Group photos into rows: full = 1 photo per row, consecutive halfs = 2 per row
@@ -42,6 +43,22 @@ const Gallery: React.FC = () => {
     const shuffled = [...others].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 8);
   }, [collections, id]);
+
+  // Brightness detection for rec-card images
+  const recCardUrls = useMemo(() =>
+    recommendedCollections.map(c => c.cardCoverImage || c.coverImage || c.photos?.[0]?.url || '').filter(Boolean),
+    [recommendedCollections]
+  );
+  const recBrightnessMap = useImageBrightnessBatch(recCardUrls);
+  const getRecBrightnessStyle = (url: string | undefined): React.CSSProperties | undefined => {
+    if (!url) return undefined;
+    const b = recBrightnessMap.get(url);
+    if (b == null) return undefined;
+    if (b > 180) return { filter: 'brightness(0.55)' };
+    if (b > 160) return { filter: 'brightness(0.65)' };
+    if (b > 140) return { filter: 'brightness(0.75)' };
+    return undefined;
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -203,7 +220,7 @@ const Gallery: React.FC = () => {
                 
               >
                 <div className="rec-card-image">
-                  <img src={c.cardCoverImage || c.coverImage || c.photos?.[0]?.url} alt={c.title} loading="lazy" />
+                  <img src={c.cardCoverImage || c.coverImage || c.photos?.[0]?.url} alt={c.title} loading="lazy" style={getRecBrightnessStyle(c.cardCoverImage || c.coverImage || c.photos?.[0]?.url)} />
                   <div className="rec-card-overlay">
                     <h3 className="rec-card-title">{c.title}</h3>
                     <span className="rec-card-location">{c.location}</span>

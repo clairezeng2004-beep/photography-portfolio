@@ -47,7 +47,7 @@
 .gallery-photos {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 16px;
   padding: 0 40px;
   max-width: 600px;
   margin: 0 auto;
@@ -66,7 +66,7 @@
 /* ============ PAIR ROW (two photos side by side) ============ */
 .gallery-photo-pair {
   display: flex;
-  gap: 6px;
+  gap: 16px;
 }
 
 .gallery-photo-pair .gallery-photo-cell {
@@ -82,7 +82,7 @@
 
 /* ============ DIARY STYLE (图文交错 / 豆瓣日记风格) ============ */
 .gallery-photos.diary-style {
-  gap: 6px;
+  gap: 16px;
   max-width: 600px;
 }
 

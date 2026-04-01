@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useImageBrightnessBatch } from '../hooks/useImageBrightness';
 import { PhotoCollection, GeoInfo } from '../types';
 import { CITY_DATABASE, CHINA_PROVINCES } from '../data/geoData';
 import * as topojson from 'topojson-client';
@@ -546,6 +547,24 @@ const Footprints: React.FC = () => {
 
   const totalCities = allLitCityGeos.length;
   const totalCountries = litCountryCodes.size;
+
+  // Brightness detection for city cards
+  const fpCardUrls = useMemo(() => {
+    return Array.from(cityGroups.values()).map(g => {
+      const c = g.collections[0];
+      return c.cardCoverImage || c.coverImage || c.photos?.[0]?.url || c.photos?.[0]?.thumbnail || '';
+    }).filter(Boolean);
+  }, [cityGroups]);
+  const fpBrightnessMap = useImageBrightnessBatch(fpCardUrls);
+  const getFpBrightnessStyle = (url: string | undefined): React.CSSProperties | undefined => {
+    if (!url) return undefined;
+    const b = fpBrightnessMap.get(url);
+    if (b == null) return undefined;
+    if (b > 180) return { filter: 'brightness(0.55)' };
+    if (b > 160) return { filter: 'brightness(0.65)' };
+    if (b > 140) return { filter: 'brightness(0.75)' };
+    return undefined;
+  };
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -1431,7 +1450,7 @@ const Footprints: React.FC = () => {
                   onClick={handleClick}
                 >
                   <div className="fp-card-image">
-                    <img src={cardImage} alt={displayTitle} loading="lazy" draggable={false} />
+                    <img src={cardImage} alt={displayTitle} loading="lazy" draggable={false} style={getFpBrightnessStyle(cardImage)} />
                     <div className="fp-card-overlay">
                       <h3 className="fp-card-title">{displayTitle}</h3>
                       <span className="fp-card-location">{locationText}</span>
