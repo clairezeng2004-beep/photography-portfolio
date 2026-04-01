@@ -20,7 +20,7 @@
 }
 
 .playground-header h1 {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-style: italic;
   font-size: 32px;
   font-weight: 400;
@@ -30,7 +30,7 @@
 }
 
 .playground-subtitle {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 300;
   color: #999;
@@ -45,7 +45,7 @@
   background: #e8e6e2;
   color: #999;
   border: none;
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 300;
   cursor: not-allowed;
@@ -82,7 +82,7 @@
 }
 
 .section-head h2 {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 20px;
   font-weight: 400;
   color: #2a2a2a;
@@ -91,7 +91,7 @@
 }
 
 .section-head p {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 13px;
   font-weight: 300;
   color: #999;
@@ -105,7 +105,7 @@
   padding: 8px 16px;
   background: transparent;
   border: 1px solid #e8e6e2;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-style: italic;
   font-size: 12px;
   font-weight: 400;
@@ -153,7 +153,7 @@
 }
 
 .chip-label {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 400;
   color: #2a2a2a;
@@ -166,7 +166,7 @@
 }
 
 .chip-desc {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 11px;
   font-weight: 300;
   color: #999;
@@ -241,7 +241,7 @@
 }
 
 .preview-hero-overlay span {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 28px;
   font-weight: 700;
   color: #fff;
@@ -395,7 +395,7 @@
 }
 
 .preview-intro-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 22px;
   font-weight: 400;
   color: #2a2a2a;
@@ -404,7 +404,7 @@
 }
 
 .preview-intro-text {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 13px;
   font-weight: 300;
   color: #666;
@@ -597,7 +597,7 @@
 
 .preview-card-title {
   display: block;
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 400;
   color: #fff;
@@ -605,7 +605,7 @@
 
 .preview-card-loc {
   display: block;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-style: italic;
   font-size: 11px;
   color: rgba(255,255,255,0.7);
@@ -636,7 +636,7 @@
 }
 
 .preview-card-back-overlay span {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 14px;
   font-weight: 400;
   letter-spacing: 0.15em;
@@ -668,7 +668,7 @@
 }
 
 .dual-label-num {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 16px;
   font-weight: 400;
   color: #2a2a2a;
@@ -676,7 +676,7 @@
 }
 
 .dual-label-text {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 400;
   color: #2a2a2a;
@@ -684,7 +684,7 @@
 }
 
 .dual-label-hint {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 12px;
   font-weight: 300;
   color: #bbb;
@@ -699,7 +699,7 @@
   padding: 4px 10px;
   background: transparent;
   border: 1px solid #e8e6e2;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-style: italic;
   font-size: 11px;
   font-weight: 400;
@@ -783,7 +783,7 @@
 }
 
 .preview-overlay-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 13px;
   font-weight: 400;
   color: #2a2a2a;
@@ -793,7 +793,7 @@
 }
 
 .preview-overlay-readmore {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 10px;
   font-weight: 400;
   letter-spacing: 0.15em;
@@ -885,7 +885,7 @@
 }
 
 .page-preview-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 20px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.9);
@@ -899,7 +899,7 @@
 }
 
 .page-preview-dot {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 11px;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -965,7 +965,7 @@
 .edit-layout-label-tag {
   display: inline-block;
   width: fit-content;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 10px;
   font-weight: 400;
   letter-spacing: 0.12em;
@@ -983,7 +983,7 @@
 }
 
 .edit-layout-label-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 15px;
   font-weight: 400;
   color: #2a2a2a;
@@ -991,7 +991,7 @@
 }
 
 .edit-layout-label-desc {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 12px;
   font-weight: 300;
   color: #999;
@@ -1038,7 +1038,7 @@
 }
 
 .edit-demo-field label {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 10px;
   font-weight: 400;
   color: #999;
@@ -1046,7 +1046,7 @@
 }
 
 .edit-demo-input {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 13px;
   font-weight: 300;
   color: #2a2a2a;
@@ -1080,7 +1080,7 @@
 }
 
 .edit-demo-btn {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 11px;
   font-weight: 300;
   color: #666;
@@ -1091,7 +1091,7 @@
 }
 
 .edit-demo-btn-primary {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 11px;
   font-weight: 400;
   color: #faf9f7;
@@ -1114,7 +1114,7 @@
 }
 
 .edit-demo-photos label {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 10px;
   font-weight: 400;
   color: #999;
@@ -1204,7 +1204,7 @@
 }
 
 .playground-sticky-bar span {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 300;
   color: #999;

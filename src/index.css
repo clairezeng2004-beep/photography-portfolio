@@ -4,8 +4,17 @@
   box-sizing: border-box;
 }
 
+:root {
+  /* 中文衬线字体栈 */
+  --font-serif-cn: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  /* 英文衬线字体栈 */
+  --font-serif-en: 'Playfair Display', 'Georgia', 'Times New Roman', serif;
+  /* 混排（中英文混合） */
+  --font-serif: 'Noto Serif SC', 'Playfair Display', 'Songti SC', 'Georgia', 'STSong', 'SimSun', 'Times New Roman', serif;
+}
+
 body {
-  font-family: 'Noto Serif SC', 'Playfair Display', 'Georgia', 'Times New Roman', serif;
+  font-family: var(--font-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #faf9f7;

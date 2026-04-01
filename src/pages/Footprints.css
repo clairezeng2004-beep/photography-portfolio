@@ -15,7 +15,7 @@
 }
 
 .footprints-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 48px;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -25,7 +25,7 @@
 }
 
 .footprints-subtitle {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 15px;
   font-weight: 300;
   color: #999;
@@ -48,7 +48,7 @@
 }
 
 .stat-number {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 36px;
   font-weight: 400;
   color: #2a2a2a;
@@ -57,7 +57,7 @@
 }
 
 .stat-label {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 11px;
   font-weight: 400;
   letter-spacing: 0.2em;
@@ -81,7 +81,7 @@
 }
 
 .filter-btn {
-  font-family: 'Playfair Display', 'Noto Serif SC', serif;
+  font-family: var(--font-serif);
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.1em;
@@ -278,7 +278,7 @@
 
 /* City labels */
 .city-label {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 9px;
   fill: #5a554e;
   text-anchor: middle;
@@ -307,7 +307,7 @@
 
 /* Country name labels */
 .country-label {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 9px;
   fill: #a09a90;
   text-anchor: middle;
@@ -345,7 +345,7 @@
 
 /* ============ PROVINCE LABELS (China tab) ============ */
 .province-label {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 10px;
   text-anchor: middle;
   pointer-events: none;
@@ -420,7 +420,7 @@
 }
 
 .hover-card-city {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 16px;
   font-weight: 500;
   color: #2a2a2a;
@@ -429,7 +429,7 @@
 }
 
 .hover-card-meta {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 11px;
   font-weight: 400;
   color: #999;
@@ -440,7 +440,7 @@
 
 .hover-card-link {
   display: block;
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 12px;
   font-weight: 400;
   color: #c8956c;
@@ -458,7 +458,7 @@
   display: block;
   width: 100%;
   text-align: left;
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 12px;
   font-weight: 400;
   color: #c8956c;
@@ -482,7 +482,7 @@
 }
 
 .city-list-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 18px;
   font-weight: 400;
   letter-spacing: 0.1em;
@@ -549,7 +549,7 @@
 }
 
 .fp-card-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 20px;
   font-weight: 400;
   color: #fff;
@@ -559,7 +559,7 @@
 }
 
 .fp-card-location {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 11px;
   font-weight: 300;
   letter-spacing: 0.14em;
@@ -674,7 +674,7 @@
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.15em;
@@ -687,7 +687,7 @@
 }
 
 .preview-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 22px;
   font-weight: 500;
   color: #2a2a2a;
@@ -696,7 +696,7 @@
 }
 
 .preview-location {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 13px;
   font-weight: 300;
   color: #999;
@@ -705,7 +705,7 @@
 }
 
 .preview-desc {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 300;
   color: #777;
@@ -715,7 +715,7 @@
 }
 
 .preview-link {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.12em;
@@ -767,7 +767,7 @@
 }
 
 .city-preview-city {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 28px;
   font-weight: 500;
   color: #2a2a2a;
@@ -776,7 +776,7 @@
 }
 
 .city-preview-meta {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 13px;
   font-weight: 300;
   color: #999;
@@ -837,7 +837,7 @@
 }
 
 .city-preview-item-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 17px;
   font-weight: 500;
   color: #2a2a2a;
@@ -846,7 +846,7 @@
 }
 
 .city-preview-item-meta {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 12px;
   font-weight: 300;
   color: #aaa;
@@ -855,7 +855,7 @@
 }
 
 .city-preview-item-desc {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 13px;
   font-weight: 300;
   color: #999;
@@ -869,7 +869,7 @@
 }
 
 .city-preview-item-link {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 18px;
   color: #c8956c;
   text-decoration: none;

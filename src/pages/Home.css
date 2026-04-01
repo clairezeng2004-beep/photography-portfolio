@@ -104,7 +104,7 @@
 }
 
 .hero-view-gallery {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.15em;
@@ -132,7 +132,7 @@
 }
 
 .hero-location {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 28px;
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -148,7 +148,7 @@
 }
 
 .hero-title-text {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 16px;
   font-weight: 300;
   letter-spacing: 0.08em;
@@ -271,7 +271,7 @@
 }
 
 .intro-greeting {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 36px;
   font-weight: 400;
   color: #2a2a2a;
@@ -281,7 +281,7 @@
 }
 
 .intro-text {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 16px;
   font-weight: 300;
   line-height: 2.2;
@@ -298,7 +298,7 @@
 }
 
 .text-link {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.15em;
@@ -503,7 +503,7 @@
 }
 
 .overlay-card-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 18px;
   font-weight: 400;
   color: #2a2a2a;
@@ -515,7 +515,7 @@
 
 .overlay-card-readmore {
   display: inline-block;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.18em;
@@ -531,7 +531,7 @@
 }
 
 .overlay-card-location {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 12px;
   font-weight: 300;
   color: #888;
@@ -587,7 +587,7 @@
 }
 
 .flip-card-front-info .card-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 22px;
   font-weight: 500;
   color: #fff;
@@ -598,7 +598,7 @@
 }
 
 .flip-card-front-info .card-location {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 13px;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.8);
@@ -622,7 +622,7 @@
 }
 
 .flip-card-read-more {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 18px;
   font-weight: 400;
   letter-spacing: 0.2em;
@@ -644,7 +644,7 @@
 }
 
 .flip-card-hover-loc {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 12px;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.7);
@@ -693,7 +693,7 @@
 }
 
 .simple-card-hover-loc span {
-  font-family: 'Playfair Display', 'Noto Serif SC', serif;
+  font-family: var(--font-serif);
   font-size: 11px;
   font-weight: 400;
   color: #2a2a2a;
@@ -716,7 +716,7 @@
 }
 
 .simple-card-info .card-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 22px;
   font-weight: 500;
   color: #fff;
@@ -727,7 +727,7 @@
 }
 
 .simple-card-info .card-location {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 13px;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.8);
@@ -839,7 +839,7 @@
   }
 
   .hero-title-text {
-    font-family: 'Noto Serif SC', serif;
+    font-family: var(--font-serif-cn);
     font-size: 14px;
     font-style: normal;
     font-weight: 300;
@@ -894,7 +894,7 @@
 }
 
 .home-tb-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 30px;
   font-weight: 400;
   color: #2a2a2a;
@@ -904,7 +904,7 @@
 }
 
 .home-tb-text {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 16px;
   font-weight: 300;
   line-height: 2.2;

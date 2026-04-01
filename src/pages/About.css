@@ -11,7 +11,7 @@
 }
 
 .about-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 32px;
   font-weight: 400;
   letter-spacing: 0.06em;
@@ -38,7 +38,7 @@
 
 /* ============ SUBTITLE TEXT ============ */
 .about-subtitle-text {
-  font-family: 'Playfair Display', 'Noto Serif SC', serif;
+  font-family: var(--font-serif);
   font-size: 17px;
   font-weight: 400;
   font-style: italic;
@@ -49,7 +49,7 @@
 
 /* ============ BIO ============ */
 .about-text p {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 16px;
   font-weight: 300;
   line-height: 2.2;
@@ -71,7 +71,7 @@
 }
 
 .about-section-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 18px;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -115,7 +115,7 @@
 }
 
 .about-custom-subitem-label {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 13px;
   font-weight: 400;
   color: #555;
@@ -125,7 +125,7 @@
 }
 
 .about-custom-subitem-value {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 300;
   color: #777;
@@ -134,7 +134,7 @@
 }
 
 .about-custom-item-label {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 400;
   color: #2a2a2a;
@@ -144,7 +144,7 @@
 }
 
 .about-custom-item-value {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 15px;
   font-weight: 300;
   color: #666;
@@ -160,7 +160,7 @@
 }
 
 .about-subtitle {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 18px;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -176,7 +176,7 @@
 }
 
 .contact-link-item {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 15px;
   font-weight: 300;
   color: #777;

@@ -14,7 +14,7 @@
   padding: 14px 28px;
   background: #2a2a2a;
   color: #faf9f7;
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 300;
   letter-spacing: 0.04em;

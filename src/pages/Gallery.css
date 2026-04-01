@@ -10,7 +10,7 @@
 }
 
 .gallery-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 36px;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -19,7 +19,7 @@
 }
 
 .gallery-meta {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 14px;
   font-weight: 300;
   letter-spacing: 0.12em;
@@ -35,7 +35,7 @@
 }
 
 .gallery-description p {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 15px;
   font-weight: 300;
   line-height: 2;
@@ -105,7 +105,7 @@
 }
 
 .photo-caption {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 15px;
   font-weight: 300;
   line-height: 2;
@@ -121,7 +121,7 @@
 }
 
 .photo-footnote {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 12px;
   font-weight: 400;
   font-style: italic;
@@ -154,7 +154,7 @@
 
 .rec-label {
   display: block;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.2em;
@@ -165,7 +165,7 @@
 }
 
 .rec-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 28px;
   font-weight: 400;
   color: #2a2a2a;
@@ -222,7 +222,7 @@
 }
 
 .rec-card-location {
-  font-family: 'Playfair Display', 'Noto Serif SC', serif;
+  font-family: var(--font-serif);
   font-size: 11px;
   font-weight: 400;
   letter-spacing: 0.18em;
@@ -232,7 +232,7 @@
 }
 
 .rec-card-title {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 20px;
   font-weight: 400;
   color: #fff;
@@ -242,7 +242,7 @@
 }
 
 .rec-card-year {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.15em;
@@ -260,7 +260,7 @@
 }
 
 .gallery-footer-link {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.15em;
@@ -286,14 +286,14 @@
 }
 
 .gallery-empty h2 {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   font-size: 28px;
   font-weight: 400;
   margin-bottom: 12px;
 }
 
 .gallery-empty p {
-  font-family: 'Noto Serif SC', serif;
+  font-family: var(--font-serif-cn);
   color: #999;
   margin-bottom: 32px;
 }
@@ -387,7 +387,7 @@
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif-en);
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.1em;
