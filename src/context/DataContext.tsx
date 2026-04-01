@@ -32,16 +32,39 @@ interface DataContextType {
 }
 
 const defaultAboutInfo: AboutInfo = {
-  "name": "摄影师",
-  "title": "你好，我是摄影师",
-  "subtitle": "用镜头记录世界的美好瞬间",
-  "location": "现居上海",
-  "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80",
   "bio": [
-    "我是一名热爱摄影的创作者,专注于人像、自然风景和人文建筑摄影。",
-    "从2020年开始认真投入摄影创作，至今已走过多个城市，用镜头记录下无数美好的瞬间。",
-    "我相信每一张照片都有它独特的故事，每一次快门的按下都是对美好时光的珍藏。"
+    "还没想好写啥"
   ],
+  "name": "摄影师",
+  "stats": {
+    "cities": 3,
+    "photos": "200+",
+    "experience": "4"
+  },
+  "title": "你好，我是小冰块",
+  "avatar": "https://pub-106dc7a6bb4a423e9e215a20be033278.r2.dev/images/1771943001416-pienauzoptb.jpg",
+  "skills": {
+    "equipment": [
+      "Canon EOS R5",
+      "Sony A7R IV",
+      "各类定焦镜头",
+      "专业后期处理"
+    ],
+    "photography": [
+      "人像摄影",
+      "自然风景",
+      "人文建筑",
+      "街头摄影"
+    ]
+  },
+  "contact": {
+    "email": "hello@example.com",
+    "phone": "+86 138 0000 0000",
+    "weibo": "https://weibo.com",
+    "instagram": "1233456"
+  },
+  "location": "现居上海",
+  "subtitle": "喜欢记录那些真实美好的瞬间",
   "philosophy": [
     {
       "title": "真实自然",
@@ -55,32 +78,244 @@ const defaultAboutInfo: AboutInfo = {
       "title": "故事叙述",
       "description": "每张照片都是一个故事的开始，用视觉语言诉说生活的美好。"
     }
-  ],
-  "skills": {
-    "photography": [
-      "人像摄影",
-      "自然风景",
-      "人文建筑",
-      "街头摄影"
-    ],
-    "equipment": [
-      "Canon EOS R5",
-      "Sony A7R IV",
-      "各类定焦镜头",
-      "专业后期处理"
-    ]
-  },
-  "contact": {
-    "email": "hello@example.com",
-    "phone": "+86 138 0000 0000",
-    "instagram": "https://instagram.com",
-    "weibo": "https://weibo.com"
-  },
-  "stats": {
-    "cities": 3,
-    "photos": "200+"
-  }
+  ]
 };
+
+const defaultHeroImages: HeroImage[] = [
+  {
+    "id": "1771941612001",
+    "url": "https://pub-106dc7a6bb4a423e9e215a20be033278.r2.dev/images/1771939052205-s5ljymn096e.jpg",
+    "title": "翡冷翠之诗",
+    "location": "佛罗伦萨",
+    "mobileUrl": "https://pub-106dc7a6bb4a423e9e215a20be033278.r2.dev/images/1771939045324-jlxahaxplc.jpg"
+  },
+  {
+    "id": "3",
+    "url": "https://pub-106dc7a6bb4a423e9e215a20be033278.r2.dev/images/1771938423609-ku0e8jujyb.jpg",
+    "title": "塔尖落日",
+    "location": "巴黎",
+    "mobileUrl": "https://pub-106dc7a6bb4a423e9e215a20be033278.r2.dev/images/1771938416097-6ll8p3z4p8s.jpg"
+  }
+];
+
+const defaultLitCities: GeoInfo[] = [
+  {
+    "lat": 1.3521,
+    "lng": 103.8198,
+    "city": "新加坡",
+    "country": "新加坡",
+    "continent": "asia",
+    "countryCode": "SG"
+  },
+  {
+    "lat": 39.9042,
+    "lng": 116.4074,
+    "city": "北京",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 31.2304,
+    "lng": 121.4737,
+    "city": "上海",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 23.1291,
+    "lng": 113.2644,
+    "city": "广州",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 30.5728,
+    "lng": 104.0668,
+    "city": "成都",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 30.2741,
+    "lng": 120.1551,
+    "city": "杭州",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 32.0603,
+    "lng": 118.7969,
+    "city": "南京",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 31.299,
+    "lng": 120.5853,
+    "city": "苏州",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 25.6065,
+    "lng": 100.2676,
+    "city": "大理",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 26.8721,
+    "lng": 100.2299,
+    "city": "丽江",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 29.65,
+    "lng": 91.1,
+    "city": "拉萨",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 22.3193,
+    "lng": 114.1694,
+    "city": "香港",
+    "country": "中国",
+    "continent": "asia",
+    "countryCode": "CN"
+  },
+  {
+    "lat": 48.2082,
+    "lng": 16.3738,
+    "city": "维也纳",
+    "country": "奥地利",
+    "continent": "europe",
+    "countryCode": "AT"
+  },
+  {
+    "lat": 50.0755,
+    "lng": 14.4378,
+    "city": "布拉格",
+    "country": "捷克",
+    "continent": "europe",
+    "countryCode": "CZ"
+  },
+  {
+    "lat": 52.3676,
+    "lng": 4.9041,
+    "city": "阿姆斯特丹",
+    "country": "荷兰",
+    "continent": "europe",
+    "countryCode": "NL"
+  },
+  {
+    "lat": 40.4168,
+    "lng": -3.7038,
+    "city": "马德里",
+    "country": "西班牙",
+    "continent": "europe",
+    "countryCode": "ES"
+  },
+  {
+    "lat": 45.4408,
+    "lng": 12.3155,
+    "city": "威尼斯",
+    "country": "意大利",
+    "continent": "europe",
+    "countryCode": "IT"
+  },
+  {
+    "lat": 43.7696,
+    "lng": 11.2558,
+    "city": "佛罗伦萨",
+    "country": "意大利",
+    "continent": "europe",
+    "countryCode": "IT"
+  },
+  {
+    "lat": 52.52,
+    "lng": 13.405,
+    "city": "柏林",
+    "country": "德国",
+    "continent": "europe",
+    "countryCode": "DE"
+  },
+  {
+    "lat": 41.9028,
+    "lng": 12.4964,
+    "city": "罗马",
+    "country": "意大利",
+    "continent": "europe",
+    "countryCode": "IT"
+  },
+  {
+    "lat": 43.7102,
+    "lng": 7.262,
+    "city": "尼斯",
+    "country": "法国",
+    "continent": "europe",
+    "countryCode": "FR"
+  },
+  {
+    "lat": 51.5074,
+    "lng": -0.1278,
+    "city": "伦敦",
+    "country": "英国",
+    "continent": "europe",
+    "countryCode": "GB"
+  },
+  {
+    "lat": 55.9533,
+    "lng": -3.1883,
+    "city": "爱丁堡",
+    "country": "英国",
+    "continent": "europe",
+    "countryCode": "GB"
+  },
+  {
+    "lat": 47.4979,
+    "lng": 19.0402,
+    "city": "布达佩斯",
+    "country": "匈牙利",
+    "continent": "europe",
+    "countryCode": "HU"
+  },
+  {
+    "lat": 38.7223,
+    "lng": -9.1393,
+    "city": "里斯本",
+    "country": "葡萄牙",
+    "continent": "europe",
+    "countryCode": "PT"
+  },
+  {
+    "lat": 47.3769,
+    "lng": 8.5417,
+    "city": "苏黎世",
+    "country": "瑞士",
+    "continent": "europe",
+    "countryCode": "CH"
+  },
+  {
+    "lat": 46.2044,
+    "lng": 6.1432,
+    "city": "日内瓦",
+    "country": "瑞士",
+    "continent": "europe",
+    "countryCode": "CH"
+  }
+];
 
 const defaultAnimationConfig: AnimationConfig = {
   heroTransition: 'slide',
@@ -114,8 +349,8 @@ function fixDuplicatePhotoIds(cols: PhotoCollection[]): PhotoCollection[] {
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [collections, setCollections] = useState<PhotoCollection[]>([]);
   const [aboutInfo, setAboutInfo] = useState<AboutInfo>(defaultAboutInfo);
-  const [litCities, setLitCities] = useState<GeoInfo[]>([]);
-  const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
+  const [litCities, setLitCities] = useState<GeoInfo[]>(defaultLitCities);
+  const [heroImages, setHeroImages] = useState<HeroImage[]>(defaultHeroImages);
   const [animationConfig, setAnimationConfig] = useState<AnimationConfig>(defaultAnimationConfig);
   const [homeTextBlocks, setHomeTextBlocks] = useState<HomeTextBlock[]>([]);
   const [homeLayout, setHomeLayout] = useState<HomeLayoutItem[]>([]);
