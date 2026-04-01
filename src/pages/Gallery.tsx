@@ -54,7 +54,7 @@ const Gallery: React.FC = () => {
   // Lightbox state
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [lightboxLoaded, setLightboxLoaded] = useState(false);
-  const allPhotos = collection?.photos ?? [];
+  const allPhotos = useMemo(() => collection?.photos ?? [], [collection]);
 
   const closeLightbox = useCallback(() => {
     setLightboxIndex(null);

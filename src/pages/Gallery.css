@@ -447,13 +447,17 @@
   }
 
   .gallery-photos {
-    gap: 4px;
-    padding: 0 24px;
+    gap: 16px;
+    padding: 0 36px;
     max-width: 100%;
   }
 
   .gallery-photos.diary-style {
     max-width: 100%;
+  }
+
+  .gallery-photo-pair {
+    gap: 10px;
   }
 
   .photo-caption-block {
