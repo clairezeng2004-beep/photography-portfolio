@@ -160,20 +160,34 @@ function extractR2Key(url: string): string | null {
 
 /**
  * Fetch an R2-hosted image via the Worker proxy (with CORS headers).
- * Falls back to a direct fetch if Worker is not configured or the URL is not an R2 URL.
+ * Prefers the same-origin Vercel rewrite (/api/r2-upload) to avoid
+ * cross-origin issues; falls back to direct Worker URL if needed.
  * Returns a blob URL.
  */
 export async function fetchViaR2Proxy(imageUrl: string): Promise<string> {
-  const workerUrl = getR2WorkerUrl();
   const key = extractR2Key(imageUrl);
 
-  if (workerUrl && key) {
-    const proxyUrl = `${workerUrl}?key=${encodeURIComponent(key)}`;
-    const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error(`Proxy fetch failed: ${res.status}`);
-    const blob = await res.blob();
-    if (blob.size === 0) throw new Error('Empty blob from proxy');
-    return URL.createObjectURL(blob);
+  if (key) {
+    // 1st choice: same-origin Vercel proxy (no CORS issues at all)
+    try {
+      const sameOriginUrl = `/api/r2-upload?key=${encodeURIComponent(key)}`;
+      const res = await fetch(sameOriginUrl);
+      if (res.ok) {
+        const blob = await res.blob();
+        if (blob.size > 0) return URL.createObjectURL(blob);
+      }
+    } catch { /* fall through */ }
+
+    // 2nd choice: direct Worker URL
+    const workerUrl = getR2WorkerUrl();
+    if (workerUrl) {
+      const proxyUrl = `${workerUrl}?key=${encodeURIComponent(key)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error(`Proxy fetch failed: ${res.status}`);
+      const blob = await res.blob();
+      if (blob.size === 0) throw new Error('Empty blob from proxy');
+      return URL.createObjectURL(blob);
+    }
   }
 
   // Not an R2 URL or Worker not configured — try direct fetch
