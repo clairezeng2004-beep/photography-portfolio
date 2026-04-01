@@ -15,7 +15,18 @@ const PageTransitionWrapper: React.FC<Props> = ({ children, transition }) => {
   const prevPathRef = useRef(location.pathname);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(false);
+  const childrenRef = useRef(children);
+  childrenRef.current = children;
 
+  // Keep displayChildren in sync when not mid-transition
+  // (e.g. when DataContext updates cause re-renders on the same route)
+  useEffect(() => {
+    if (stage === 'active') {
+      setDisplayChildren(children);
+    }
+  }, [children, stage]);
+
+  // Route-change transition — only depends on pathname, NOT children
   useEffect(() => {
     if (location.pathname === prevPathRef.current && isMountedRef.current) return;
     if (!isMountedRef.current) {
@@ -31,7 +42,7 @@ const PageTransitionWrapper: React.FC<Props> = ({ children, transition }) => {
     }
 
     if (transition === 'none') {
-      setDisplayChildren(children);
+      setDisplayChildren(childrenRef.current);
       prevPathRef.current = location.pathname;
       return;
     }
@@ -41,7 +52,7 @@ const PageTransitionWrapper: React.FC<Props> = ({ children, transition }) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     timeoutRef.current = setTimeout(() => {
-      setDisplayChildren(children);
+      setDisplayChildren(childrenRef.current);
       setStage('enter');
       window.scrollTo(0, 0);
 
@@ -56,7 +67,8 @@ const PageTransitionWrapper: React.FC<Props> = ({ children, transition }) => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [location.pathname, children, transition]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, transition]);
 
   if (transition === 'none') {
     return <>{children}</>;
