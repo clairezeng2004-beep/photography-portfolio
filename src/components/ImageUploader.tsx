@@ -108,8 +108,6 @@ const DragCropper: React.FC<{
   const [imgLayout, setImgLayout] = useState<{ w: number; h: number; x: number; y: number } | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [crop, setCrop] = useState<CropRect>({ x: 0, y: 0, w: 0, h: 0 });
-  // Only use crossOrigin for http(s) URLs; blob/data URLs don't need it and it can cause issues
-  const needsCrossOrigin = src.startsWith('http');
   const dragState = useRef<{
     type: 'move' | 'nw' | 'ne' | 'sw' | 'se';
     startX: number; startY: number;
@@ -308,7 +306,7 @@ const DragCropper: React.FC<{
   if (!imgLayout) {
     return (
       <div className="crop-canvas-container" ref={containerRef}>
-        <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" {...(needsCrossOrigin ? { crossOrigin: 'anonymous' as const } : {})} />
+        <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" />
       </div>
     );
   }
@@ -321,7 +319,7 @@ const DragCropper: React.FC<{
       className="crop-canvas-container"
       ref={containerRef}
     >
-      <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" {...(needsCrossOrigin ? { crossOrigin: 'anonymous' as const } : {})} />
+      <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" />
       {/* Dark overlay masks */}
       {/* Top */}
       <div style={{ position: 'absolute', left: imgLayout.x, top: imgLayout.y, width: imgLayout.w, height: crop.y, background: maskColor }} />
@@ -634,10 +632,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     // If re-cropping from an originalSource, try to detect the current crop position
     if (originalSource && imageUrl === originalSource && currentImage && currentImage !== originalSource) {
       const origImg = new window.Image();
-      origImg.crossOrigin = 'anonymous';
       origImg.onload = () => {
         const curImg = new window.Image();
-        curImg.crossOrigin = 'anonymous';
         curImg.onload = () => {
           const curAspect = curImg.naturalWidth / curImg.naturalHeight;
           const origW = origImg.naturalWidth;
@@ -669,9 +665,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     setCropOpen(true);
     // Pre-load full-res image for preview canvas using the blob URL
     const img = new window.Image();
-    if (blobSrc.startsWith('http')) {
-      img.crossOrigin = 'anonymous';
-    }
+    // Note: no crossOrigin attribute — it prevents loading on servers without CORS headers.
+    // Canvas will be tainted but DragCropper display still works; crop output uses separate fetch→blob flow.
     img.src = blobSrc;
     previewImgRef.current = img;
     // When the image loads, re-render preview if we already have crop area
