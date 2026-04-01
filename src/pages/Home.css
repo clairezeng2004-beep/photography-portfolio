@@ -466,7 +466,13 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.6s ease;
+  filter: brightness(0.85);
+  transition: transform 0.6s ease, filter 0.6s ease;
+}
+
+.overlay-card-link:hover .overlay-card-image {
+  transform: scale(1.03);
+  filter: brightness(0.75);
 }
 
 .overlay-card-link:hover .overlay-card-image {
@@ -575,6 +581,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  filter: brightness(0.88);
 }
 
 .flip-card-front-info {
@@ -582,8 +589,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 32px 24px 20px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+  padding: 48px 24px 20px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
 }
 
 .flip-card-front-info .card-title {
@@ -609,7 +616,7 @@
 .flip-card-back { transform: rotateY(180deg); }
 
 .flip-card-back-image {
-  filter: blur(2px) brightness(0.6);
+  filter: blur(2px) brightness(0.55);
 }
 
 .flip-card-back-overlay {
@@ -670,11 +677,13 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.6s ease;
+  filter: brightness(0.88);
+  transition: transform 0.6s ease, filter 0.6s ease;
 }
 
 .simple-card-link:hover .simple-card-image {
   transform: scale(1.03);
+  filter: brightness(0.82);
 }
 
 .simple-card-hover-loc {
@@ -711,8 +720,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 32px 24px 20px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+  padding: 48px 24px 20px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
 }
 
 .simple-card-info .card-title {
@@ -927,11 +936,13 @@
 
   .card.mobile-tapped .overlay-card-image {
     transform: scale(1.03);
+    filter: brightness(0.75);
   }
 
   /* Simple card: show hover location tag + lift image */
   .card.mobile-tapped .simple-card-image {
     transform: scale(1.03);
+    filter: brightness(0.82);
   }
 
   .card.mobile-tapped .simple-card-hover-loc {
