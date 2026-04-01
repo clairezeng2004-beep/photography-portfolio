@@ -614,22 +614,12 @@ const Footprints: React.FC = () => {
     }, 150);
   }, []);
 
-  // Mobile: tap directly opens city preview modal; Desktop: tap toggles hover card
+  // Both mobile & desktop: tap toggles hover card (floating card near marker)
   const handleMarkerClick = useCallback((cityGroup?: CityGroup, geo?: GeoInfo, x?: number, y?: number) => {
     if (dragMoved.current) return;
     if (!cityGroup || !geo) return;
 
-    if (isMobile) {
-      // Mobile: directly open the city preview modal
-      setSelectedCityGroup(cityGroup);
-      setPreviewCollection(null);
-      setPreviewPage(0);
-      setHoverCard(null);
-      setHoveredCity(null);
-      return;
-    }
-
-    // Desktop: toggle hover card
+    // Toggle hover card: if same city is already showing, close it
     if (hoverCard && hoverCard.cityGroup.key === cityGroup.key) {
       setHoverCard(null);
       setHoveredCity(null);
@@ -641,7 +631,7 @@ const Footprints: React.FC = () => {
       y: y || 0,
       cityGroup,
     });
-  }, [hoverCard, isMobile]);
+  }, [hoverCard]);
 
   // Determine which features to show based on continent
   const visibleFeatures = useMemo(() => {
@@ -680,10 +670,18 @@ const Footprints: React.FC = () => {
     setPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy });
   }, []);
 
-  const handlePointerUp = useCallback(() => {
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
     isPanning.current = false;
     setIsDragging(false);
-  }, []);
+    // On mobile: if user tapped (didn't drag) on empty map area, close hover card
+    if (!dragMoved.current && hoverCard) {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.map-hover-card') && !target.closest('.city-marker') && !(target.tagName === 'circle')) {
+        setHoverCard(null);
+        setHoveredCity(null);
+      }
+    }
+  }, [hoverCard]);
 
   const handleResetZoom = useCallback(() => {
     setZoom(1);
@@ -1308,16 +1306,24 @@ const Footprints: React.FC = () => {
             const px = containerX * scaleX;
             const py = containerY * scaleY;
             // Card dimensions
-            const cardW = 260;
-            const cardH = cityCollections.length > 1 ? 210 : 190;
+            const cardW = isMobile ? 200 : 260;
+            const cardH = cityCollections.length > 1 ? (isMobile ? 180 : 210) : (isMobile ? 160 : 190);
             // Decide if card goes above or below, left or right
             const goUp = py > cardH + 20;
             const goLeft = px + cardW + 20 > containerW;
             const gap = 4; // minimal gap between marker and card for easier mouse transition
+            // Clamp position to keep card within container bounds
+            let cardLeft = goLeft ? px - cardW - gap : px + gap;
+            let cardTop = goUp ? py - cardH - gap : py + gap;
+            // Prevent overflow on edges
+            if (cardLeft < 4) cardLeft = 4;
+            if (cardLeft + cardW > containerW - 4) cardLeft = containerW - cardW - 4;
+            if (cardTop < 4) cardTop = 4;
+            if (cardTop + cardH > containerH - 4) cardTop = containerH - cardH - 4;
             const cardStyle: React.CSSProperties = {
               position: 'absolute',
-              left: goLeft ? px - cardW - gap : px + gap,
-              top: goUp ? py - cardH - gap : py + gap,
+              left: cardLeft,
+              top: cardTop,
               width: cardW,
               zIndex: 20,
             };

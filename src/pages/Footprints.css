@@ -129,6 +129,13 @@
     0 2px 8px rgba(0, 0, 0, 0.06),
     0 8px 32px rgba(0, 0, 0, 0.08);
   touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.svg-map-container svg,
+.svg-map-container svg * {
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
 
 /* ============ ZOOM CONTROLS ============ */
@@ -920,6 +927,34 @@
   .province-label-dim { font-size: 13px; }
   .map-zoom-controls { top: 10px; right: 10px; }
   .zoom-btn { width: 32px; height: 32px; font-size: 16px; }
+
+  /* Mobile hover card: slightly smaller and ensure it's visible */
+  .map-hover-card {
+    max-width: 220px;
+    animation: hoverCardIn 0.25s ease;
+  }
+
+  .hover-card-cover {
+    height: 90px;
+  }
+
+  .hover-card-body {
+    padding: 10px 12px 12px;
+  }
+
+  .hover-card-city {
+    font-size: 14px;
+  }
+
+  .hover-card-meta {
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+
+  .hover-card-link,
+  .hover-card-more {
+    font-size: 11px;
+  }
   .city-preview-modal { width: 95vw; }
   .city-preview-header { padding: 28px 24px 20px; }
   .city-preview-city { font-size: 22px; }
