@@ -60,9 +60,8 @@
 
 .footer-grid {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: flex-start;
-  gap: clamp(48px, 8vw, 160px);
   margin-bottom: 36px;
 }
 
@@ -70,7 +69,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
 }
 
@@ -89,7 +88,7 @@
   align-items: center;
   text-align: center;
   white-space: nowrap;
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
 }
 
@@ -142,7 +141,10 @@
   align-items: stretch;
   border: 1px solid #d5d2cc;
   background: #fff;
-  min-width: 280px;
+  min-width: 0;
+  width: 100%;
+  max-width: 280px;
+  box-sizing: border-box;
 }
 
 .footer-email-input {
