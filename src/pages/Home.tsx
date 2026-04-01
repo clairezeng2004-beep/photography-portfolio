@@ -54,6 +54,8 @@ const Home: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
+  // Mobile: track which card is "tapped" (showing hover state); second tap navigates
+  const [tappedCardId, setTappedCardId] = useState<string | null>(null);
 
   useEffect(() => { document.title = '小冰块 - 摄影集'; }, []);
   const [heroLoaded, setHeroLoaded] = useState(false);
@@ -398,8 +400,34 @@ const Home: React.FC = () => {
   /* ============================================================
      CARD RENDER
      ============================================================ */
+  // Mobile card tap handler: first tap shows hover state, second tap navigates
+  const handleMobileCardTap = useCallback((e: React.MouseEvent, collectionId: string) => {
+    if (!isMobile) return; // Desktop: let Link navigate normally
+    if (tappedCardId === collectionId) {
+      // Second tap: navigate to gallery
+      return;
+    }
+    // First tap: prevent navigation, show hover state
+    e.preventDefault();
+    setTappedCardId(collectionId);
+  }, [isMobile, tappedCardId]);
+
+  // Close tapped card when tapping elsewhere
+  useEffect(() => {
+    if (!isMobile || !tappedCardId) return;
+    const handleOutsideTap = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.card')) {
+        setTappedCardId(null);
+      }
+    };
+    document.addEventListener('touchstart', handleOutsideTap);
+    return () => document.removeEventListener('touchstart', handleOutsideTap);
+  }, [isMobile, tappedCardId]);
+
   const renderCard = (collection: typeof collections[0]) => {
     const isVisible = visibleCards.has(collection.id);
+    const isTapped = isMobile && tappedCardId === collection.id;
     const displayTitle = collection.title;
     const fullImage = collection.cardCoverImage || collection.coverImage || collection.photos?.[0]?.url || collection.photos?.[0]?.thumbnail;
     const mobileImage = collection.photos?.[0]?.thumbnail || fullImage;
@@ -409,11 +437,11 @@ const Home: React.FC = () => {
       return (
         <div
           key={collection.id}
-          className={`card card-anim-float-flip ${isVisible ? 'visible' : ''}`}
+          className={`card card-anim-float-flip ${isVisible ? 'visible' : ''} ${isTapped ? 'mobile-tapped' : ''}`}
           data-id={collection.id}
           ref={cardRef}
         >
-          <Link to={`/gallery/${collection.id}`} className="overlay-card-link">
+          <Link to={`/gallery/${collection.id}`} className="overlay-card-link" onClick={(e) => handleMobileCardTap(e, collection.id)}>
             <div className="overlay-card">
               <img src={cardImage} alt={collection.title} className="overlay-card-image" loading="lazy" draggable={false} />
               <div className="overlay-card-hover">
@@ -433,11 +461,11 @@ const Home: React.FC = () => {
       return (
         <div
           key={collection.id}
-          className={`card card-anim-flip ${isVisible ? 'visible' : ''}`}
+          className={`card card-anim-flip ${isVisible ? 'visible' : ''} ${isTapped ? 'mobile-tapped' : ''}`}
           data-id={collection.id}
           ref={cardRef}
         >
-          <Link to={`/gallery/${collection.id}`} className="flip-card-link">
+          <Link to={`/gallery/${collection.id}`} className="flip-card-link" onClick={(e) => handleMobileCardTap(e, collection.id)}>
             <div className="flip-card">
               <div className="flip-card-front">
                 <img src={cardImage} alt={collection.title} className="flip-card-image" loading="lazy" draggable={false} />
@@ -461,7 +489,7 @@ const Home: React.FC = () => {
     }
 
     // All other card animations: simple card with hover lift
-    const animClass = `card card-anim-${cardAnimation} ${isVisible ? 'visible' : ''}`;
+    const animClass = `card card-anim-${cardAnimation} ${isVisible ? 'visible' : ''} ${isTapped ? 'mobile-tapped' : ''}`;
     return (
       <div
         key={collection.id}
@@ -469,7 +497,7 @@ const Home: React.FC = () => {
         data-id={collection.id}
         ref={cardRef}
       >
-          <Link to={`/gallery/${collection.id}`} className="simple-card-link">
+        <Link to={`/gallery/${collection.id}`} className="simple-card-link" onClick={(e) => handleMobileCardTap(e, collection.id)}>
           <div className="simple-card">
             <img src={cardImage} alt={collection.title} className="simple-card-image" loading="lazy" draggable={false} />
             <div className="simple-card-info">

@@ -913,6 +913,31 @@
   .flip-card-hover-loc {
     font-size: 10px;
   }
+
+  /* ---- Mobile tapped state: simulate desktop hover ---- */
+  /* Flip card: show back (flipped) */
+  .card.mobile-tapped .flip-card {
+    transform: rotateY(180deg);
+  }
+
+  /* Overlay card: show overlay info */
+  .card.mobile-tapped .overlay-card-hover {
+    opacity: 1;
+  }
+
+  .card.mobile-tapped .overlay-card-image {
+    transform: scale(1.03);
+  }
+
+  /* Simple card: show hover location tag + lift image */
+  .card.mobile-tapped .simple-card-image {
+    transform: scale(1.03);
+  }
+
+  .card.mobile-tapped .simple-card-hover-loc {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 480px) {
