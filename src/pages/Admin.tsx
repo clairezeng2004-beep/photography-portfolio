@@ -610,7 +610,8 @@ const Admin: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'Zzy20110806') {
+    const adminPassword = process.env.REACT_APP_ADMIN_PASSWORD || 'admin123';
+    if (password === adminPassword) {
       setIsAuthenticated(true);
       localStorage.setItem('admin_authenticated', 'true');
     } else {
@@ -821,7 +822,7 @@ const Admin: React.FC = () => {
               </button>
             </form>
             <p className="login-hint">
-              提示：默认密码是 <code>admin123</code>
+              提示：请输入管理员密码
             </p>
           </div>
         </div>
