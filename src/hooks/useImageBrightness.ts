@@ -95,46 +95,45 @@ export function useImageBrightnessBatch(urls: string[]): Map<string, number> {
     return map;
   });
 
+  // Stable key for dependency array
+  const urlsKey = urls.join(',');
+
   useEffect(() => {
     let cancelled = false;
-    const pending: Promise<void>[] = [];
 
-    for (const url of urls) {
-      if (brightnessCache.has(url)) continue;
-      pending.push(
-        getImageBrightness(url).then(v => {
-          if (!cancelled) {
-            brightnessCache.set(url, v);
-          }
-        }).catch(() => {
-          if (!cancelled) {
-            brightnessCache.set(url, 128);
-          }
-        })
-      );
-    }
+    // Collect URLs that need fetching
+    const uncachedUrls = urls.filter(url => !brightnessCache.has(url));
 
-    if (pending.length === 0) {
+    if (uncachedUrls.length === 0) {
       // All cached — build result synchronously
       const map = new Map<string, number>();
       for (const url of urls) {
         map.set(url, brightnessCache.get(url) ?? 128);
       }
       setResults(map);
-    } else {
-      Promise.all(pending).then(() => {
-        if (!cancelled) {
-          const map = new Map<string, number>();
-          for (const url of urls) {
-            map.set(url, brightnessCache.get(url) ?? 128);
-          }
-          setResults(map);
-        }
-      });
+      return;
     }
 
+    // Fetch all uncached in parallel
+    const pending = uncachedUrls.map(url =>
+      getImageBrightness(url)
+        .then(v => { brightnessCache.set(url, v); })
+        .catch(() => { brightnessCache.set(url, 128); })
+    );
+
+    Promise.all(pending).then(() => {
+      if (!cancelled) {
+        const map = new Map<string, number>();
+        for (const url of urls) {
+          map.set(url, brightnessCache.get(url) ?? 128);
+        }
+        setResults(map);
+      }
+    });
+
     return () => { cancelled = true; };
-  }, [urls.join(',')]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlsKey]);
 
   return results;
 }
