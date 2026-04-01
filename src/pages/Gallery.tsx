@@ -53,15 +53,33 @@ const Gallery: React.FC = () => {
 
   // Lightbox state
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [lightboxLoaded, setLightboxLoaded] = useState(false);
   const allPhotos = collection?.photos ?? [];
 
-  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+  const closeLightbox = useCallback(() => {
+    setLightboxIndex(null);
+    setLightboxLoaded(false);
+  }, []);
   const goPrev = useCallback(() => {
+    setLightboxLoaded(false);
     setLightboxIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev);
   }, []);
   const goNext = useCallback(() => {
+    setLightboxLoaded(false);
     setLightboxIndex(prev => prev !== null && prev < allPhotos.length - 1 ? prev + 1 : prev);
   }, [allPhotos.length]);
+
+  // Preload adjacent lightbox images for faster navigation
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const toPreload: number[] = [];
+    if (lightboxIndex > 0) toPreload.push(lightboxIndex - 1);
+    if (lightboxIndex < allPhotos.length - 1) toPreload.push(lightboxIndex + 1);
+    toPreload.forEach(idx => {
+      const img = new Image();
+      img.src = allPhotos[idx].url;
+    });
+  }, [lightboxIndex, allPhotos]);
 
   useEffect(() => {
     if (lightboxIndex === null) return;
@@ -93,11 +111,11 @@ const Gallery: React.FC = () => {
   const renderPhotoCell = (photo: Photo, index: number) => (
     <div className="gallery-photo-cell" key={photo.id}>
       <img
-        src={photo.url}
+        src={photo.thumbnail || photo.url}
         alt={photo.alt}
         loading="lazy"
         className="gallery-photo-clickable"
-        onClick={() => setLightboxIndex(index)}
+        onClick={() => { setLightboxLoaded(false); setLightboxIndex(index); }}
       />
       {photo.footnote && (
         <div className="photo-footnote-block">
@@ -202,7 +220,29 @@ const Gallery: React.FC = () => {
 
       {/* Lightbox */}
       {lightboxIndex !== null && allPhotos[lightboxIndex] && (
-        <div className="lightbox-overlay" onClick={closeLightbox}>
+        <div
+          className="lightbox-overlay"
+          onClick={closeLightbox}
+          onTouchStart={(e) => {
+            const touch = e.touches[0];
+            (e.currentTarget as any)._touchStartX = touch.clientX;
+            (e.currentTarget as any)._touchStartY = touch.clientY;
+          }}
+          onTouchEnd={(e) => {
+            const startX = (e.currentTarget as any)._touchStartX;
+            const startY = (e.currentTarget as any)._touchStartY;
+            if (startX == null || startY == null) return;
+            const touch = e.changedTouches[0];
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+            // Only swipe horizontally if dx > dy
+            if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+              e.preventDefault();
+              if (dx < 0) goNext();
+              else goPrev();
+            }
+          }}
+        >
           <button className="lightbox-close" onClick={closeLightbox} aria-label="关闭">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -232,10 +272,17 @@ const Gallery: React.FC = () => {
             </button>
           )}
           <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            {!lightboxLoaded && (
+              <div className="lightbox-spinner">
+                <div className="lightbox-spinner-ring" />
+              </div>
+            )}
             <img
+              key={allPhotos[lightboxIndex].id}
               src={allPhotos[lightboxIndex].url}
               alt={allPhotos[lightboxIndex].alt}
-              className="lightbox-image"
+              className={`lightbox-image ${lightboxLoaded ? 'lightbox-image-loaded' : ''}`}
+              onLoad={() => setLightboxLoaded(true)}
             />
           </div>
           <div className="lightbox-counter">
