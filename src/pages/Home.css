@@ -863,7 +863,56 @@
   .cards-section { padding: 40px 24px 80px; }
   .cards-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
 
-  /* Card city and year: keep consistent with desktop */
+  /* Card text responsive — 手机端缩小卡片标题和信息字号 */
+  .flip-card-front-info .card-title,
+  .simple-card-info .card-title {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    margin-bottom: 2px;
+  }
+
+  .flip-card-front-info .card-location,
+  .simple-card-info .card-location {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+
+  .flip-card-front-info {
+    padding: 24px 16px 14px;
+  }
+
+  .simple-card-info {
+    padding: 24px 16px 14px;
+  }
+
+  .overlay-card-title {
+    font-size: 14px;
+    letter-spacing: 0.08em;
+  }
+
+  .overlay-card-readmore {
+    font-size: 11px;
+    padding: 8px 20px;
+  }
+
+  .overlay-card-location {
+    font-size: 10px;
+    margin-bottom: 8px;
+  }
+
+  .overlay-card-border {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .flip-card-read-more {
+    font-size: 14px;
+  }
+
+  .flip-card-hover-loc {
+    font-size: 10px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -872,6 +921,21 @@
   .intro-greeting { font-size: 22px; }
 
   .hero-arrow svg { width: 32px; height: 32px; }
+
+  /* 更小屏幕进一步缩小 */
+  .flip-card-front-info .card-title,
+  .simple-card-info .card-title {
+    font-size: 14px;
+  }
+
+  .flip-card-front-info .card-location,
+  .simple-card-info .card-location {
+    font-size: 10px;
+  }
+
+  .overlay-card-title {
+    font-size: 12px;
+  }
 }
 
 /* ============ HOME TEXT BLOCKS ============ */
