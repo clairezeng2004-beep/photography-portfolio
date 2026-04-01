@@ -143,6 +143,48 @@ export async function uploadToR2(
 export const uploadToImgbb = uploadToR2;
 
 /**
+ * Extract the R2 key from a public R2 CDN URL.
+ * E.g. "https://pub-xxx.r2.dev/images/abc.jpg" → "images/abc.jpg"
+ * Returns null if the URL doesn't look like an R2 URL.
+ */
+function extractR2Key(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('r2.dev') || u.hostname.includes('r2.cloudflarestorage.com')) {
+      // pathname starts with "/" so we strip the leading slash
+      return u.pathname.replace(/^\//, '');
+    }
+  } catch { /* not a valid URL */ }
+  return null;
+}
+
+/**
+ * Fetch an R2-hosted image via the Worker proxy (with CORS headers).
+ * Falls back to a direct fetch if Worker is not configured or the URL is not an R2 URL.
+ * Returns a blob URL.
+ */
+export async function fetchViaR2Proxy(imageUrl: string): Promise<string> {
+  const workerUrl = getR2WorkerUrl();
+  const key = extractR2Key(imageUrl);
+
+  if (workerUrl && key) {
+    const proxyUrl = `${workerUrl}?key=${encodeURIComponent(key)}`;
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error(`Proxy fetch failed: ${res.status}`);
+    const blob = await res.blob();
+    if (blob.size === 0) throw new Error('Empty blob from proxy');
+    return URL.createObjectURL(blob);
+  }
+
+  // Not an R2 URL or Worker not configured — try direct fetch
+  const res = await fetch(imageUrl);
+  if (!res.ok) throw new Error(`Direct fetch failed: ${res.status}`);
+  const blob = await res.blob();
+  if (blob.size === 0) throw new Error('Empty blob');
+  return URL.createObjectURL(blob);
+}
+
+/**
  * Check if a string is a base64 data URL (not an external URL).
  */
 export function isBase64(str: string): boolean {

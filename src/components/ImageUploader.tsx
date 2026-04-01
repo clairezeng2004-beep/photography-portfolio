@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Upload, X, RefreshCw, Crop } from 'lucide-react';
-import { isImageHostConfigured, uploadToImgbb } from '../utils/imageHost';
+import { isImageHostConfigured, uploadToImgbb, fetchViaR2Proxy } from '../utils/imageHost';
 import './ImageUploader.css';
 
 interface ImageUploaderProps {
@@ -551,9 +551,16 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       try {
         let src = imageUrl;
         if (!imageUrl.startsWith('data:') && !imageUrl.startsWith('blob:')) {
-          const res = await fetch(imageUrl);
-          const blob = await res.blob();
-          src = URL.createObjectURL(blob);
+          // Try direct fetch first, then fall back to R2 Worker proxy
+          try {
+            const res = await fetch(imageUrl);
+            const blob = await res.blob();
+            if (blob.size === 0) throw new Error('Empty blob');
+            src = URL.createObjectURL(blob);
+          } catch {
+            // Direct fetch failed (likely CORS) — try Worker proxy
+            src = await fetchViaR2Proxy(imageUrl);
+          }
         }
         const img = new window.Image();
         img.onload = () => {
@@ -621,8 +628,13 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             img.src = imageUrl;
           });
         } catch {
-          // Last fallback: use original URL directly (no crossOrigin on img tag)
-          blobSrc = imageUrl;
+          // Fallback 3: try R2 Worker proxy (adds CORS headers)
+          try {
+            blobSrc = await fetchViaR2Proxy(imageUrl);
+          } catch {
+            // Last fallback: use original URL directly (no crossOrigin on img tag)
+            blobSrc = imageUrl;
+          }
         }
       }
     }

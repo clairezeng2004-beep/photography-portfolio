@@ -22,7 +22,28 @@ export default {
       });
     }
 
-    // Only accept POST
+    // GET — proxy-read an image from R2 (with CORS headers)
+    if (request.method === 'GET') {
+      const url = new URL(request.url);
+      const key = url.searchParams.get('key');
+      if (!key) {
+        return jsonResponse({ error: 'Missing ?key= parameter' }, 400);
+      }
+      try {
+        const object = await env.BUCKET.get(key);
+        if (!object) {
+          return jsonResponse({ error: 'Not found' }, 404);
+        }
+        const headers = new Headers(corsHeaders());
+        headers.set('Content-Type', object.httpMetadata?.contentType || 'image/jpeg');
+        headers.set('Cache-Control', 'public, max-age=31536000');
+        return new Response(object.body, { status: 200, headers });
+      } catch (err) {
+        return jsonResponse({ error: err.message || 'Failed to fetch from R2' }, 500);
+      }
+    }
+
+    // Only accept POST for uploads
     if (request.method !== 'POST') {
       return jsonResponse({ error: 'Method not allowed' }, 405);
     }
