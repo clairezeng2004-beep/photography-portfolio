@@ -3484,12 +3484,27 @@
 }
 
 .hero-preview-modal-landscape {
-  width: auto;
+  width: 85vw;
+  max-width: 1200px;
+  aspect-ratio: 16 / 9;
+}
+
+.hero-preview-modal-landscape img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .hero-preview-modal-portrait {
   max-height: 85vh;
   width: auto;
+  aspect-ratio: 9 / 16;
+}
+
+.hero-preview-modal-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .hero-preview-modal-content img {

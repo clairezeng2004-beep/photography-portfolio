@@ -1439,6 +1439,7 @@ const Admin: React.FC = () => {
                           defaultCropAspect={4 / 3}
                           defaultOutputWidth={2400}
                           previewAspectRatio={4 / 3}
+                          cropTitle="裁剪横版封面"
                         />
                       </div>
 
@@ -1478,6 +1479,7 @@ const Admin: React.FC = () => {
                           defaultCropAspect={3 / 4}
                           defaultOutputWidth={1200}
                           previewAspectRatio={3 / 4}
+                          cropTitle="裁剪竖版封面"
                         />
                       </div>
                       
@@ -2829,6 +2831,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                     defaultCropAspect={3 / 4}
                     defaultOutputWidth={1200}
                     previewAspectRatio={3 / 4}
+                    cropTitle="裁剪竖版卡片封面"
                     onReplaceClick={() => setShowCoverPicker('portrait')}
                     externalCropSource={externalCropSource}
                     onExternalCropConsumed={() => setExternalCropSource(null)}
@@ -4031,6 +4034,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         allowUpload={true}
                         label="上传横版封面"
                         replaceLabel="更换"
+                        cropTitle="裁剪横版封面"
                         onReplaceClick={() => openPicker(index)}
                         externalCropSource={heroCropSource?.index === index ? heroCropSource.url : null}
                         onExternalCropConsumed={() => setHeroCropSource(null)}
@@ -4073,6 +4077,7 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                         allowUpload={true}
                         label="上传竖版封面"
                         replaceLabel="更换"
+                        cropTitle="裁剪竖版封面"
                         onReplaceClick={() => openPicker({ type: 'mobile', index })}
                       />
                     </div>

@@ -36,6 +36,8 @@ interface ImageUploaderProps {
   onExternalCropConsumed?: () => void;
   /** Extra action buttons rendered inside the image overlay actions row */
   extraActions?: React.ReactNode;
+  /** Custom title for the crop modal (default: "裁剪与调整尺寸") */
+  cropTitle?: string;
 }
 
 const DEFAULT_ASPECT_OPTIONS = [
@@ -106,6 +108,8 @@ const DragCropper: React.FC<{
   const [imgLayout, setImgLayout] = useState<{ w: number; h: number; x: number; y: number } | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [crop, setCrop] = useState<CropRect>({ x: 0, y: 0, w: 0, h: 0 });
+  // Only use crossOrigin for http(s) URLs; blob/data URLs don't need it and it can cause issues
+  const needsCrossOrigin = src.startsWith('http');
   const dragState = useRef<{
     type: 'move' | 'nw' | 'ne' | 'sw' | 'se';
     startX: number; startY: number;
@@ -304,7 +308,7 @@ const DragCropper: React.FC<{
   if (!imgLayout) {
     return (
       <div className="crop-canvas-container" ref={containerRef}>
-        <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" crossOrigin="anonymous" />
+        <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" {...(needsCrossOrigin ? { crossOrigin: 'anonymous' as const } : {})} />
       </div>
     );
   }
@@ -317,7 +321,7 @@ const DragCropper: React.FC<{
       className="crop-canvas-container"
       ref={containerRef}
     >
-      <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" crossOrigin="anonymous" />
+      <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" {...(needsCrossOrigin ? { crossOrigin: 'anonymous' as const } : {})} />
       {/* Dark overlay masks */}
       {/* Top */}
       <div style={{ position: 'absolute', left: imgLayout.x, top: imgLayout.y, width: imgLayout.w, height: crop.y, background: maskColor }} />
@@ -406,6 +410,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   externalCropSource,
   onExternalCropConsumed,
   extraActions,
+  cropTitle,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -591,11 +596,36 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         const timeout = setTimeout(() => controller.abort(), 8000);
         const res = await fetch(imageUrl, { mode: 'cors', signal: controller.signal });
         clearTimeout(timeout);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
+        if (blob.size === 0) throw new Error('Empty blob');
         blobSrc = URL.createObjectURL(blob);
       } catch {
-        // Fallback: use original URL with crossOrigin (DragCropper img has crossOrigin="anonymous")
-        blobSrc = imageUrl;
+        // Fallback: try loading via Image + canvas to create blob
+        try {
+          blobSrc = await new Promise<string>((resolve, reject) => {
+            const img = new window.Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0);
+                canvas.toBlob((blob) => {
+                  if (blob) resolve(URL.createObjectURL(blob));
+                  else reject(new Error('toBlob failed'));
+                }, 'image/jpeg', 0.95);
+              } catch { reject(new Error('canvas tainted')); }
+            };
+            img.onerror = () => reject(new Error('img load failed'));
+            img.src = imageUrl;
+          });
+        } catch {
+          // Last fallback: use original URL directly (no crossOrigin on img tag)
+          blobSrc = imageUrl;
+        }
       }
     }
 
@@ -921,7 +951,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             style={modalPos ? { transform: `translate(${modalPos.x}px, ${modalPos.y}px)` } : undefined}
           >
             <div className="crop-header" onMouseDown={handleModalDragStart} style={{ cursor: 'move' }}>
-              <h3>裁剪与调整尺寸</h3>
+              <h3>{cropTitle || '裁剪与调整尺寸'}</h3>
               <button className="btn-icon" onClick={() => { setCropOpen(false); setModalPos(null); }}>
                 <X size={18} />
               </button>
