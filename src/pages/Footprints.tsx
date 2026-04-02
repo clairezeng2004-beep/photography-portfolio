@@ -831,53 +831,9 @@ const Footprints: React.FC = () => {
   const labelOffsets = labelResult.offsets;
 
   /* ============ City preview modal ============ */
-  const renderCollectionPreview = () => {
-    if (!previewCollection) return null;
-    const allImages = [
-      { url: previewCollection.coverImage, alt: previewCollection.title },
-      ...previewCollection.photos.map(p => ({ url: p.url || p.thumbnail, alt: p.alt })),
-    ];
-    const uniqueImages = allImages.filter((img, idx, arr) => arr.findIndex(a => a.url === img.url) === idx);
-    const currentImage = uniqueImages[previewPage] || uniqueImages[0];
-
-    return (
-      <div className="preview-overlay" onClick={() => setPreviewCollection(null)}>
-        <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
-          <button className="preview-close" onClick={() => setPreviewCollection(null)}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-          <div className="preview-image-area">
-            <img src={currentImage.url} alt={currentImage.alt} className="preview-image" draggable={false} />
-            {uniqueImages.length > 1 && (
-              <>
-                <button className="preview-nav preview-nav-prev" onClick={() => setPreviewPage(p => p > 0 ? p - 1 : uniqueImages.length - 1)}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="15 18 9 12 15 6" /></svg>
-                </button>
-                <button className="preview-nav preview-nav-next" onClick={() => setPreviewPage(p => p < uniqueImages.length - 1 ? p + 1 : 0)}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="9 18 15 12 9 6" /></svg>
-                </button>
-              </>
-            )}
-            <div className="preview-counter">{previewPage + 1} / {uniqueImages.length}</div>
-          </div>
-          <div className="preview-info">
-            <h3 className="preview-title">{previewCollection.title}</h3>
-            <p className="preview-location">{previewCollection.location} · {previewCollection.year}</p>
-            {previewCollection.description && <p className="preview-desc">{previewCollection.description}</p>}
-            <Link to={`/gallery/${previewCollection.id}`} className="preview-link" onClick={() => { setPreviewCollection(null); setSelectedCityGroup(null); }}>
-              查看完整图集 →
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderCityPreview = () => {
     if (!selectedCityGroup) return null;
-    const { geo, collections: cityCollections, totalPhotos } = selectedCityGroup;
+    const { geo, collections: cityCollections } = selectedCityGroup;
     const isSingle = cityCollections.length === 1;
 
     if (isSingle) {
