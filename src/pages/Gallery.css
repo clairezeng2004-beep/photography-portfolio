@@ -63,6 +63,15 @@
   display: block;
 }
 
+/* Skeleton placeholder for gallery photos before image loads */
+.gallery-photo-cell .progressive-image-wrapper {
+  aspect-ratio: 16 / 9;
+}
+
+.gallery-photo-cell .progressive-image-wrapper.loaded {
+  aspect-ratio: unset;
+}
+
 /* ============ PAIR ROW (two photos side by side) ============ */
 .gallery-photo-pair {
   display: flex;
@@ -78,6 +87,15 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.gallery-photo-pair .progressive-image-wrapper {
+  height: 100%;
+  aspect-ratio: unset;
+}
+
+.gallery-photo-pair .progressive-img {
+  height: 100%;
 }
 
 /* ============ DIARY STYLE (图文交错 / 豆瓣日记风格) ============ */
