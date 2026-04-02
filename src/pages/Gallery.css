@@ -143,13 +143,14 @@
 /* ============ RECOMMENDATION CARDS ============ */
 .gallery-recommendations {
   padding: 80px 60px 40px;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 .rec-header {
   text-align: center;
   margin-bottom: 48px;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .rec-label {
@@ -176,6 +177,8 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 18px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .rec-card {
@@ -428,6 +431,20 @@
 }
 
 /* ============ RESPONSIVE ============ */
+@media (max-width: 1200px) {
+  .rec-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .rec-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .gallery-page {
     padding-top: 60px;
@@ -479,7 +496,7 @@
 
   .rec-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 14px;
   }
 
   .rec-title {
