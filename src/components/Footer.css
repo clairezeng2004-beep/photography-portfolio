@@ -1,6 +1,6 @@
 .footer {
   background: #f4f3f0;
-  padding: 0 60px 32px;
+  padding: 0 0 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -52,10 +52,11 @@
 
 /* Footer content grid */
 .footer-content {
-  padding: 0 0 32px;
+  padding: 0 60px 32px;
   width: 100%;
-  max-width: 1400px;
+  max-width: 1520px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 /* Center branding row — kept for potential future use */
@@ -83,7 +84,7 @@
 }
 
 .footer-column-right {
-  align-items: flex-end;
+  align-items: flex-start;
 }
 
 .footer-column-title {
@@ -130,19 +131,19 @@
 }
 
 .footer-column-right .footer-column-text {
-  text-align: right;
+  text-align: left;
 }
 
 .footer-column-right .footer-subscribe-form {
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .footer-column-right .footer-error {
-  text-align: right;
+  text-align: left;
 }
 
 .footer-column-right .footer-subscribed {
-  text-align: right;
+  text-align: left;
 }
 
 /* Subscribe section */
@@ -245,6 +246,10 @@
 /* Responsive */
 @media (max-width: 768px) {
   .footer {
+    padding: 0 0 24px;
+  }
+
+  .footer-content {
     padding: 0 24px 24px;
   }
 

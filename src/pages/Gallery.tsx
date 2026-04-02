@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Photo } from '../types';
@@ -243,8 +244,8 @@ const Gallery: React.FC = () => {
 
       {/* Footer Nav */}
 
-      {/* Lightbox */}
-      {lightboxIndex !== null && allPhotos[lightboxIndex] && (
+      {/* Lightbox — rendered via portal to avoid transform containing block issues */}
+      {lightboxIndex !== null && allPhotos[lightboxIndex] && createPortal(
         <div
           className="lightbox-overlay"
           onClick={closeLightbox}
@@ -315,7 +316,8 @@ const Gallery: React.FC = () => {
           <div className="lightbox-counter">
             {lightboxIndex + 1} / {allPhotos.length}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
