@@ -287,9 +287,14 @@ const Home: React.FC = () => {
       );
     }
 
+    // Shared drag style for stack modes (fade/zoom/kenburns/blur)
+    const stackDragStyle: React.CSSProperties = isDragging
+      ? { transform: `translateX(${translateX}px)`, transition: 'none' }
+      : { transform: 'translateX(0)', transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)' };
+
     if (heroTransition === 'fade') {
       return (
-        <div className="hero-stack">
+        <div className="hero-stack" style={stackDragStyle}>
           {heroImages.map((img, i) => (
             <img
               key={i}
@@ -307,7 +312,7 @@ const Home: React.FC = () => {
 
     if (heroTransition === 'zoom') {
       return (
-        <div className="hero-stack">
+        <div className="hero-stack" style={stackDragStyle}>
           {heroImages.map((img, i) => (
             <img
               key={i}
