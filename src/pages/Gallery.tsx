@@ -300,6 +300,12 @@ const Gallery: React.FC = () => {
               alt={allPhotos[lightboxIndex].alt}
               className={`lightbox-image ${lightboxLoaded ? 'lightbox-image-loaded' : ''}`}
               onLoad={() => setLightboxLoaded(true)}
+              ref={(el) => {
+                // Handle cached images where onLoad fires before React mounts the element
+                if (el && el.complete && el.naturalWidth > 0 && !lightboxLoaded) {
+                  setLightboxLoaded(true);
+                }
+              }}
             />
           </div>
           <div className="lightbox-counter">

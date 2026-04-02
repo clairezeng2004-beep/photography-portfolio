@@ -332,7 +332,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   max-width: 92vw;
   max-height: 85vh;
   max-height: 85dvh;
