@@ -128,9 +128,10 @@ const Gallery: React.FC = () => {
 
   const renderPhotoCell = (photo: Photo, index: number) => (
     <div className="gallery-photo-cell" key={photo.id}>
-      <ProgressiveImage
+      <img
         src={photo.thumbnail || photo.url}
         alt={photo.alt}
+        loading="lazy"
         className="gallery-photo-clickable"
         onClick={() => { setLightboxLoaded(false); setLightboxIndex(index); }}
       />
