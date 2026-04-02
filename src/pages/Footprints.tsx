@@ -424,6 +424,7 @@ const Footprints: React.FC = () => {
   const [selectedCityGroup, setSelectedCityGroup] = useState<CityGroup | null>(null);
   const [previewCollection, setPreviewCollection] = useState<PhotoCollection | null>(null);
   const [previewPage, setPreviewPage] = useState(0);
+  const [multiCollectionIndex, setMultiCollectionIndex] = useState(0);
   const [hoveredCity, setHoveredCity] = useState<string | null>(null);
   const [hoverCard, setHoverCard] = useState<{
     x: number; y: number;
@@ -923,50 +924,59 @@ const Footprints: React.FC = () => {
       );
     }
 
+    // Multi-collection: same preview-modal layout with collection tabs
+    const c = cityCollections[multiCollectionIndex] || cityCollections[0];
+    const allImages = [
+      { url: c.coverImage, alt: c.title },
+      ...c.photos.map(p => ({ url: p.url || p.thumbnail, alt: p.alt })),
+    ];
+    const uniqueImages = allImages.filter((img, idx, arr) => arr.findIndex(a => a.url === img.url) === idx);
+    const currentImage = uniqueImages[previewPage] || uniqueImages[0];
+
     return (
-      <>
-        <div className="preview-overlay" onClick={() => setSelectedCityGroup(null)}>
-          <div className="city-preview-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="preview-close" onClick={() => setSelectedCityGroup(null)}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-            <div className="city-preview-header">
-              <h2 className="city-preview-city">{geo.city}</h2>
-              <p className="city-preview-meta">{geo.country} · {cityCollections.length} collections · {totalPhotos} photos</p>
-            </div>
-            <div className="city-preview-list">
-              {cityCollections.map(c => (
-                <div
-                  key={c.id}
-                  className="city-preview-item"
-                  onClick={() => { setPreviewCollection(c); setPreviewPage(0); }}
-                >
-                  <div className="city-preview-item-image">
-                    <img src={c.cardCoverImage || c.coverImage} alt={c.title} />
-                  </div>
-                  <div className="city-preview-item-info">
-                    <h4 className="city-preview-item-title">{c.title}</h4>
-                    <p className="city-preview-item-meta">{c.year} · {c.photos.length} photos</p>
-                    {c.description && (
-                      <p className="city-preview-item-desc">{c.description}</p>
-                    )}
-                  </div>
-                  <Link
-                    to={`/gallery/${c.id}`}
-                    className="city-preview-item-link"
-                    onClick={(e) => { e.stopPropagation(); setSelectedCityGroup(null); }}
-                  >
-                    →
-                  </Link>
-                </div>
-              ))}
-            </div>
+      <div className="preview-overlay" onClick={() => setSelectedCityGroup(null)}>
+        <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
+          <button className="preview-close" onClick={() => setSelectedCityGroup(null)}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <div className="preview-image-area">
+            <img src={currentImage.url} alt={currentImage.alt} className="preview-image" draggable={false} />
+            {uniqueImages.length > 1 && (
+              <>
+                <button className="preview-nav preview-nav-prev" onClick={() => setPreviewPage(p => p > 0 ? p - 1 : uniqueImages.length - 1)}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="15 18 9 12 15 6" /></svg>
+                </button>
+                <button className="preview-nav preview-nav-next" onClick={() => setPreviewPage(p => p < uniqueImages.length - 1 ? p + 1 : 0)}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
+              </>
+            )}
+            <div className="preview-counter">{previewPage + 1} / {uniqueImages.length}</div>
+          </div>
+          <div className="preview-info">
+            <h3 className="preview-title">{c.title}</h3>
+            <p className="preview-location">{geo.city}, {geo.country} · {c.year}</p>
+            {c.description && <p className="preview-desc">{c.description}</p>}
+            <Link to={`/gallery/${c.id}`} className="preview-link" onClick={() => setSelectedCityGroup(null)}>
+              查看完整图集 →
+            </Link>
+          </div>
+          {/* Collection tabs */}
+          <div className="preview-collection-tabs">
+            {cityCollections.map((col, idx) => (
+              <button
+                key={col.id}
+                className={`preview-tab ${idx === multiCollectionIndex ? 'active' : ''}`}
+                onClick={() => { setMultiCollectionIndex(idx); setPreviewPage(0); }}
+              >
+                {col.title}
+              </button>
+            ))}
           </div>
         </div>
-        {renderCollectionPreview()}
-      </>
+      </div>
     );
   };
 
@@ -1380,6 +1390,7 @@ const Footprints: React.FC = () => {
                     } else {
                       setSelectedCityGroup(cityGroup);
                       setPreviewCollection(null);
+                      setMultiCollectionIndex(0);
                       setPreviewPage(0);
                       setHoverCard(null);
                       setHoveredCity(null);
@@ -1433,7 +1444,7 @@ const Footprints: React.FC = () => {
               const displayTitle = group.geo.city;
               const locationText = `${group.geo.country} · ${group.totalPhotos} photos`;
               const isVisible = visibleCards.has(group.key);
-              const handleClick = () => { setSelectedCityGroup(group); setPreviewCollection(null); setPreviewPage(0); };
+              const handleClick = () => { setSelectedCityGroup(group); setPreviewCollection(null); setPreviewPage(0); setMultiCollectionIndex(0); };
 
               return (
                 <div
