@@ -58,12 +58,24 @@
   margin: 0 auto;
 }
 
+/* Center branding row — always viewport-centered */
+.footer-center-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 28px;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 .footer-grid {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 36px;
-  position: relative;
 }
 
 .footer-column {
@@ -80,17 +92,6 @@
 
 .footer-column:last-child {
   align-items: flex-start;
-}
-
-.footer-column-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  white-space: nowrap;
 }
 
 .footer-column-title {

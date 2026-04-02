@@ -99,6 +99,12 @@ const Footer: React.FC = () => {
             )}
           </div>
         ) : (
+          {/* Center branding — full width, viewport centered */}
+          <div className="footer-center-row">
+            <h3 className="footer-column-title">ROAMING ICE</h3>
+            <p className="footer-column-text">用镜头记录旅途中的光与影</p>
+          </div>
+
           <div className="footer-grid">
             {/* Column 1: More links */}
             <div className="footer-column">
@@ -110,12 +116,6 @@ const Footer: React.FC = () => {
                   </li>
                 ))}
               </ul>
-            </div>
-
-            {/* Column 2: Roaming Ice */}
-            <div className="footer-column footer-column-center">
-              <h3 className="footer-column-title">ROAMING ICE</h3>
-              <p className="footer-column-text">用镜头记录旅途中的光与影</p>
             </div>
 
             {/* Column 3: Subscribe */}
