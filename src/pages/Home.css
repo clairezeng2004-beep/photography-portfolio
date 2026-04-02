@@ -11,6 +11,8 @@
   cursor: grab;
   user-select: none;
   background: #1a1a1a;
+  touch-action: pan-y;
+  -webkit-user-drag: none;
 }
 
 .hero:active {

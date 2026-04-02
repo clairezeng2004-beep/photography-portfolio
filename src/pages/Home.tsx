@@ -168,7 +168,7 @@ const Home: React.FC = () => {
   const handleDragEnd = useCallback(() => {
     if (!isDragging) return;
     setIsDragging(false);
-    const threshold = 80;
+    const threshold = isMobile ? 50 : 80;
     if (translateX < -threshold) {
       if (heroTransition === 'slide') {
         setCurrentSlide((prev) => prev + 1);
@@ -183,7 +183,7 @@ const Home: React.FC = () => {
       }
     }
     setTranslateX(0);
-  }, [isDragging, translateX, heroImages.length, heroTransition]);
+  }, [isDragging, translateX, heroImages.length, heroTransition, isMobile]);
 
   const handleHeroClick = useCallback(() => {
     if (Math.abs(translateX) > 5) return;

@@ -390,6 +390,7 @@
   pointer-events: auto;
   cursor: pointer;
   transition: box-shadow 0.2s ease;
+  max-height: 230px;
 }
 
 .map-hover-card:hover {
@@ -931,6 +932,7 @@
   /* Mobile hover card: slightly smaller and ensure it's visible */
   .map-hover-card {
     max-width: 220px;
+    max-height: 200px;
     animation: hoverCardIn 0.25s ease;
   }
 

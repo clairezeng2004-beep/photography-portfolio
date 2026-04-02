@@ -1326,7 +1326,8 @@ const Footprints: React.FC = () => {
             const py = containerY * scaleY;
             // Card dimensions
             const cardW = isMobile ? 200 : 260;
-            const cardH = cityCollections.length > 1 ? (isMobile ? 180 : 210) : (isMobile ? 160 : 190);
+            // Use a generous height estimate to prevent overflow; actual height is constrained by CSS max-height
+            const cardH = isMobile ? 200 : 230;
             // Decide if card goes above or below, left or right
             const goUp = py > cardH + 20;
             const goLeft = px + cardW + 20 > containerW;
@@ -1397,19 +1398,12 @@ const Footprints: React.FC = () => {
                     {geo.country} · {totalPhotos} photos
                     {cityCollections.length > 1 ? ` · ${cityCollections.length} collections` : ''}
                   </p>
-                  {cityCollections.length <= 2 && cityCollections.map(c => (
-                    <span
-                      key={c.id}
-                      className="hover-card-link"
-                    >
-                      {c.title} →
-                    </span>
-                  ))}
-                  {cityCollections.length > 2 && (
-                    <span className="hover-card-more">
-                      查看全部 {cityCollections.length} 个图集 →
-                    </span>
-                  )}
+                  <span className="hover-card-more">
+                    {cityCollections.length === 1
+                      ? `${cityCollections[0].title} →`
+                      : `查看全部 ${cityCollections.length} 个图集 →`
+                    }
+                  </span>
                 </div>
               </div>
               </>
