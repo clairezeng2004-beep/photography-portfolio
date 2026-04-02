@@ -51,9 +51,10 @@ const About: React.FC = () => {
 
         {/* Avatar Card */}
         <div className="about-avatar-card">
-          <img
+          <ProgressiveImage
             src={aboutInfo.avatar}
             alt={aboutInfo.name}
+            loading="eager"
           />
         </div>
 

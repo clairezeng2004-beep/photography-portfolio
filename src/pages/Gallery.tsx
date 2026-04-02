@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Photo } from '../types';
 import { useImageBrightnessBatch } from '../hooks/useImageBrightness';
+import ProgressiveImage from '../components/ProgressiveImage';
 import './Gallery.css';
 
 // Group photos into rows: full = 1 photo per row, consecutive halfs = 2 per row
@@ -127,10 +128,9 @@ const Gallery: React.FC = () => {
 
   const renderPhotoCell = (photo: Photo, index: number) => (
     <div className="gallery-photo-cell" key={photo.id}>
-      <img
+      <ProgressiveImage
         src={photo.thumbnail || photo.url}
         alt={photo.alt}
-        loading="lazy"
         className="gallery-photo-clickable"
         onClick={() => { setLightboxLoaded(false); setLightboxIndex(index); }}
       />
@@ -220,7 +220,7 @@ const Gallery: React.FC = () => {
                 
               >
                 <div className="rec-card-image">
-                  <img src={c.cardCoverImage || c.coverImage || c.photos?.[0]?.url} alt={c.title} loading="lazy" style={getRecBrightnessStyle(c.cardCoverImage || c.coverImage || c.photos?.[0]?.url)} />
+                  <ProgressiveImage src={c.cardCoverImage || c.coverImage || c.photos?.[0]?.url} alt={c.title} style={getRecBrightnessStyle(c.cardCoverImage || c.coverImage || c.photos?.[0]?.url)} />
                   <div className="rec-card-overlay">
                     <h3 className="rec-card-title">{c.title}</h3>
                     <span className="rec-card-location">{c.location}</span>

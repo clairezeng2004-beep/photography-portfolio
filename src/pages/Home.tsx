@@ -4,6 +4,7 @@ import { useData } from '../context/DataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { HomeLayoutItem, HomeTextBlock } from '../types';
 import { useImageBrightnessBatch } from '../hooks/useImageBrightness';
+import ProgressiveImage from '../components/ProgressiveImage';
 import './Home.css';
 
 const Home: React.FC = () => {
@@ -525,7 +526,7 @@ const Home: React.FC = () => {
       >
         <Link to={`/gallery/${collection.id}`} className="simple-card-link" onClick={(e) => handleMobileCardTap(e, collection.id)}>
           <div className="simple-card">
-            <img src={cardImage} alt={collection.title} className="simple-card-image" loading="lazy" draggable={false} style={imgStyle} />
+            <ProgressiveImage src={cardImage} alt={collection.title} className="simple-card-image" draggable={false} style={imgStyle} />
             <div className="simple-card-info">
               <h3 className="card-title">{displayTitle}</h3>
               <p className="card-location">{collection.location} · {collection.year}</p>

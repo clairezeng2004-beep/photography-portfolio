@@ -4027,9 +4027,9 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                           { label: '21:9', value: 21 / 9 },
                         ]}
                         defaultCropAspect={16 / 9}
-                        defaultOutputWidth={5120}
-                        compressMaxWidth={5120}
-                        compressQuality={1.0}
+                        defaultOutputWidth={3840}
+                        compressMaxWidth={3840}
+                        compressQuality={0.85}
                         previewAspectRatio={16 / 9}
                         allowUpload={true}
                         label="上传横版封面"
@@ -4070,9 +4070,9 @@ const HeroManager: React.FC<HeroManagerProps> = ({
                           { label: '2:3', value: 2 / 3 },
                         ]}
                         defaultCropAspect={9 / 16}
-                        defaultOutputWidth={3000}
-                        compressMaxWidth={3000}
-                        compressQuality={1.0}
+                        defaultOutputWidth={2160}
+                        compressMaxWidth={2160}
+                        compressQuality={0.85}
                         previewAspectRatio={9 / 16}
                         allowUpload={true}
                         label="上传竖版封面"

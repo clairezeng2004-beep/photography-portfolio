@@ -1,0 +1,42 @@
+.progressive-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.skeleton-pulse {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    #e8e6e2 8%,
+    #f0eeea 18%,
+    #e8e6e2 33%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+  z-index: 1;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.progressive-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.progressive-image-wrapper.loaded .progressive-img {
+  opacity: 1;
+}
+
+.progressive-image-wrapper.loaded .skeleton-pulse {
+  display: none;
+}

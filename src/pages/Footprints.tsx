@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useImageBrightnessBatch } from '../hooks/useImageBrightness';
+import ProgressiveImage from '../components/ProgressiveImage';
 import { PhotoCollection, GeoInfo } from '../types';
 import { CITY_DATABASE, CHINA_PROVINCES } from '../data/geoData';
 import * as topojson from 'topojson-client';
@@ -1411,7 +1412,7 @@ const Footprints: React.FC = () => {
                   onClick={handleClick}
                 >
                   <div className="fp-card-image">
-                    <img src={cardImage} alt={displayTitle} loading="lazy" draggable={false} style={getFpBrightnessStyle(cardImage)} />
+                    <ProgressiveImage src={cardImage} alt={displayTitle} draggable={false} style={getFpBrightnessStyle(cardImage)} />
                     <div className="fp-card-overlay">
                       <h3 className="fp-card-title">{displayTitle}</h3>
                       <span className="fp-card-location">{locationText}</span>
