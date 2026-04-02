@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useData } from '../context/DataContext';
+import ProgressiveImage from '../components/ProgressiveImage';
 import './About.css';
 
 const About: React.FC = () => {
