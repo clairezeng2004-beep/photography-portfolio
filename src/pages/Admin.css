@@ -1324,56 +1324,81 @@
 
 .card-cover-final-actions .uploaded-image .uploaded-image-actions button {
   position: static;
-  background: none;
+  background: transparent;
   border: 1px solid #e8e6e2;
-  border-radius: 3px;
-  padding: 3px 10px;
+  border-radius: 0;
+  padding: 6px 14px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: #666;
+  gap: 6px;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: #2a2a2a;
   opacity: 1;
   transform: none;
   cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .card-cover-final-actions .uploaded-image .uploaded-image-actions button:hover {
   border-color: #2a2a2a;
   color: #2a2a2a;
-  background: none;
+  background: transparent;
+}
+
+/* Delete button: subtle danger styling on hover */
+.card-cover-final-actions .uploaded-image .uploaded-image-actions button:last-child:hover {
+  border-color: #c0392b;
+  color: #c0392b;
 }
 
 .card-cover-final-actions .uploaded-image .uploaded-image-actions button span {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 11px;
-  font-weight: 300;
-  letter-spacing: 0.02em;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.card-cover-final-actions .uploaded-image .uploaded-image-actions button svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 1.5;
 }
 
 .card-cover-final-actions .upload-area {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border: 1px dashed #e8e6e2;
-  border-radius: 3px;
-  background: none;
+  border-radius: 0;
+  background: transparent;
   min-height: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card-cover-final-actions .upload-area:hover {
+  border-color: #2a2a2a;
 }
 
 .card-cover-final-actions .upload-area svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
+  color: #2a2a2a;
 }
 
 .card-cover-final-actions .upload-area p {
-  font-family: 'Noto Serif SC', serif;
-  font-size: 11px;
-  font-weight: 300;
-  color: #666;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: #2a2a2a;
   margin: 0;
 }
 
