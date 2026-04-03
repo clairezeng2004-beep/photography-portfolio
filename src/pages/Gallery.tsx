@@ -87,12 +87,22 @@ const Gallery: React.FC = () => {
     setLightboxLoaded(false);
   }, []);
   const goPrev = useCallback(() => {
-    setLightboxLoaded(false);
-    setLightboxIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev);
+    setLightboxIndex(prev => {
+      if (prev !== null && prev > 0) {
+        setLightboxLoaded(false);
+        return prev - 1;
+      }
+      return prev;
+    });
   }, []);
   const goNext = useCallback(() => {
-    setLightboxLoaded(false);
-    setLightboxIndex(prev => prev !== null && prev < allPhotos.length - 1 ? prev + 1 : prev);
+    setLightboxIndex(prev => {
+      if (prev !== null && prev < allPhotos.length - 1) {
+        setLightboxLoaded(false);
+        return prev + 1;
+      }
+      return prev;
+    });
   }, [allPhotos.length]);
 
   // Preload adjacent lightbox images for faster navigation
@@ -264,8 +274,9 @@ const Gallery: React.FC = () => {
             // Only swipe horizontally if dx > dy
             if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
               e.preventDefault();
-              if (dx < 0) goNext();
-              else goPrev();
+              // 到达边界时不再触发切换
+              if (dx < 0 && lightboxIndex !== null && lightboxIndex < allPhotos.length - 1) goNext();
+              else if (dx > 0 && lightboxIndex !== null && lightboxIndex > 0) goPrev();
             }
           }}
         >
