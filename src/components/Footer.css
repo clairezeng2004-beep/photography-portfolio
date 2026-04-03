@@ -62,8 +62,9 @@
 /* Center branding row — kept for potential future use */
 
 .footer-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
   align-items: start;
   margin-bottom: 36px;
 }
@@ -76,18 +77,19 @@
 
 .footer-column-left {
   align-items: flex-start;
-  justify-self: start;
 }
 
 .footer-column-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   align-items: center;
   text-align: center;
-  justify-self: center;
 }
 
 .footer-column-right {
   align-items: flex-start;
-  justify-self: end;
+  margin-left: auto;
 }
 
 .footer-column-title {
