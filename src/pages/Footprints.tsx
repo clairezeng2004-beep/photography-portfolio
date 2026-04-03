@@ -844,21 +844,112 @@ const Footprints: React.FC = () => {
   const visibleLabelKeys = labelResult.visible;
   const labelOffsets = labelResult.offsets;
 
+  /* ============ Preview image preloading & loading state ============ */
+  // Track which image URLs have been loaded into browser cache
+  const preloadedUrls = useRef(new Set<string>());
+  const [previewImgLoaded, setPreviewImgLoaded] = useState(true);
+  const previewImgRef = useRef<HTMLImageElement>(null);
+
+  // Build the current image list for preview (shared by single/multi)
+  const previewImages = useMemo(() => {
+    if (!selectedCityGroup) return [];
+    const { collections: cityCollections } = selectedCityGroup;
+    const c = cityCollections.length > 1
+      ? (cityCollections[multiCollectionIndex] || cityCollections[0])
+      : cityCollections[0];
+    if (!c) return [];
+    const allImages = [
+      { url: c.coverImage, alt: c.title },
+      ...c.photos.map(p => ({ url: p.url || p.thumbnail, alt: p.alt })),
+    ];
+    return allImages.filter((img, idx, arr) => arr.findIndex(a => a.url === img.url) === idx);
+  }, [selectedCityGroup, multiCollectionIndex]);
+
+  // Preload adjacent images whenever previewPage or previewImages changes
+  useEffect(() => {
+    if (previewImages.length <= 1) return;
+    const toPreload: number[] = [];
+    // preload next 2 and previous 1
+    for (let offset = 1; offset <= 2; offset++) {
+      toPreload.push((previewPage + offset) % previewImages.length);
+    }
+    toPreload.push((previewPage - 1 + previewImages.length) % previewImages.length);
+
+    toPreload.forEach(idx => {
+      const url = previewImages[idx]?.url;
+      if (url && !preloadedUrls.current.has(url)) {
+        const img = new Image();
+        img.src = url;
+        img.onload = () => preloadedUrls.current.add(url);
+      }
+    });
+  }, [previewPage, previewImages]);
+
+  // When current image URL changes, check if it's already cached
+  const currentPreviewUrl = previewImages[previewPage]?.url || previewImages[0]?.url || '';
+  useEffect(() => {
+    if (!currentPreviewUrl) return;
+    // If already in our preloaded set, mark as loaded immediately
+    if (preloadedUrls.current.has(currentPreviewUrl)) {
+      setPreviewImgLoaded(true);
+      return;
+    }
+    // Otherwise check if the browser has it cached (complete + naturalWidth)
+    const el = previewImgRef.current;
+    if (el && el.src === currentPreviewUrl && el.complete && el.naturalWidth > 0) {
+      setPreviewImgLoaded(true);
+      preloadedUrls.current.add(currentPreviewUrl);
+    } else {
+      setPreviewImgLoaded(false);
+    }
+  }, [currentPreviewUrl]);
+
+  const handlePreviewImgLoad = useCallback(() => {
+    setPreviewImgLoaded(true);
+    if (currentPreviewUrl) preloadedUrls.current.add(currentPreviewUrl);
+  }, [currentPreviewUrl]);
+
+  // Clear preloaded set when switching city groups
+  useEffect(() => {
+    preloadedUrls.current.clear();
+    setPreviewImgLoaded(true);
+  }, [selectedCityGroup]);
+
   /* ============ City preview modal ============ */
   const renderCityPreview = () => {
     if (!selectedCityGroup) return null;
     const { geo, collections: cityCollections } = selectedCityGroup;
     const isSingle = cityCollections.length === 1;
+    const currentImage = previewImages[previewPage] || previewImages[0];
+    if (!currentImage) return null;
+
+    const imageArea = (uniqueImages: typeof previewImages) => (
+      <div className="preview-image-area">
+        {!previewImgLoaded && <div className="preview-image-loading"><div className="preview-spinner" /></div>}
+        <img
+          ref={previewImgRef}
+          src={currentImage.url}
+          alt={currentImage.alt}
+          className={`preview-image ${previewImgLoaded ? 'preview-image-loaded' : 'preview-image-pending'}`}
+          draggable={false}
+          onLoad={handlePreviewImgLoad}
+        />
+        {uniqueImages.length > 1 && (
+          <>
+            <button className="preview-nav preview-nav-prev" onClick={() => setPreviewPage(p => p > 0 ? p - 1 : uniqueImages.length - 1)}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><polyline points="15 18 9 12 15 6" /></svg>
+            </button>
+            <button className="preview-nav preview-nav-next" onClick={() => setPreviewPage(p => p < uniqueImages.length - 1 ? p + 1 : 0)}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
+          </>
+        )}
+        <div className="preview-counter">{previewPage + 1} / {uniqueImages.length}</div>
+      </div>
+    );
 
     if (isSingle) {
       const c = cityCollections[0];
-      const allImages = [
-        { url: c.coverImage, alt: c.title },
-        ...c.photos.map(p => ({ url: p.url || p.thumbnail, alt: p.alt })),
-      ];
-      const uniqueImages = allImages.filter((img, idx, arr) => arr.findIndex(a => a.url === img.url) === idx);
-      const currentImage = uniqueImages[previewPage] || uniqueImages[0];
-
       return (
         <div className="preview-overlay" onClick={() => setSelectedCityGroup(null)}>
           <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
@@ -867,20 +958,7 @@ const Footprints: React.FC = () => {
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
-            <div className="preview-image-area">
-              <img src={currentImage.url} alt={currentImage.alt} className="preview-image" draggable={false} />
-              {uniqueImages.length > 1 && (
-                <>
-                  <button className="preview-nav preview-nav-prev" onClick={() => setPreviewPage(p => p > 0 ? p - 1 : uniqueImages.length - 1)}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><polyline points="15 18 9 12 15 6" /></svg>
-                  </button>
-                  <button className="preview-nav preview-nav-next" onClick={() => setPreviewPage(p => p < uniqueImages.length - 1 ? p + 1 : 0)}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><polyline points="9 18 15 12 9 6" /></svg>
-                  </button>
-                </>
-              )}
-              <div className="preview-counter">{previewPage + 1} / {uniqueImages.length}</div>
-            </div>
+            {imageArea(previewImages)}
             <div className="preview-info">
               <h3 className="preview-title">{c.title}</h3>
               <p className="preview-location">{geo.city}, {geo.country} · {c.year}</p>
@@ -896,12 +974,6 @@ const Footprints: React.FC = () => {
 
     // Multi-collection: same preview-modal layout with collection tabs
     const c = cityCollections[multiCollectionIndex] || cityCollections[0];
-    const allImages = [
-      { url: c.coverImage, alt: c.title },
-      ...c.photos.map(p => ({ url: p.url || p.thumbnail, alt: p.alt })),
-    ];
-    const uniqueImages = allImages.filter((img, idx, arr) => arr.findIndex(a => a.url === img.url) === idx);
-    const currentImage = uniqueImages[previewPage] || uniqueImages[0];
 
     return (
       <div className="preview-overlay" onClick={() => setSelectedCityGroup(null)}>
@@ -911,20 +983,7 @@ const Footprints: React.FC = () => {
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <div className="preview-image-area">
-            <img src={currentImage.url} alt={currentImage.alt} className="preview-image" draggable={false} />
-            {uniqueImages.length > 1 && (
-              <>
-                <button className="preview-nav preview-nav-prev" onClick={() => setPreviewPage(p => p > 0 ? p - 1 : uniqueImages.length - 1)}>
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><polyline points="15 18 9 12 15 6" /></svg>
-                </button>
-                <button className="preview-nav preview-nav-next" onClick={() => setPreviewPage(p => p < uniqueImages.length - 1 ? p + 1 : 0)}>
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><polyline points="9 18 15 12 9 6" /></svg>
-                </button>
-              </>
-            )}
-            <div className="preview-counter">{previewPage + 1} / {uniqueImages.length}</div>
-          </div>
+          {imageArea(previewImages)}
           <div className="preview-info">
             <h3 className="preview-title">{c.title}</h3>
             <p className="preview-location">{geo.city}, {geo.country} · {c.year}</p>
