@@ -75,7 +75,11 @@ const Home: React.FC = () => {
 
   const heroImages = savedHeroImages.length > 0
     ? savedHeroImages.map(h => {
-        const matched = collections.find(c => c.coverImage === h.url || c.id === h.id);
+        // Match hero image to collection: try multiple strategies to handle cropped/replaced URLs
+        const matched = collections.find(c => c.coverImage === h.url || c.id === h.id)
+          || collections.find(c => c.title === h.title && c.location === h.location)
+          || collections.find(c => c.title === h.title)
+          || collections.find(c => c.photos.some(p => p.url === h.url || p.thumbnail === h.url));
         return {
           url: isMobile && h.mobileUrl ? h.mobileUrl : h.url,
           title: h.title,
