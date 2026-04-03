@@ -1143,19 +1143,21 @@
   border-color: #ccc;
 }
 
+/* Editing overlay — always visible on cover with subtle background */
+.card-overlay-editing {
+  opacity: 1;
+  background: rgba(42, 42, 42, 0.35);
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 10px;
+  gap: 8px;
+}
+
 .card-edit-panel {
   display: flex;
   flex-direction: column;
   gap: 0;
   padding: 0;
-}
-
-/* Actions bar at top */
-.card-edit-actions-bar {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e8e6e2;
 }
 
 /* ---- Collapsible sections ---- */

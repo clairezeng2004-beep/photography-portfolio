@@ -2751,9 +2751,10 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
   return (
     <div className={`collection-card ${isEditing ? 'editing' : ''}`}>
-      {!isEditing && (
-        <div className="card-image">
-          <img src={collection.cardCoverImage || collection.coverImage} alt={collection.title} />
+      {/* Cover image — always visible (both view and edit modes) */}
+      <div className="card-image">
+        <img src={collection.cardCoverImage || collection.coverImage} alt={collection.title} />
+        {!isEditing && (
           <div className="card-overlay">
             <button className="btn-icon" onClick={(e) => { e.stopPropagation(); onToggleEdit(); }} title="编辑">
               <Edit size={18} />
@@ -2762,13 +2763,25 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               <Trash2 size={18} />
             </button>
           </div>
+        )}
+        {isEditing && (
+          <div className="card-overlay card-overlay-editing">
+            <button className="btn-icon" onClick={(e) => { e.stopPropagation(); handleSave(); }} title="完成">
+              <Check size={18} />
+            </button>
+            <button className="btn-icon" onClick={(e) => { e.stopPropagation(); handleCancel(); }} title="取消">
+              <X size={18} />
+            </button>
+          </div>
+        )}
+        {!isEditing && (
           <div className="card-reorder-btns">
             <button className="btn-icon reorder-btn" onClick={(e) => { e.stopPropagation(); onMoveUp(); }} disabled={isFirst} title="上移"><ChevronUp size={16} /></button>
             <input type="number" className="card-order-input" value={currentIndex + 1} min={1} max={totalCount} onClick={(e) => e.stopPropagation()} onChange={(e) => { const val = parseInt(e.target.value); if (Number.isFinite(val) && val >= 1 && val <= totalCount) onMoveToPosition(val - 1); }} title="输入数字调整排序" />
             <button className="btn-icon reorder-btn" onClick={(e) => { e.stopPropagation(); onMoveDown(); }} disabled={isLast} title="下移"><ChevronDown size={16} /></button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {!isEditing && (
         <div className="card-body">
@@ -2795,11 +2808,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
       {isEditing && (
         <div className="card-edit-panel">
-          {/* Actions bar */}
-          <div className="card-edit-actions-bar">
-            <button className="btn btn-primary btn-sm" onClick={handleSave}><Check size={14} /> 完成</button>
-            <button className="btn btn-secondary btn-sm" onClick={handleCancel}>取消</button>
-          </div>
 
           {/* Section 1: Cover */}
           <div className={`card-edit-section ${openSections.has('cover') ? 'open' : ''}`}>
