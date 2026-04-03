@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { subscribeEmail } from '../utils/newsletter';
 import { useIsMobile } from '../hooks/useIsMobile';
 import './Footer.css';
 
 const Footer: React.FC = () => {
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const isFootprints = location.pathname === '/footprints';
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -56,7 +58,7 @@ const Footer: React.FC = () => {
       <div className="footer-divider" />
 
       {/* Footer content grid */}
-      <div className="footer-content">
+      <div className={`footer-content${isFootprints ? ' footer-content-footprints' : ''}`}>
         {isMobile ? (
           <div className="footer-mobile-stack">
             <h3 className="footer-column-title footer-mobile-section-title">更多</h3>

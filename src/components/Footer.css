@@ -59,6 +59,11 @@
   box-sizing: border-box;
 }
 
+/* Footprints page: align footer left edge with city cards */
+.footer-content-footprints {
+  max-width: 1400px;
+}
+
 /* Center branding row — kept for potential future use */
 
 .footer-grid {

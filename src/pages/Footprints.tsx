@@ -858,10 +858,15 @@ const Footprints: React.FC = () => {
       ? (cityCollections[multiCollectionIndex] || cityCollections[0])
       : cityCollections[0];
     if (!c) return [];
-    const allImages = [
-      { url: c.coverImage, alt: c.title },
-      ...c.photos.map(p => ({ url: p.url || p.thumbnail, alt: p.alt })),
-    ];
+    const photoImages = c.photos.map(p => ({ url: p.url || p.thumbnail, alt: p.alt }));
+    const photoUrls = new Set(photoImages.map(p => p.url));
+    // If coverImage is already one of the photos (exact URL match), skip it to avoid duplicate.
+    // If coverImage is a cropped version (different URL from photos[0]), also skip it
+    // to avoid showing visually similar images twice — just use the original photos.
+    const coverIsFromFirstPhoto = !photoUrls.has(c.coverImage) && photoImages.length > 0;
+    const allImages = coverIsFromFirstPhoto
+      ? photoImages
+      : [{ url: c.coverImage, alt: c.title }, ...photoImages];
     return allImages.filter((img, idx, arr) => arr.findIndex(a => a.url === img.url) === idx);
   }, [selectedCityGroup, multiCollectionIndex]);
 
