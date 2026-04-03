@@ -47,14 +47,15 @@ const PageTransitionWrapper: React.FC<Props> = ({ children, transition }) => {
       return;
     }
 
-    // Exit current page
+    // Exit current page — scroll to top immediately so the new page fades in at the top
     setStage('exit');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     timeoutRef.current = setTimeout(() => {
       setDisplayChildren(childrenRef.current);
       setStage('enter');
-      window.scrollTo(0, 0);
+      window.scrollTo(0, 0); // ensure we're at top after content swap
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
