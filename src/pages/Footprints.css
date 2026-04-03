@@ -657,25 +657,28 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.85);
+  background: none;
   border: none;
-  width: 44px;
-  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #2a2a2a;
-  transition: background 0.2s ease;
-  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  padding: 0;
+  transition: opacity 0.4s ease, color 0.3s ease;
+}
+
+.preview-image-area:hover .preview-nav {
+  opacity: 1;
 }
 
 .preview-nav:hover {
-  background: #fff;
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.preview-nav-prev { left: 16px; }
-.preview-nav-next { right: 16px; }
+.preview-nav-prev { left: 20px; }
+.preview-nav-next { right: 20px; }
 
 .preview-counter {
   position: absolute;
@@ -963,6 +966,10 @@
   .preview-modal { width: 95vw; }
   .preview-info { padding: 20px 24px 28px; }
   .preview-title { font-size: 18px; }
+  .preview-nav { opacity: 0.6; }
+  .preview-nav svg { width: 32px; height: 32px; }
+  .preview-nav-prev { left: 8px; }
+  .preview-nav-next { right: 8px; }
   .city-label { font-size: 13px; stroke-width: 4px; }
   .country-label { font-size: 13px; stroke-width: 4px; }
   .province-label-lit { font-size: 15px; }
