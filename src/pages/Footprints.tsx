@@ -975,8 +975,13 @@ const Footprints: React.FC = () => {
   };
 
   /* ============ SVG transform for zoom/pan ============ */
-  const svgTransform = `translate(${pan.x}, ${pan.y}) scale(${zoom})`;
-  const svgTransformOrigin = `${vc.width / 2}px ${vc.height / 2}px`;
+  // Build an SVG transform that:
+  //   1. Pans by (pan.x, pan.y)
+  //   2. Scales around the centre of the viewBox (cx, cy)
+  // Equivalent to: translate to centre → scale → translate back → apply pan
+  const cx = vc.width / 2;
+  const cy = vc.height / 2;
+  const svgTransformAttr = `translate(${cx + pan.x} ${cy + pan.y}) scale(${zoom}) translate(${-cx} ${-cy})`;
 
   return (
     <div className="footprints-page">
@@ -1045,7 +1050,7 @@ const Footprints: React.FC = () => {
               </filter>
             </defs>
 
-            <g style={{ transform: svgTransform, transformOrigin: svgTransformOrigin }}>
+            <g transform={svgTransformAttr}>
               {/* Ocean background */}
               <rect x="-500" y="-500" width={vc.width + 1000} height={vc.height + 1000} fill="url(#oceanGradient)" />
 
