@@ -501,15 +501,9 @@
 }
 
 .city-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 18px;
-}
-
-.city-list > * {
-  width: calc((100% - 18px * 3) / 4);
-  min-width: 0;
 }
 
 /* ============ FOOTPRINT CARDS (always-visible overlay) ============ */
@@ -1053,7 +1047,7 @@
 
 @media (max-width: 480px) {
   .footprints-title { font-size: 28px; }
-  .city-list > * { width: calc((100% - 12px) / 2); }
+  .city-list { grid-template-columns: repeat(2, 1fr); }
   .filter-btn { padding: 8px 16px; font-size: 11px; }
   .fp-card-title { font-size: 14px; }
   .city-label { font-size: 12px; stroke-width: 4px; }
