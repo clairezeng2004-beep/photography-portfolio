@@ -47,9 +47,10 @@ const PageTransitionWrapper: React.FC<Props> = ({ children, transition }) => {
       return;
     }
 
-    // Exit current page — scroll to top immediately so the new page fades in at the top
+    // Scroll to top instantly BEFORE starting exit animation,
+    // so the fade-out happens at the top and the new page fades in at the top
+    window.scrollTo(0, 0);
     setStage('exit');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     timeoutRef.current = setTimeout(() => {
