@@ -1156,6 +1156,60 @@
   padding: 0;
 }
 
+/* ---- Save / Cancel bar below cover image ---- */
+.card-edit-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f0eeea;
+  background: #faf9f7;
+}
+
+.card-edit-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 16px;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: #2a2a2a;
+  border: 1px solid #2a2a2a;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.card-edit-save-btn:hover {
+  background: #444;
+  border-color: #444;
+}
+
+.card-edit-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 16px;
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #999;
+  background: none;
+  border: 1px solid #e0ddd8;
+  border-radius: 3px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.card-edit-cancel-btn:hover {
+  color: #666;
+  border-color: #ccc;
+}
+
 /* ---- Collapsible sections ---- */
 .card-edit-section {
   border-bottom: 1px solid #f0eeea;

@@ -2700,6 +2700,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
   const handleSave = () => {
     onSave({ title, location, description, coverImage, cardCoverImage: cardCoverImage || undefined, year, month: month || undefined, geo });
+    onToggleEdit(); // 保存后自动折叠卡片
   };
 
   const handleCancel = () => {
@@ -2767,16 +2768,6 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
             </button>
           </div>
         )}
-        {isEditing && (
-          <div className="card-overlay card-overlay-editing">
-            <button className="btn-icon" onClick={(e) => { e.stopPropagation(); handleSave(); }} title="完成">
-              <Check size={18} />
-            </button>
-            <button className="btn-icon" onClick={(e) => { e.stopPropagation(); handleCancel(); }} title="取消">
-              <X size={18} />
-            </button>
-          </div>
-        )}
         {!isEditing && (
           <div className="card-reorder-btns">
             <button className="btn-icon reorder-btn" onClick={(e) => { e.stopPropagation(); onMoveUp(); }} disabled={isFirst} title="上移"><ChevronUp size={16} /></button>
@@ -2811,6 +2802,17 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
       {isEditing && (
         <div className="card-edit-panel">
+          {/* Save / Cancel bar — placed right below cover image for easy access */}
+          <div className="card-edit-actions-bar">
+            <button className="card-edit-save-btn" onClick={(e) => { e.stopPropagation(); handleSave(); }}>
+              <Check size={15} />
+              完成
+            </button>
+            <button className="card-edit-cancel-btn" onClick={(e) => { e.stopPropagation(); handleCancel(); }}>
+              <X size={15} />
+              取消
+            </button>
+          </div>
 
           {/* Section 1: Cover */}
           <div className={`card-edit-section ${openSections.has('cover') ? 'open' : ''}`}>
