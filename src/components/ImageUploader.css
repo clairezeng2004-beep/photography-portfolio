@@ -262,7 +262,7 @@
 
 .crop-preview-container {
   position: relative;
-  background: #f5f5f5;
+  background: transparent;
   border-radius: 8px;
   overflow: hidden;
   display: flex;
@@ -283,6 +283,7 @@
   max-height: 200px;
   object-fit: contain;
   display: block;
+  border-radius: 4px;
 }
 
 .crop-box {

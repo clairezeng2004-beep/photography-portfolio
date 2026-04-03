@@ -63,7 +63,7 @@
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr auto 1fr;
   align-items: start;
   margin-bottom: 36px;
 }
@@ -76,15 +76,18 @@
 
 .footer-column-left {
   align-items: flex-start;
+  justify-self: start;
 }
 
 .footer-column-center {
   align-items: center;
   text-align: center;
+  justify-self: center;
 }
 
 .footer-column-right {
   align-items: flex-start;
+  justify-self: end;
 }
 
 .footer-column-title {
