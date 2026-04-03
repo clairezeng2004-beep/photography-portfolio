@@ -608,9 +608,10 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* ===== CARDS + COMPONENTS ===== */}
+      {/* ===== GREETING / TEXT BLOCKS ===== */}
       <section className="cards-section">
-        <div className="cards-grid">
+        {/* Non-collection items (greeting, navLinks, textBlocks) — independent rows */}
+        <div className="home-intro-row">
           {effectiveLayout.map((item) => {
             if (item.type === 'greeting') {
               return (
@@ -637,48 +638,56 @@ const Home: React.FC = () => {
                 </div>
               );
             }
-            if (item.type === 'collection') {
+            if (item.type === 'textBlock') {
+              const block = getTextBlock(item.id);
+              if (!block) return null;
+              const tbId = `tb-${item.id}`;
+              const tbVisible = visibleCards.has(tbId);
+              const tbDelay = introAnimation === 'split-rise' ? '0.4s' : '0.15s';
+              return (
+                <div key={tbId} className="home-text-block" data-id={tbId} ref={cardRef}>
+                  <div className="home-text-block-inner">
+                    {block.title && (
+                      <h2 className={`home-tb-title intro-anim intro-anim-${introAnimation} ${tbVisible ? 'show' : ''}`}>
+                        {block.title}
+                      </h2>
+                    )}
+                    <p className={`home-tb-text intro-anim intro-anim-${introAnimation} ${tbVisible ? 'show' : ''}`}
+                       style={{ transitionDelay: block.title ? tbDelay : '0s' }}>
+                      {block.lines.map((line, i) => (
+                        <React.Fragment key={i}>
+                          {i > 0 && <br />}
+                          {line}
+                        </React.Fragment>
+                      ))}
+                    </p>
+                    {block.links && block.links.length > 0 && (
+                      <div className={`home-tb-links intro-anim intro-anim-${introAnimation} ${tbVisible ? 'show' : ''}`}
+                           style={{ transitionDelay: block.title ? '0.3s' : tbDelay }}>
+                        {block.links.map((lnk, i) => (
+                          lnk.url.startsWith('/') || lnk.url.startsWith('#')
+                            ? <Link key={i} to={lnk.url} className="text-link">{lnk.label}</Link>
+                            : <a key={i} href={lnk.url} className="text-link" target="_blank" rel="noopener noreferrer">{lnk.label}</a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
+
+        {/* ===== COLLECTION CARDS — separate grid, last row centered ===== */}
+        <div className="cards-grid">
+          {effectiveLayout
+            .filter(item => item.type === 'collection')
+            .map((item) => {
               const collection = getCollection(item.id);
               if (!collection) return null;
               return renderCard(collection);
-            }
-            // textBlock — render as intro-style block spanning full width
-            const block = getTextBlock(item.id);
-            if (!block) return null;
-            const tbId = `tb-${item.id}`;
-            const tbVisible = visibleCards.has(tbId);
-            const tbDelay = introAnimation === 'split-rise' ? '0.4s' : '0.15s';
-            return (
-              <div key={tbId} className="home-text-block" data-id={tbId} ref={cardRef}>
-                <div className="home-text-block-inner">
-                  {block.title && (
-                    <h2 className={`home-tb-title intro-anim intro-anim-${introAnimation} ${tbVisible ? 'show' : ''}`}>
-                      {block.title}
-                    </h2>
-                  )}
-                  <p className={`home-tb-text intro-anim intro-anim-${introAnimation} ${tbVisible ? 'show' : ''}`}
-                     style={{ transitionDelay: block.title ? tbDelay : '0s' }}>
-                    {block.lines.map((line, i) => (
-                      <React.Fragment key={i}>
-                        {i > 0 && <br />}
-                        {line}
-                      </React.Fragment>
-                    ))}
-                  </p>
-                  {block.links && block.links.length > 0 && (
-                    <div className={`home-tb-links intro-anim intro-anim-${introAnimation} ${tbVisible ? 'show' : ''}`}
-                         style={{ transitionDelay: block.title ? '0.3s' : tbDelay }}>
-                      {block.links.map((lnk, i) => (
-                        lnk.url.startsWith('/') || lnk.url.startsWith('#')
-                          ? <Link key={i} to={lnk.url} className="text-link">{lnk.label}</Link>
-                          : <a key={i} href={lnk.url} className="text-link" target="_blank" rel="noopener noreferrer">{lnk.label}</a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+            })}
         </div>
       </section>
     </div>

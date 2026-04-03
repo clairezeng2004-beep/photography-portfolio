@@ -421,6 +421,16 @@
   background: #faf9f7;
 }
 
+/* Intro row — greeting / navLinks / textBlocks occupy their own full-width rows */
+.home-intro-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto 48px;
+}
+
+/* Cards grid — only collection cards, last row centered */
 .cards-grid {
   display: flex;
   flex-wrap: wrap;
@@ -1001,7 +1011,7 @@
 
 /* ============ HOME TEXT BLOCKS ============ */
 .home-text-block {
-  grid-column: 1 / -1;
+  width: 100%;
   display: flex;
   justify-content: center;
   padding: 0 24px;
@@ -1012,10 +1022,9 @@
   max-width: 640px;
 }
 
-/* Extra spacing when text-block is followed by a card row */
-.home-text-block:has(+ .card),
-.home-text-block:has(+ [class*="card-anim"]) {
-  margin-bottom: 28px;
+/* Extra spacing when text-block is followed by another text-block */
+.home-text-block + .home-text-block {
+  margin-top: 8px;
 }
 
 .home-tb-title {
@@ -1049,9 +1058,11 @@
   .home-text-block {
     padding: 0 16px;
   }
-  .home-text-block:has(+ .card),
-  .home-text-block:has(+ [class*="card-anim"]) {
-    margin-bottom: 20px;
+  .home-text-block + .home-text-block {
+    margin-top: 6px;
+  }
+  .home-intro-row {
+    margin-bottom: 32px;
   }
   .home-tb-title {
     font-size: 24px;
