@@ -105,7 +105,8 @@ const DragCropper: React.FC<{
 }> = ({ src, aspect, onCropArea, initialCropPixels }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
-  const [imgLayout, setImgLayout] = useState<{ w: number; h: number; x: number; y: number } | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [crop, setCrop] = useState<CropRect>({ x: 0, y: 0, w: 0, h: 0 });
   const dragState = useRef<{
@@ -137,17 +138,17 @@ const DragCropper: React.FC<{
 
   // Recalculate when aspect changes
   useEffect(() => {
-    if (imgLayout) {
-      const rect = initCrop(imgLayout.w, imgLayout.h);
+    if (imgSize) {
+      const rect = initCrop(imgSize.w, imgSize.h);
       reportCrop(rect);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aspect]);
 
   const reportCrop = useCallback((c: CropRect) => {
-    if (!imgLayout || !naturalSize) return;
-    const scaleX = naturalSize.w / imgLayout.w;
-    const scaleY = naturalSize.h / imgLayout.h;
+    if (!imgSize || !naturalSize) return;
+    const scaleX = naturalSize.w / imgSize.w;
+    const scaleY = naturalSize.h / imgSize.h;
     let px = Math.round(c.x * scaleX);
     let py = Math.round(c.y * scaleY);
     let pw = Math.round(c.w * scaleX);
@@ -158,32 +159,28 @@ const DragCropper: React.FC<{
     if (px + pw > naturalSize.w) pw = naturalSize.w - px;
     if (py + ph > naturalSize.h) ph = naturalSize.h - py;
     onCropArea({ x: px, y: py, width: pw, height: ph });
-  }, [imgLayout, naturalSize, onCropArea]);
+  }, [imgSize, naturalSize, onCropArea]);
 
   const handleImgLoad = () => {
     const img = imgRef.current;
-    const container = containerRef.current;
-    if (!img || !container) return;
+    if (!img) return;
     const nat = { w: img.naturalWidth, h: img.naturalHeight };
     setNaturalSize(nat);
-    // Double RAF to ensure layout is fully settled
+    // Use the img element's rendered size directly (no need for getBoundingClientRect offset)
+    // The wrapper div will match the image size exactly via inline-block + line-height:0
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const imgRect = img.getBoundingClientRect();
-        const contRect = container.getBoundingClientRect();
-        const layout = {
-          w: imgRect.width,
-          h: imgRect.height,
-          x: imgRect.left - contRect.left,
-          y: imgRect.top - contRect.top,
+        const size = {
+          w: img.clientWidth,
+          h: img.clientHeight,
         };
-        setImgLayout(layout);
+        setImgSize(size);
 
         let rect: CropRect;
         if (initialCropPixels) {
           // Convert natural pixel coords to display coords
-          const scaleX = layout.w / nat.w;
-          const scaleY = layout.h / nat.h;
+          const scaleX = size.w / nat.w;
+          const scaleY = size.h / nat.h;
           rect = {
             x: initialCropPixels.x * scaleX,
             y: initialCropPixels.y * scaleY,
@@ -191,17 +188,17 @@ const DragCropper: React.FC<{
             h: initialCropPixels.height * scaleY,
           };
           // Clamp to image bounds
-          rect.x = Math.max(0, Math.min(rect.x, layout.w - rect.w));
-          rect.y = Math.max(0, Math.min(rect.y, layout.h - rect.h));
-          if (rect.w > layout.w) { rect.w = layout.w; rect.h = rect.w / aspect; }
-          if (rect.h > layout.h) { rect.h = layout.h; rect.w = rect.h * aspect; }
+          rect.x = Math.max(0, Math.min(rect.x, size.w - rect.w));
+          rect.y = Math.max(0, Math.min(rect.y, size.h - rect.h));
+          if (rect.w > size.w) { rect.w = size.w; rect.h = rect.w / aspect; }
+          if (rect.h > size.h) { rect.h = size.h; rect.w = rect.h * aspect; }
           setCrop(rect);
         } else {
-          rect = initCrop(layout.w, layout.h);
+          rect = initCrop(size.w, size.h);
         }
         // Report initial crop
-        const scaleX2 = nat.w / layout.w;
-        const scaleY2 = nat.h / layout.h;
+        const scaleX2 = nat.w / size.w;
+        const scaleY2 = nat.h / size.h;
         let ix = Math.round(rect.x * scaleX2);
         let iy = Math.round(rect.y * scaleY2);
         let iw = Math.round(rect.w * scaleX2);
@@ -217,20 +214,24 @@ const DragCropper: React.FC<{
   };
 
   const clampCrop = useCallback((c: CropRect): CropRect => {
-    if (!imgLayout) return c;
+    if (!imgSize) return c;
     const minSize = 30;
     let { x, y, w, h } = c;
     w = Math.max(w, minSize);
     h = Math.max(h, minSize / aspect);
-    // Ensure within image bounds
+    // Clamp size to image bounds first
+    if (w > imgSize.w) { w = imgSize.w; h = w / aspect; }
+    if (h > imgSize.h) { h = imgSize.h; w = h * aspect; }
+    // Then clamp position
     if (x < 0) x = 0;
     if (y < 0) y = 0;
-    if (x + w > imgLayout.w) x = imgLayout.w - w;
-    if (y + h > imgLayout.h) y = imgLayout.h - h;
-    if (x < 0) { x = 0; w = imgLayout.w; h = w / aspect; }
-    if (y < 0) { y = 0; h = imgLayout.h; w = h * aspect; }
+    if (x + w > imgSize.w) x = imgSize.w - w;
+    if (y + h > imgSize.h) y = imgSize.h - h;
+    // Final safety clamp
+    x = Math.max(0, x);
+    y = Math.max(0, y);
     return { x, y, w, h };
-  }, [imgLayout, aspect]);
+  }, [imgSize, aspect]);
 
   const handlePointerDown = (e: React.PointerEvent, type: 'move' | 'nw' | 'ne' | 'sw' | 'se') => {
     e.preventDefault();
@@ -246,7 +247,7 @@ const DragCropper: React.FC<{
   // Use document-level listeners so dragging works even when pointer leaves crop area
   useEffect(() => {
     const handleMove = (e: PointerEvent) => {
-      if (!dragState.current || !imgLayout) return;
+      if (!dragState.current || !imgSize) return;
       const { type, startX, startY, startCrop } = dragState.current;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
@@ -269,19 +270,19 @@ const DragCropper: React.FC<{
         if (type === 'se') {
           newW = Math.max(30, startCrop.w + dx);
           newH = newW / aspect;
-          if (newX + newW > imgLayout.w) { newW = imgLayout.w - newX; newH = newW / aspect; }
-          if (newY + newH > imgLayout.h) { newH = imgLayout.h - newY; newW = newH * aspect; }
+          if (newX + newW > imgSize.w) { newW = imgSize.w - newX; newH = newW / aspect; }
+          if (newY + newH > imgSize.h) { newH = imgSize.h - newY; newW = newH * aspect; }
         } else if (type === 'sw') {
           newW = Math.max(30, startCrop.w - dx);
           newH = newW / aspect;
           newX = startCrop.x + startCrop.w - newW;
           if (newX < 0) { newX = 0; newW = startCrop.x + startCrop.w; newH = newW / aspect; }
-          if (newY + newH > imgLayout.h) { newH = imgLayout.h - newY; newW = newH * aspect; newX = startCrop.x + startCrop.w - newW; }
+          if (newY + newH > imgSize.h) { newH = imgSize.h - newY; newW = newH * aspect; newX = startCrop.x + startCrop.w - newW; }
         } else if (type === 'ne') {
           newW = Math.max(30, startCrop.w + dx);
           newH = newW / aspect;
           newY = startCrop.y + startCrop.h - newH;
-          if (newX + newW > imgLayout.w) { newW = imgLayout.w - newX; newH = newW / aspect; newY = startCrop.y + startCrop.h - newH; }
+          if (newX + newW > imgSize.w) { newW = imgSize.w - newX; newH = newW / aspect; newY = startCrop.y + startCrop.h - newH; }
           if (newY < 0) { newY = 0; newH = startCrop.y + startCrop.h; newW = newH * aspect; }
         } else if (type === 'nw') {
           newW = Math.max(30, startCrop.w - dx);
@@ -309,9 +310,9 @@ const DragCropper: React.FC<{
       document.removeEventListener('pointermove', handleMove);
       document.removeEventListener('pointerup', handleUp);
     };
-  }, [imgLayout, aspect, clampCrop, reportCrop]);
+  }, [imgSize, aspect, clampCrop, reportCrop]);
 
-  if (!imgLayout) {
+  if (!imgSize) {
     return (
       <div className="crop-canvas-container" ref={containerRef}>
         <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" />
@@ -327,66 +328,69 @@ const DragCropper: React.FC<{
       className="crop-canvas-container"
       ref={containerRef}
     >
-      <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" />
-      {/* Dark overlay masks */}
-      {/* Top */}
-      <div style={{ position: 'absolute', left: imgLayout.x, top: imgLayout.y, width: imgLayout.w, height: crop.y, background: maskColor }} />
-      {/* Bottom */}
-      <div style={{ position: 'absolute', left: imgLayout.x, top: imgLayout.y + crop.y + crop.h, width: imgLayout.w, height: imgLayout.h - crop.y - crop.h, background: maskColor }} />
-      {/* Left */}
-      <div style={{ position: 'absolute', left: imgLayout.x, top: imgLayout.y + crop.y, width: crop.x, height: crop.h, background: maskColor }} />
-      {/* Right */}
-      <div style={{ position: 'absolute', left: imgLayout.x + crop.x + crop.w, top: imgLayout.y + crop.y, width: imgLayout.w - crop.x - crop.w, height: crop.h, background: maskColor }} />
+      {/* Wrapper that exactly matches the image size; all overlays are positioned relative to this */}
+      <div ref={wrapperRef} style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+        <img ref={imgRef} src={src} alt="裁剪" onLoad={handleImgLoad} className="crop-base-img" />
+        {/* Dark overlay masks - positioned relative to wrapper (= image) */}
+        {/* Top */}
+        <div style={{ position: 'absolute', left: 0, top: 0, width: imgSize.w, height: crop.y, background: maskColor }} />
+        {/* Bottom */}
+        <div style={{ position: 'absolute', left: 0, top: crop.y + crop.h, width: imgSize.w, height: imgSize.h - crop.y - crop.h, background: maskColor }} />
+        {/* Left */}
+        <div style={{ position: 'absolute', left: 0, top: crop.y, width: crop.x, height: crop.h, background: maskColor }} />
+        {/* Right */}
+        <div style={{ position: 'absolute', left: crop.x + crop.w, top: crop.y, width: imgSize.w - crop.x - crop.w, height: crop.h, background: maskColor }} />
 
-      {/* Crop border */}
-      <div
-        className="crop-box"
-        style={{
-          position: 'absolute',
-          left: imgLayout.x + crop.x,
-          top: imgLayout.y + crop.y,
-          width: crop.w,
-          height: crop.h,
-          border: '2px solid #fff',
-          cursor: 'move',
-          boxSizing: 'border-box',
-        }}
-        onPointerDown={(e) => handlePointerDown(e, 'move')}
-      >
-        {/* Grid lines */}
-        <div style={{ position: 'absolute', left: '33.3%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.4)' }} />
-        <div style={{ position: 'absolute', left: '66.6%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.4)' }} />
-        <div style={{ position: 'absolute', top: '33.3%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.4)' }} />
-        <div style={{ position: 'absolute', top: '66.6%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.4)' }} />
+        {/* Crop border */}
+        <div
+          className="crop-box"
+          style={{
+            position: 'absolute',
+            left: crop.x,
+            top: crop.y,
+            width: crop.w,
+            height: crop.h,
+            border: '2px solid #fff',
+            cursor: 'move',
+            boxSizing: 'border-box',
+          }}
+          onPointerDown={(e) => handlePointerDown(e, 'move')}
+        >
+          {/* Grid lines */}
+          <div style={{ position: 'absolute', left: '33.3%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.4)' }} />
+          <div style={{ position: 'absolute', left: '66.6%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.4)' }} />
+          <div style={{ position: 'absolute', top: '33.3%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.4)' }} />
+          <div style={{ position: 'absolute', top: '66.6%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.4)' }} />
 
-        {/* Corner handles with double-headed diagonal arrows */}
-        <div className="crop-handle crop-handle-nw" onPointerDown={(e) => handlePointerDown(e, 'nw')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(0deg)' }}>
-            <line x1="3" y1="3" x2="13" y2="13" />
-            <polyline points="3 8 3 3 8 3" />
-            <polyline points="13 8 13 13 8 13" />
-          </svg>
-        </div>
-        <div className="crop-handle crop-handle-ne" onPointerDown={(e) => handlePointerDown(e, 'ne')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(90deg)' }}>
-            <line x1="3" y1="3" x2="13" y2="13" />
-            <polyline points="3 8 3 3 8 3" />
-            <polyline points="13 8 13 13 8 13" />
-          </svg>
-        </div>
-        <div className="crop-handle crop-handle-sw" onPointerDown={(e) => handlePointerDown(e, 'sw')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-90deg)' }}>
-            <line x1="3" y1="3" x2="13" y2="13" />
-            <polyline points="3 8 3 3 8 3" />
-            <polyline points="13 8 13 13 8 13" />
-          </svg>
-        </div>
-        <div className="crop-handle crop-handle-se" onPointerDown={(e) => handlePointerDown(e, 'se')}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(180deg)' }}>
-            <line x1="3" y1="3" x2="13" y2="13" />
-            <polyline points="3 8 3 3 8 3" />
-            <polyline points="13 8 13 13 8 13" />
-          </svg>
+          {/* Corner handles with double-headed diagonal arrows */}
+          <div className="crop-handle crop-handle-nw" onPointerDown={(e) => handlePointerDown(e, 'nw')}>
+            <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(0deg)' }}>
+              <line x1="3" y1="3" x2="13" y2="13" />
+              <polyline points="3 8 3 3 8 3" />
+              <polyline points="13 8 13 13 8 13" />
+            </svg>
+          </div>
+          <div className="crop-handle crop-handle-ne" onPointerDown={(e) => handlePointerDown(e, 'ne')}>
+            <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(90deg)' }}>
+              <line x1="3" y1="3" x2="13" y2="13" />
+              <polyline points="3 8 3 3 8 3" />
+              <polyline points="13 8 13 13 8 13" />
+            </svg>
+          </div>
+          <div className="crop-handle crop-handle-sw" onPointerDown={(e) => handlePointerDown(e, 'sw')}>
+            <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-90deg)' }}>
+              <line x1="3" y1="3" x2="13" y2="13" />
+              <polyline points="3 8 3 3 8 3" />
+              <polyline points="13 8 13 13 8 13" />
+            </svg>
+          </div>
+          <div className="crop-handle crop-handle-se" onPointerDown={(e) => handlePointerDown(e, 'se')}>
+            <svg viewBox="0 0 16 16" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(180deg)' }}>
+              <line x1="3" y1="3" x2="13" y2="13" />
+              <polyline points="3 8 3 3 8 3" />
+              <polyline points="13 8 13 13 8 13" />
+            </svg>
+          </div>
         </div>
       </div>
     </div>
