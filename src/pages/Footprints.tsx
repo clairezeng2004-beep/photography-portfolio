@@ -688,8 +688,19 @@ const Footprints: React.FC = () => {
     const dx = e.clientX - panStart.current.x;
     const dy = e.clientY - panStart.current.y;
     if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved.current = true;
-    setPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy });
-  }, []);
+    // Convert pixel deltas to SVG coordinate deltas
+    const container = svgContainerRef.current;
+    if (container) {
+      const containerW = container.clientWidth;
+      const scaleRatio = vc.width / containerW; // viewBox-width / actual-pixel-width
+      setPan({
+        x: panStart.current.panX + dx * scaleRatio,
+        y: panStart.current.panY + dy * scaleRatio,
+      });
+    } else {
+      setPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy });
+    }
+  }, [vc.width]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     isPanning.current = false;
