@@ -99,11 +99,7 @@
   border: 1px solid #f5c6c4;
 }
 
-.cloud-sync-banner.success {
-  background: #e6f4ea;
-  color: #137333;
-  border: 1px solid #c4e7ce;
-}
+
 
 .sync-retry-btn {
   background: #c5221f;

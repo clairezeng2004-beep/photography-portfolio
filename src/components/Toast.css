@@ -19,6 +19,8 @@
   font-weight: 300;
   letter-spacing: 0.04em;
   white-space: nowrap;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .toast-content svg {

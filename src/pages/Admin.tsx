@@ -286,6 +286,13 @@ const Admin: React.FC = () => {
     setToastVisible(true);
   }, []);
 
+  // Show toast when cloud sync succeeds (instead of banner)
+  useEffect(() => {
+    if (cloudSyncStatus === 'success') {
+      showToast('云端同步完成');
+    }
+  }, [cloudSyncStatus, showToast]);
+
   // R2 图床 state
   const [r2WorkerUrl, setR2WorkerUrlState] = useState(getR2WorkerUrl());
   const [r2Secret, setR2SecretState] = useState(getR2Secret());
@@ -844,11 +851,7 @@ const Admin: React.FC = () => {
           <button onClick={retrySyncAll} className="sync-retry-btn">重试同步</button>
         </div>
       )}
-      {cloudSyncStatus === 'success' && (
-        <div className="cloud-sync-banner success">
-          <span>✅ 云端同步完成</span>
-        </div>
-      )}
+
       <div className="admin-container">
         {/* Sidebar */}
         <div className="admin-sidebar">
