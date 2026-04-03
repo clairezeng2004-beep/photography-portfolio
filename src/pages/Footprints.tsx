@@ -801,10 +801,10 @@ const Footprints: React.FC = () => {
         const bboxW = x1 - x0;
         const bboxH = y1 - y0;
         const area = bboxW * bboxH;
-        // Skip countries too small on screen at current zoom
-        // Use sqrt(zoom) for gradual scaling — prevents sudden flood of labels
+        // Skip countries too small on screen — use fixed threshold regardless of zoom
+        // so label count stays stable across zoom levels
         const minArea = activeContinent === 'all' ? 500 : 1000;
-        if (area < minArea / (zoom * Math.sqrt(zoom))) return;
+        if (area < minArea) return;
         const cx = (x0 + x1) / 2;
         const cy = (y0 + y1) / 2;
         // Skip if centroid outside viewport
@@ -821,12 +821,14 @@ const Footprints: React.FC = () => {
       });
     }
 
-    // Scale charWidth/minDistY up on mobile to match larger font sizes in CSS
+    // Fixed charWidth/minDistY — independent of zoom so that the same set of
+    // labels is visible at every zoom level (density stays constant).
+    // Scale up on mobile to match larger CSS font sizes.
     const mobileFactor = isMobile ? 1.5 : 1;
-    const charWidth = (activeContinent === 'china' ? 8 / zoom : 9 / Math.sqrt(zoom)) * mobileFactor;
-    const minY = (activeContinent === 'china' ? 12 / zoom : 13 / Math.sqrt(zoom)) * mobileFactor;
+    const charWidth = (activeContinent === 'china' ? 8 : 9) * mobileFactor;
+    const minY = (activeContinent === 'china' ? 12 : 13) * mobileFactor;
     return filterOverlappingLabels(items, charWidth, minY);
-  }, [filteredGeos, projection, zoom, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures, chinaGeoJson, isMobile]);
+  }, [filteredGeos, projection, activeContinent, pathGenerator, vc.width, vc.height, visibleFeatures, chinaGeoJson, isMobile]);
 
   const visibleLabelKeys = labelResult.visible;
   const labelOffsets = labelResult.offsets;
@@ -1002,8 +1004,8 @@ const Footprints: React.FC = () => {
         >
           {/* Zoom controls */}
           <div className="map-zoom-controls">
-            <button className="zoom-btn" onClick={() => setZoom(z => Math.min(5, z * 1.3))} title="放大">+</button>
-            <button className="zoom-btn" onClick={() => setZoom(z => Math.max(0.5, z / 1.3))} title="缩小">−</button>
+            <button className="zoom-btn" onClick={() => setZoom(z => { const step = isMobile ? 1.5 : 1.3; return Math.min(5, z * step); })} title="放大">+</button>
+            <button className="zoom-btn" onClick={() => setZoom(z => { const step = isMobile ? 1.5 : 1.3; return Math.max(0.5, z / step); })} title="缩小">−</button>
             {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
               <button className="zoom-btn zoom-reset" onClick={handleResetZoom} title="重置">⟳</button>
             )}
