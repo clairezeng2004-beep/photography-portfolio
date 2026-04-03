@@ -422,11 +422,17 @@
 }
 
 .cards-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 18px;
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.cards-grid > * {
+  width: calc((100% - 18px * 3) / 4);
+  min-width: 0;
 }
 
 /* ============ CARD ANIMATIONS ============ */
@@ -832,15 +838,19 @@
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1200px) {
   .cards-grid {
-    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
+  }
+  .cards-grid > * {
+    width: calc((100% - 20px * 2) / 3);
   }
 }
 
 @media (max-width: 1024px) {
   .cards-grid {
-    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
+  }
+  .cards-grid > * {
+    width: calc((100% - 20px) / 2);
   }
 }
 
@@ -882,7 +892,8 @@
   .intro-text { font-size: 15px; line-height: 2; }
 
   .cards-section { padding: 40px 24px 80px; }
-  .cards-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .cards-grid { gap: 14px; }
+  .cards-grid > * { width: calc((100% - 14px) / 2); }
 
   /* Card text responsive — 手机端卡片标题和信息字号 */
   .flip-card-front-info .card-title,
