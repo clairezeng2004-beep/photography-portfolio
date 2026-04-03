@@ -65,7 +65,7 @@ const Footer: React.FC = () => {
             <ul className="footer-mobile-nav-row">
               {navLinks.map(link => (
                 <li key={link.name}>
-                  <Link to={link.path} onClick={scrollToTop}>{link.name}</Link>
+                  <Link to={link.path} onClick={() => window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })}>{link.name}</Link>
                 </li>
               ))}
             </ul>
@@ -108,7 +108,7 @@ const Footer: React.FC = () => {
               <ul className="footer-links">
                 {navLinks.map(link => (
                   <li key={link.name}>
-                    <Link to={link.path} onClick={scrollToTop}>{link.name}</Link>
+                    <Link to={link.path} onClick={() => window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })}>{link.name}</Link>
                   </li>
                 ))}
               </ul>
