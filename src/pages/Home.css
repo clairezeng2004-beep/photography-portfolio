@@ -223,6 +223,17 @@
   cursor: pointer;
   padding: 0;
   transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Enlarged touch/click area via pseudo-element */
+.hero-dot::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  right: -14px;
+  bottom: -14px;
 }
 
 .hero-dot.active {

@@ -148,12 +148,16 @@ const DragCropper: React.FC<{
     if (!imgLayout || !naturalSize) return;
     const scaleX = naturalSize.w / imgLayout.w;
     const scaleY = naturalSize.h / imgLayout.h;
-    onCropArea({
-      x: Math.round(c.x * scaleX),
-      y: Math.round(c.y * scaleY),
-      width: Math.round(c.w * scaleX),
-      height: Math.round(c.h * scaleY),
-    });
+    let px = Math.round(c.x * scaleX);
+    let py = Math.round(c.y * scaleY);
+    let pw = Math.round(c.w * scaleX);
+    let ph = Math.round(c.h * scaleY);
+    // Clamp to natural image bounds to prevent black edges from rounding
+    if (px < 0) px = 0;
+    if (py < 0) py = 0;
+    if (px + pw > naturalSize.w) pw = naturalSize.w - px;
+    if (py + ph > naturalSize.h) ph = naturalSize.h - py;
+    onCropArea({ x: px, y: py, width: pw, height: ph });
   }, [imgLayout, naturalSize, onCropArea]);
 
   const handleImgLoad = () => {
@@ -198,12 +202,16 @@ const DragCropper: React.FC<{
         // Report initial crop
         const scaleX2 = nat.w / layout.w;
         const scaleY2 = nat.h / layout.h;
-        onCropArea({
-          x: Math.round(rect.x * scaleX2),
-          y: Math.round(rect.y * scaleY2),
-          width: Math.round(rect.w * scaleX2),
-          height: Math.round(rect.h * scaleY2),
-        });
+        let ix = Math.round(rect.x * scaleX2);
+        let iy = Math.round(rect.y * scaleY2);
+        let iw = Math.round(rect.w * scaleX2);
+        let ih = Math.round(rect.h * scaleY2);
+        // Clamp to natural image bounds
+        if (ix < 0) ix = 0;
+        if (iy < 0) iy = 0;
+        if (ix + iw > nat.w) iw = nat.w - ix;
+        if (iy + ih > nat.h) ih = nat.h - iy;
+        onCropArea({ x: ix, y: iy, width: iw, height: ih });
       });
     });
   };
