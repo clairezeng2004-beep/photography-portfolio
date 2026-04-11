@@ -18,13 +18,10 @@ const STORAGE_KEY = 'mailerlite_api_key';
 const CLOUD_KEY = 'mailerlite_api_key';
 
 /**
- * Get the API base URL — use proxy in production, direct API in dev.
+ * Get the API base URL — always use MailerLite API directly (CORS supported).
  */
 function getApiBase(): string {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'https://connect.mailerlite.com/api';
-  }
-  return '/api/mailerlite';
+  return 'https://connect.mailerlite.com/api';
 }
 
 export function getNewsletterApiKey(): string {
