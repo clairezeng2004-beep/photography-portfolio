@@ -83,6 +83,8 @@ export interface SubscribeResult {
  */
 export async function subscribeEmail(email: string): Promise<SubscribeResult> {
   const apiKey = getNewsletterApiKey();
+  console.log('[newsletter] subscribeEmail called, email:', email);
+  console.log('[newsletter] API key present:', !!apiKey, 'length:', apiKey.length);
 
   if (!apiKey) {
     // Fallback: save to localStorage
@@ -99,8 +101,10 @@ export async function subscribeEmail(email: string): Promise<SubscribeResult> {
 
   // Use MailerLite API (proxied in production)
   const apiBase = getApiBase();
+  const url = `${apiBase}/subscribers`;
+  console.log('[newsletter] Sending request to:', url);
   try {
-    const res = await fetch(`${apiBase}/subscribers`, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -152,7 +156,8 @@ export async function subscribeEmail(email: string): Promise<SubscribeResult> {
 
     return { success: false, message: `订阅失败 (${res.status})` };
   } catch (err: any) {
-    console.error('Newsletter subscribe error:', err);
+    console.error('[newsletter] Subscribe error:', err?.message || err);
+    console.error('[newsletter] Error details:', err);
     // Network error — fallback to localStorage
     const subscribers: string[] = JSON.parse(
       localStorage.getItem('newsletter_subscribers') || '[]'
