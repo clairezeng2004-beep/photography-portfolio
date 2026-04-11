@@ -299,7 +299,7 @@ const Admin: React.FC = () => {
   const [showImgbbConfig, setShowImgbbConfig] = useState(false);
   const [imgbbConfigured, setImgbbConfigured] = useState(isImageHostConfigured());
 
-  // Newsletter (Buttondown) state
+  // Newsletter (MailerLite) state
   const [newsletterKey, setNewsletterKey] = useState(getNewsletterApiKey());
   const [showNewsletterConfig, setShowNewsletterConfig] = useState(false);
   const [newsletterConfigured, setNewsletterConfigured] = useState(isNewsletterConfigured());
@@ -991,7 +991,7 @@ const Admin: React.FC = () => {
           {showNewsletterConfig && (
             <div className="imgbb-config-panel">
               <p className="imgbb-config-desc">
-                配置 <a href="https://buttondown.com" target="_blank" rel="noreferrer">Buttondown</a> 后，网站底部和订阅弹窗的邮箱订阅将自动同步到你的 Newsletter 后台。
+                配置 <a href="https://www.mailerlite.com" target="_blank" rel="noreferrer">MailerLite</a> 后，网站底部和订阅弹窗的邮箱订阅将自动同步到你的 Newsletter 后台。
               </p>
               <div className="imgbb-config-status">
                 {newsletterConfigured
@@ -1004,7 +1004,7 @@ const Admin: React.FC = () => {
                 className="imgbb-key-input"
                 value={newsletterKey}
                 onChange={(e) => setNewsletterKey(e.target.value)}
-                placeholder="粘贴 Buttondown API Key..."
+                placeholder="粘贴 MailerLite API Token..."
               />
               <button
                 className="imgbb-save-btn"

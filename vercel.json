@@ -1,8 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/api/buttondown/:path*",
-      "destination": "https://api.buttondown.com/v1/:path*"
+      "source": "/api/mailerlite/:path*",
+      "destination": "https://connect.mailerlite.com/api/:path*"
     },
     {
       "source": "/api/r2-upload",
