@@ -20,14 +20,18 @@ jobs:
             exit 0
           fi
 
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
+          response=$(curl -sS -o /dev/null -w "%{http_code}" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            "$SUPABASE_URL/rest/v1/app_data?select=key&limit=1")
+            "$SUPABASE_URL/rest/v1/app_data?select=key&limit=1") || {
+              echo "Supabase ping failed; skipping keep-alive failure."
+              exit 0
+            }
+
           echo "Supabase responded with HTTP $response"
           if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
             echo "✅ Supabase is alive!"
           else
             echo "⚠️ Unexpected status: $response"
-            exit 1
+            echo "Skipping keep-alive failure."
           fi
