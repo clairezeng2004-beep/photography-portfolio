@@ -19,7 +19,7 @@ import {
   resolveLandmarkToCity,
   CityEntry,
 } from '../data/geoData';
-import ImageUploader from '../components/ImageUploader';
+import ImageUploader, { UploadedImageInfo } from '../components/ImageUploader';
 import { getR2WorkerUrl, setR2WorkerUrl, getR2Secret, setR2Secret, isImageHostConfigured, countBase64Images, migrateAllToR2, MigrationProgress } from '../utils/imageHost';
 import { getNewsletterApiKey, setNewsletterApiKey, isNewsletterConfigured } from '../utils/newsletter';
 import { listBackups, getBackup, deleteBackup, createBackup, BackupEntry } from '../utils/supabase';
@@ -72,6 +72,33 @@ function extractFromTitle(title: string): { location?: string; year?: number } {
   }
 
   return result;
+}
+
+function createPhotoFromUpload(img: UploadedImageInfo, id: string, alt: string): Photo {
+  return {
+    id,
+    url: img.imageUrl,
+    thumbnail: img.thumbnailUrl,
+    alt,
+    width: 1920,
+    height: 1080,
+    originalFileName: img.originalFileName,
+    takenAt: img.takenAt,
+    uploadedAt: img.uploadedAt,
+  };
+}
+
+function formatPhotoDate(value?: string): string {
+  if (!value) return '未读取到';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.replace('T', ' ');
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 /* ============================================================
@@ -651,17 +678,10 @@ const Admin: React.FC = () => {
     showToast('数据已导出');
   };
 
-  const handleAddNewPhotos = (images: { imageUrl: string; thumbnailUrl: string }[]) => {
+  const handleAddNewPhotos = (images: UploadedImageInfo[]) => {
     setNewCollection(prev => {
       const existing = prev.photos || [];
-      const added = images.map((img, index) => ({
-        id: `${Date.now()}-${index}`,
-        url: img.imageUrl,
-        thumbnail: img.thumbnailUrl,
-        alt: prev.title || '作品集照片',
-        width: 1920,
-        height: 1080,
-      }));
+      const added = images.map((img, index) => createPhotoFromUpload(img, `${Date.now()}-${index}`, prev.title || '作品集照片'));
       const combined = [...existing, ...added];
       const coverImage = prev.coverImage || combined[0]?.url || '';
       return { ...prev, photos: combined, coverImage };
@@ -759,15 +779,12 @@ const Admin: React.FC = () => {
     await updateCollections(updated);
   };
 
-  const handleAddPhoto = (collectionId: string, imageUrl: string, thumbnailUrl: string) => {
-    const photo: Photo = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      url: imageUrl,
-      thumbnail: thumbnailUrl,
-      alt: '新照片',
-      width: 1920,
-      height: 1080
-    };
+  const handleAddPhoto = (collectionId: string, imageUrl: string, thumbnailUrl: string, info?: UploadedImageInfo) => {
+    const photo = createPhotoFromUpload(
+      info || { imageUrl, thumbnailUrl },
+      `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      '新照片'
+    );
     addPhoto(collectionId, photo);
   };
 
@@ -843,6 +860,11 @@ const Admin: React.FC = () => {
       {cloudSyncStatus === 'syncing' && (
         <div className="cloud-sync-banner syncing">
           <span>☁️ 正在同步到云端...</span>
+        </div>
+      )}
+      {cloudSyncStatus === 'success' && (
+        <div className="cloud-sync-banner success">
+          <span>✓ 云端同步完成</span>
         </div>
       )}
       {cloudSyncStatus === 'error' && pendingSyncKeys.length > 0 && (
@@ -1563,19 +1585,16 @@ const Admin: React.FC = () => {
                               showToast('作品集已保存');
                             }}
                             onDelete={() => handleDeleteCollection(collection.id)}
-                            onAddPhoto={(url, thumb) => {
-                              handleAddPhoto(collection.id, url, thumb);
+                            onAddPhoto={(url, thumb, info) => {
+                              handleAddPhoto(collection.id, url, thumb, info);
                               showToast('照片已添加');
                             }}
                             onAddPhotos={async (images) => {
-                              const newPhotos = images.map((img, i) => ({
-                                id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
-                                url: img.imageUrl,
-                                thumbnail: img.thumbnailUrl,
-                                alt: '新照片',
-                                width: 1920,
-                                height: 1080,
-                              }));
+                              const newPhotos = images.map((img, i) => createPhotoFromUpload(
+                                img,
+                                `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
+                                '新照片'
+                              ));
                               const updated = collections.map(c =>
                                 c.id === collection.id
                                   ? { ...c, photos: [...c.photos, ...newPhotos] }
@@ -2538,8 +2557,8 @@ interface CollectionCardProps {
   onToggleEdit: () => void;
   onSave: (data: Partial<PhotoCollection>) => void;
   onDelete: () => void;
-  onAddPhoto: (url: string, thumb: string) => void;
-  onAddPhotos?: (images: { imageUrl: string; thumbnailUrl: string }[]) => void;
+  onAddPhoto: (url: string, thumb: string, info?: UploadedImageInfo) => void;
+  onAddPhotos?: (images: UploadedImageInfo[]) => void;
   onRemovePhoto: (photoId: string) => void;
   onUpdatePhoto: (photoId: string, data: Partial<Photo>) => void;
   onMovePhotos: (photoIds: string[], targetCollectionId: string | 'new', newCollectionTitle?: string) => void;
@@ -3072,6 +3091,10 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
                           <div className="photo-layout-toggle">
                             <button type="button" className={`layout-btn ${(!photo.layout || photo.layout === 'full') ? 'active' : ''}`} onClick={() => onUpdatePhoto(photo.id, { layout: 'full' })} title="单张一行">单张</button>
                             <button type="button" className={`layout-btn ${photo.layout === 'half' ? 'active' : ''}`} onClick={() => onUpdatePhoto(photo.id, { layout: 'half' })} title="两张并排">并排</button>
+                          </div>
+                          <div className="photo-admin-meta">
+                            <div><span>文件名</span>{photo.originalFileName || '未记录'}</div>
+                            <div><span>拍摄时间</span>{formatPhotoDate(photo.takenAt)}</div>
                           </div>
                           <ClearableTextarea className="photo-caption-input" value={photo.caption || ''} onChange={(e) => onUpdatePhoto(photo.id, { caption: e.target.value })} placeholder="图片前配文（出现在图片上方）" rows={2} />
                           <ClearableInput type="text" className="photo-footnote-input" value={photo.footnote || ''} onChange={(e) => onUpdatePhoto(photo.id, { footnote: e.target.value })} placeholder="脚注（图片下方小字）" />

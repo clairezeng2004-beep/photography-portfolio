@@ -10,6 +10,9 @@ export interface Photo {
   caption?: string;
   footnote?: string;
   layout?: PhotoLayout;
+  originalFileName?: string;
+  takenAt?: string;
+  uploadedAt?: string;
 }
 
 export interface GeoInfo {

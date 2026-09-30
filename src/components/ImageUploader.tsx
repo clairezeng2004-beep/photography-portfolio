@@ -4,9 +4,17 @@ import { Upload, X, RefreshCw, Crop } from 'lucide-react';
 import { isImageHostConfigured, uploadToImgbb, fetchViaR2Proxy } from '../utils/imageHost';
 import './ImageUploader.css';
 
+export interface UploadedImageInfo {
+  imageUrl: string;
+  thumbnailUrl: string;
+  originalFileName?: string;
+  takenAt?: string;
+  uploadedAt?: string;
+}
+
 interface ImageUploaderProps {
-  onImageUpload: (imageUrl: string, thumbnailUrl: string) => void;
-  onMultiImageUpload?: (images: { imageUrl: string; thumbnailUrl: string }[]) => void;
+  onImageUpload: (imageUrl: string, thumbnailUrl: string, info?: UploadedImageInfo) => void;
+  onMultiImageUpload?: (images: UploadedImageInfo[]) => void;
   onCropOriginal?: (originalUrl: string) => void;
   currentImage?: string;
   onRemove?: () => void;
@@ -46,6 +54,79 @@ const DEFAULT_ASPECT_OPTIONS = [
   { label: '1:1', value: 1 },
   { label: '9:16', value: 9 / 16 },
 ];
+
+function readExifDate(view: DataView): string | undefined {
+  if (view.getUint16(0) !== 0xffd8) return undefined;
+
+  const readString = (pos: number, length: number) => {
+    let text = '';
+    for (let i = 0; i < length; i++) text += String.fromCharCode(view.getUint8(pos + i));
+    return text;
+  };
+
+  let offset = 2;
+  while (offset + 4 < view.byteLength) {
+    if (view.getUint8(offset) !== 0xff) return undefined;
+    const marker = view.getUint8(offset + 1);
+    const size = view.getUint16(offset + 2);
+    if (marker === 0xe1) {
+      const exif = offset + 4;
+      const header = readString(exif, 6);
+      if (header !== 'Exif\0\0') return undefined;
+
+      const tiff = exif + 6;
+      const little = view.getUint16(tiff) === 0x4949;
+      const get16 = (pos: number) => view.getUint16(pos, little);
+      const get32 = (pos: number) => view.getUint32(pos, little);
+      const readAscii = (pos: number, length: number) => readString(pos, length).replace(/\0+$/, '');
+
+      const scanIfd = (ifdOffset: number): string | undefined => {
+        const entries = get16(tiff + ifdOffset);
+        for (let i = 0; i < entries; i++) {
+          const entry = tiff + ifdOffset + 2 + i * 12;
+          const tag = get16(entry);
+          if (tag === 0x9003 || tag === 0x0132) {
+            const length = get32(entry + 4);
+            const valueOffset = length > 4 ? tiff + get32(entry + 8) : entry + 8;
+            return readAscii(valueOffset, length);
+          }
+          if (tag === 0x8769) {
+            const date = scanIfd(get32(entry + 8));
+            if (date) return date;
+          }
+        }
+        return undefined;
+      };
+
+      const firstIfd = get32(tiff + 4);
+      return scanIfd(firstIfd);
+    }
+    offset += 2 + size;
+  }
+  return undefined;
+}
+
+function normalizeExifDate(value?: string): string | undefined {
+  if (!value) return undefined;
+  const match = value.match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return undefined;
+  const [, y, m, d, hh, mm, ss = '00'] = match;
+  return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
+}
+
+async function getUploadInfo(file: File): Promise<Omit<UploadedImageInfo, 'imageUrl' | 'thumbnailUrl'>> {
+  let takenAt: string | undefined;
+  try {
+    takenAt = normalizeExifDate(readExifDate(new DataView(await file.arrayBuffer())));
+  } catch {
+    takenAt = undefined;
+  }
+  return {
+    originalFileName: file.name,
+    takenAt: takenAt || (file.lastModified ? new Date(file.lastModified).toISOString() : undefined),
+    uploadedAt: new Date().toISOString(),
+  };
+}
 
 /** Detect best lossless-like format the browser supports */
 function bestOutputFormat(): string {
@@ -437,6 +518,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const replaceInputRef = useRef<HTMLInputElement>(null);
 
   const [uploadProgress, setUploadProgress] = useState('');
+  const [cropUploadInfo, setCropUploadInfo] = useState<Omit<UploadedImageInfo, 'imageUrl' | 'thumbnailUrl'> | null>(null);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const croppedAreaPixelsRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -791,11 +873,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       const croppedUrl = await createCroppedImage(cropSource, croppedAreaPixels, cropWidth);
       const thumbnailBase64 = await createThumbnail(croppedUrl);
       const { imageUrl, thumbnailUrl } = await maybeUploadToHost(croppedUrl, thumbnailBase64);
-      onImageUpload(imageUrl, thumbnailUrl);
+      onImageUpload(imageUrl, thumbnailUrl, { imageUrl, thumbnailUrl, ...cropUploadInfo });
       // Pass the original (uncropped) image to the parent
       if (onCropOriginal) onCropOriginal(cropSource);
       setCropOpen(false);
       setCropSource(null);
+      setCropUploadInfo(null);
     } catch (e) {
       alert('裁剪失败，请更换图片或重试');
     }
@@ -813,8 +896,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
     reader.onload = async (e) => {
       const imageBase64 = e.target?.result as string;
+      const uploadInfo = await getUploadInfo(file);
       if (enableCrop) {
         setIsUploading(false);
+        setCropUploadInfo(uploadInfo);
         openCropper(imageBase64);
         return;
       }
@@ -823,7 +908,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         const compressed = await compressImage(imageBase64, compressMaxWidth, compressQuality);
         const thumbnailBase64 = await createThumbnail(compressed);
         const { imageUrl, thumbnailUrl } = await maybeUploadToHost(compressed, thumbnailBase64);
-        onImageUpload(imageUrl, thumbnailUrl);
+        onImageUpload(imageUrl, thumbnailUrl, { imageUrl, thumbnailUrl, ...uploadInfo });
       } catch (err) {
         console.error('Upload error:', err);
       }
@@ -833,7 +918,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const processOneFile = (file: File): Promise<{ imageUrl: string; thumbnailUrl: string } | null> => {
+  const processOneFile = (file: File): Promise<UploadedImageInfo | null> => {
     return new Promise((resolve) => {
       if (!file.type.startsWith('image/')) {
         resolve(null);
@@ -847,7 +932,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
           const compressed = await compressImage(imageBase64, compressMaxWidth, compressQuality);
           const thumbnailBase64 = await createThumbnail(compressed);
           const result = await maybeUploadToHost(compressed, thumbnailBase64);
-          resolve(result);
+          const uploadInfo = await getUploadInfo(file);
+          resolve({ ...result, ...uploadInfo });
         } catch (err) {
           console.error('processOneFile error:', err);
           resolve(null);
@@ -859,7 +945,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const handleFiles = async (files: File[]) => {
     setIsUploading(true);
-    const results: { imageUrl: string; thumbnailUrl: string }[] = [];
+    const results: UploadedImageInfo[] = [];
     for (let i = 0; i < files.length; i++) {
       setUploadProgress(`上传中 ${i + 1}/${files.length}...`);
       const result = await processOneFile(files[i]);
