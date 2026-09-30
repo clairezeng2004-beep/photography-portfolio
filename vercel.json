@@ -9,10 +9,6 @@
       "destination": "https://r2-upload-worker.clairezeng2004.workers.dev"
     },
     {
-      "source": "/api/supabase/:path*",
-      "destination": "https://eoqlyzeefsthnreoghlx.supabase.co/:path*"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
