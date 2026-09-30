@@ -1,37 +1,45 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
-
-// Singleton Supabase client
-let client: SupabaseClient | null = null;
-
-export function getSupabase(): SupabaseClient {
-  if (!client) {
-    client = createClient(supabaseUrl, supabaseAnonKey);
-  }
-  return client;
-}
 
 /** Check if Supabase is configured */
 export function isSupabaseConfigured(): boolean {
   return !!(supabaseUrl && supabaseAnonKey);
 }
 
-/** Wrap a PromiseLike with a timeout (ms). Rejects with a timeout error if exceeded. */
-function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number, label: string): Promise<T> {
-  const p = Promise.resolve(promiseLike);
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`[Supabase] timeout after ${ms}ms for "${label}"`)), ms);
-    p.then(
-      v => { clearTimeout(timer); resolve(v); },
-      e => { clearTimeout(timer); reject(e); }
-    );
-  });
-}
-
 const READ_TIMEOUT = 15000;
 const WRITE_TIMEOUT = 30000;
+
+function restBaseUrl(): string {
+  const isBrowser = typeof window !== 'undefined';
+  const host = isBrowser ? window.location.hostname : '';
+  if (isBrowser && host !== 'localhost' && host !== '127.0.0.1') {
+    return '/api/supabase/rest/v1';
+  }
+  return `${supabaseUrl}/rest/v1`;
+}
+
+async function supabaseFetch(path: string, init: RequestInit, timeout: number, label: string): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(`${restBaseUrl()}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${supabaseAnonKey}`,
+        ...(init.headers || {}),
+      },
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`[Supabase] ${label} failed: HTTP ${res.status} ${body}`);
+    }
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export interface CloudGetResult<T> {
   found: boolean;
@@ -50,20 +58,14 @@ export async function supabaseGet<T>(key: string): Promise<T | undefined> {
  * Throws on network / timeout errors.
  */
 export async function supabaseGetDetailed<T>(key: string): Promise<CloudGetResult<T>> {
-  const supabase = getSupabase();
-  const { data, error } = await withTimeout(
-    supabase.from('app_data').select('value, updated_at').eq('key', key).single(),
+  const res = await supabaseFetch(
+    `/app_data?select=value,updated_at&key=eq.${encodeURIComponent(key)}&limit=1`,
+    { method: 'GET' },
     READ_TIMEOUT,
     `GET ${key}`
   );
-
-  if (error) {
-    if (error.code === 'PGRST116') {
-      return { found: false };
-    }
-    throw error;
-  }
-
+  const rows = await res.json();
+  const data = rows[0];
   if (!data) return { found: false };
   const updatedAt = data.updated_at ? new Date(data.updated_at).getTime() : undefined;
   return { found: true, value: data.value as T, updatedAt };
@@ -74,20 +76,20 @@ export async function supabaseGetDetailed<T>(key: string): Promise<CloudGetResul
  * Single upsert — simple and reliable. Throws on failure.
  */
 export async function supabaseSet<T>(key: string, value: T): Promise<void> {
-  const supabase = getSupabase();
   const now = new Date().toISOString();
-  const row = { key, value: value as any, updated_at: now };
-
-  const { error } = await withTimeout(
-    supabase.from('app_data').upsert(row, { onConflict: 'key' }),
+  await supabaseFetch(
+    '/app_data?on_conflict=key',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify([{ key, value: value as any, updated_at: now }]),
+    },
     WRITE_TIMEOUT,
     `SET ${key}`
   );
-
-  if (error) {
-    console.error(`[Supabase] upsert failed for "${key}":`, error.message, error.code);
-    throw error;
-  }
 }
 
 /**
@@ -112,17 +114,12 @@ export async function supabaseSetWithRetry<T>(key: string, value: T, maxRetries 
 
 /** Delete a key from Supabase app_data table */
 export async function supabaseDelete(key: string): Promise<void> {
-  const supabase = getSupabase();
-  const { error } = await withTimeout(
-    supabase.from('app_data').delete().eq('key', key),
+  await supabaseFetch(
+    `/app_data?key=eq.${encodeURIComponent(key)}`,
+    { method: 'DELETE' },
     WRITE_TIMEOUT,
     `DELETE ${key}`
   );
-
-  if (error) {
-    console.error(`[Supabase] Failed to delete "${key}":`, error.message);
-    throw error;
-  }
 }
 
 /* ============================================================
@@ -164,21 +161,13 @@ export async function createBackup(snapshot: Record<string, any>): Promise<boole
 export async function listBackups(): Promise<BackupEntry[]> {
   if (!isSupabaseConfigured()) return [];
 
-  const supabase = getSupabase();
-  const { data, error } = await withTimeout(
-    supabase
-      .from('app_data')
-      .select('key, updated_at')
-      .like('key', `${BACKUP_KEY_PREFIX}%`)
-      .order('updated_at', { ascending: false }),
+  const res = await supabaseFetch(
+    `/app_data?select=key,updated_at&key=like.${encodeURIComponent(`${BACKUP_KEY_PREFIX}%`)}&order=updated_at.desc`,
+    { method: 'GET' },
     READ_TIMEOUT,
     'LIST backups'
   );
-
-  if (error) {
-    console.error('[Backup] list failed:', error.message);
-    return [];
-  }
+  const data = await res.json();
 
   return (data || []).map((row: any) => {
     const ts = parseInt(row.key.replace(BACKUP_KEY_PREFIX, ''), 10);

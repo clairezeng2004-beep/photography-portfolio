@@ -10,6 +10,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/supabase/*"
+  to = "https://eoqlyzeefsthnreoghlx.supabase.co/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

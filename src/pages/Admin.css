@@ -1068,34 +1068,60 @@
   color: #2a2a2a;
 }
 
-.card-meta {
+.card-meta,
+.card-geo-badge,
+.card-stats {
   display: flex;
   align-items: center;
-  gap: 8px;
+  min-height: 22px;
+  gap: 7px;
   font-family: 'Playfair Display', serif;
   font-style: italic;
   font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
   color: #999;
   letter-spacing: 0.06em;
-  margin-bottom: 12px;
   cursor: pointer;
   transition: color 0.2s ease;
   border-radius: 4px;
-  padding: 4px 0;
+  padding: 3px 0;
 }
 
-.card-meta:hover {
-  color: #2a2a2a;
+.card-meta,
+.card-geo-badge {
+  margin-bottom: 8px;
 }
 
-.card-meta:hover svg {
-  color: #2a2a2a;
+.card-meta span,
+.card-geo-badge span,
+.card-stats span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.card-meta svg {
-  color: #bbb;
+.card-meta svg,
+.card-geo-badge svg,
+.card-stats svg {
+  flex: 0 0 13px;
   width: 13px;
   height: 13px;
+  color: #bbb;
+  stroke-width: 1.8;
+}
+
+.card-meta:hover,
+.card-geo-badge.clickable:hover,
+.card-stats:hover {
+  color: #2a2a2a;
+}
+
+.card-meta:hover svg,
+.card-geo-badge.clickable:hover svg,
+.card-stats:hover svg {
+  color: #2a2a2a;
 }
 
 .card-description {
@@ -1109,35 +1135,6 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.card-stats {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-size: 12px;
-  color: #bbb;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-  transition: color 0.2s ease;
-  border-radius: 4px;
-  padding: 4px 0;
-}
-
-.card-stats:hover {
-  color: #2a2a2a;
-}
-
-.card-stats:hover svg {
-  color: #2a2a2a;
-}
-
-.card-stats svg {
-  color: #bbb;
-  width: 13px;
-  height: 13px;
 }
 
 /* ============ INLINE EDIT MODE ============ */
@@ -2121,26 +2118,6 @@
 }
 
 /* ============ GEO BADGE ON CARDS ============ */
-.card-geo-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  color: #999;
-  padding: 4px 0;
-  margin-bottom: 8px;
-}
-
-.card-geo-badge svg {
-  width: 11px;
-  height: 11px;
-  color: #bbb;
-}
-
 .card-geo-badge.unset {
   color: #ccc;
 }
@@ -4248,20 +4225,6 @@
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #f0eeea;
-}
-
-/* Clickable card geo badge */
-.card-geo-badge.clickable {
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.card-geo-badge.clickable:hover {
-  color: #2a2a2a;
-}
-
-.card-geo-badge.clickable:hover svg {
-  color: #2a2a2a;
 }
 
 /* ============ MOVE PHOTO BUTTON ============ */
